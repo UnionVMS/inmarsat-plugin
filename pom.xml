@@ -98,7 +98,7 @@
     </distributionManagement>
 
     <scm>
-        <connection>scm:git:https://github.com/UnionVMS/UVMS-[MODULE]-[PART].git</connection>
+        <connection>scm:git:https://github.com/UnionVMS/UVMS-TwoStage-PLUGIN.git</connection>
     </scm>
     
     <build>
