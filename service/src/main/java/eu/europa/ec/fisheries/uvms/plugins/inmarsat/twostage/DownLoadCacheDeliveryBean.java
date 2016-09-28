@@ -27,6 +27,7 @@ import eu.europa.ec.fisheries.schema.exchange.plugin.types.v1.PluginType;
 import eu.europa.ec.fisheries.schema.exchange.v1.ExchangeLogStatusTypeType;
 import eu.europa.ec.fisheries.uvms.exchange.model.exception.ExchangeModelMarshallException;
 import eu.europa.ec.fisheries.uvms.exchange.model.mapper.ExchangePluginResponseMapper;
+import eu.europa.ec.fisheries.uvms.exchange.model.util.DateUtils;
 import eu.europa.ec.fisheries.uvms.plugins.inmarsat.InmMessage;
 import eu.europa.ec.fisheries.uvms.plugins.inmarsat.InmPendingResponse;
 import eu.europa.ec.fisheries.uvms.plugins.inmarsat.StartupBean;
@@ -144,7 +145,7 @@ public class DownLoadCacheDeliveryBean {
         mp.setLongitude(msg.getBody().getLongitude());
         movement.setPosition(mp);
 
-        movement.setPositionTime(msg.getBody().getPositionDate());
+        movement.setPositionTime(DateUtils.parseTimestamp(msg.getBody().getPositionDate()));
 
         movement.setReportedCourse(msg.getBody().getCourse());
 
@@ -157,7 +158,7 @@ public class DownLoadCacheDeliveryBean {
         SetReportMovementType reportType = new SetReportMovementType();
         reportType.setMovement(movement);
         GregorianCalendar gcal = (GregorianCalendar) GregorianCalendar.getInstance();
-        reportType.setTimestamp(DatatypeFactory.newInstance().newXMLGregorianCalendar(gcal));
+        reportType.setTimestamp(gcal.getTime());
         reportType.setPluginName(startBean.getRegisterClassName());
         reportType.setPluginType(PluginType.SATELLITE_RECEIVER);
 

@@ -12,12 +12,7 @@ copy of the GNU General Public License along with the IFDM Suite. If not, see <h
 package eu.europa.ec.fisheries.uvms.plugins.inmarsat.twostage;
 
 import java.io.File;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.GregorianCalendar;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.Future;
 
 import javax.annotation.PostConstruct;
@@ -142,12 +137,8 @@ LES_NAME
         CommandType command = new CommandType();
         command.setCommand(CommandTypeType.POLL);
         command.setPluginName(startUp.getPLuginApplicationProperty("application.name"));
-        
-        GregorianCalendar gregorianCalendar = new GregorianCalendar();
-        DatatypeFactory datatypeFactory = DatatypeFactory.newInstance();
-        XMLGregorianCalendar now = datatypeFactory.newXMLGregorianCalendar(gregorianCalendar);
 
-        command.setTimestamp(now);
+        command.setTimestamp(new Date());
         
         PollType poll = new PollType();
         poll.setPollId("123");
