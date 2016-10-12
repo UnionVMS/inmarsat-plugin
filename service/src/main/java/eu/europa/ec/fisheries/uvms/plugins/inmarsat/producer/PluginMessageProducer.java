@@ -13,10 +13,7 @@ package eu.europa.ec.fisheries.uvms.plugins.inmarsat.producer;
 
 import eu.europa.ec.fisheries.uvms.exchange.model.constant.ExchangeModelConstants;
 import javax.annotation.Resource;
-import javax.ejb.LocalBean;
-import javax.ejb.Stateless;
-import javax.ejb.TransactionAttribute;
-import javax.ejb.TransactionAttributeType;
+import javax.ejb.*;
 import javax.jms.*;
 
 import org.slf4j.Logger;
@@ -24,17 +21,16 @@ import org.slf4j.LoggerFactory;
 
 import eu.europa.ec.fisheries.uvms.plugins.inmarsat.constants.ModuleQueue;
 
-@Stateless
-@LocalBean
+@Singleton
 public class PluginMessageProducer {
 
-    @Resource(mappedName = ExchangeModelConstants.EXCHANGE_MESSAGE_IN_QUEUE)
+    @Resource(mappedName = ExchangeModelConstants.NO_PREFIX_EXCHANGE_MESSAGE_IN_QUEUE)
     private Queue exchangeQueue;
 
-    @Resource(mappedName = ExchangeModelConstants.PLUGIN_EVENTBUS)
+    @Resource(mappedName = ExchangeModelConstants.NO_PREFIX_PLUGIN_EVENTBUS)
     private Topic eventBus;
 
-    @Resource(lookup = ExchangeModelConstants.CONNECTION_FACTORY)
+    @Resource(lookup = ExchangeModelConstants.NO_PREFIX_CONNECTION_FACTORY)
     private ConnectionFactory connectionFactory;
 
     private Connection connection = null;

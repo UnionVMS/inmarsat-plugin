@@ -21,11 +21,12 @@
         <commons.net.version>2.0</commons.net.version>
         <commons.lang.version>3.0</commons.lang.version>
 
-        <exchange.model.version>2.1.0</exchange.model.version>
+        <exchange.model.version>2.1.1-SNAPSHOT</exchange.model.version>
         <date.classifier>date</date.classifier>
 
         <project.scm.id>github</project.scm.id>
         <maven-release-plugin>2.5.3</maven-release-plugin>
+        <copy.ear.target>C:\dev\WebLogic\domain1213\servers\AdminServer\upload</copy.ear.target>
     </properties>
     
     <dependencies>

@@ -41,11 +41,13 @@ import eu.europa.ec.fisheries.uvms.plugins.inmarsat.StartupBean;
 import eu.europa.ec.fisheries.uvms.plugins.inmarsat.producer.PluginMessageProducer;
 import eu.europa.ec.fisheries.uvms.plugins.inmarsat.service.PluginService;
 
-@MessageDriven(mappedName = ExchangeModelConstants.PLUGIN_EVENTBUS, activationConfig = {
+@MessageDriven(mappedName = ExchangeModelConstants.NO_PREFIX_PLUGIN_EVENTBUS, activationConfig = {
     @ActivationConfigProperty(propertyName = "messagingType", propertyValue = ExchangeModelConstants.CONNECTION_TYPE),
     @ActivationConfigProperty(propertyName = "subscriptionDurability", propertyValue = "Durable"),
     @ActivationConfigProperty(propertyName = "destinationType", propertyValue = ExchangeModelConstants.DESTINATION_TYPE_TOPIC),
-    @ActivationConfigProperty(propertyName = "destination", propertyValue = ExchangeModelConstants.EVENTBUS_NAME)
+    @ActivationConfigProperty(propertyName = "destination", propertyValue = ExchangeModelConstants.EVENTBUS_NAME),
+        @ActivationConfigProperty(propertyName = "destinationJndiName", propertyValue = ExchangeModelConstants.NO_PREFIX_PLUGIN_EVENTBUS),
+        @ActivationConfigProperty(propertyName = "connectionFactoryJndiName", propertyValue = ExchangeModelConstants.NO_PREFIX_CONNECTION_FACTORY)
 })
 public class PluginNameEventBusListener implements MessageListener {
 

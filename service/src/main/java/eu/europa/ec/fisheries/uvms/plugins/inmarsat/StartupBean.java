@@ -34,7 +34,6 @@ import java.util.Map.Entry;
 
 @Singleton
 @Startup
-@DependsOn({"PluginMessageProducer", "FileHandlerBean", "PluginAckEventBusListener"})
 public class StartupBean extends PluginDataHolder {
 
     final static Logger LOG = LoggerFactory.getLogger(StartupBean.class);
@@ -48,9 +47,6 @@ public class StartupBean extends PluginDataHolder {
 
     @EJB
     PluginMessageProducer messageProducer;
-
-    @EJB
-    ExchangeService service;
 
     @EJB
     FileHandlerBean fileHandler;
