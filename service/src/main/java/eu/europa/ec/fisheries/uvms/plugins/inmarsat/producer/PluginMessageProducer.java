@@ -28,14 +28,13 @@ import eu.europa.ec.fisheries.uvms.plugins.inmarsat.constants.ModuleQueue;
 @Singleton
 public class PluginMessageProducer {
 
-    //@Resource(mappedName = ExchangeModelConstants.NO_PREFIX_EXCHANGE_MESSAGE_IN_QUEUE)
     private Queue exchangeQueue;
-
-    //@Resource(mappedName = ExchangeModelConstants.NO_PREFIX_PLUGIN_EVENTBUS)
     private Topic eventBus;
-
-    //@Resource(lookup = ExchangeModelConstants.NO_PREFIX_CONNECTION_FACTORY)
     private ConnectionFactory connectionFactory;
+    private Connection connection = null;
+    private Session session = null;
+
+    final static Logger LOG = LoggerFactory.getLogger(PluginMessageProducer.class);
 
     @PostConstruct
     public void resourceLookup() {
@@ -63,11 +62,6 @@ public class PluginMessageProducer {
             LOG.error("Could not lookup resources");
         }
     }
-
-    private Connection connection = null;
-    private Session session = null;
-
-    final static Logger LOG = LoggerFactory.getLogger(PluginMessageProducer.class);
 
     @TransactionAttribute(TransactionAttributeType.REQUIRES_NEW)
     public void sendResponseMessage(String text, TextMessage requestMessage) throws JMSException {
