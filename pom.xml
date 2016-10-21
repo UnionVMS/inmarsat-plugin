@@ -17,11 +17,11 @@
         <logback.core.version>1.1.2</logback.core.version>
         <maven.compiler.source>1.7</maven.compiler.source>
         <maven.compiler.target>1.7</maven.compiler.target>
-        <release.branch.name>uvms-2.0.6-kili</release.branch.name>
+        <release.branch.name>uvms-2.1.1-kili</release.branch.name>
         <commons.net.version>2.0</commons.net.version>
         <commons.lang.version>3.0</commons.lang.version>
 
-        <exchange.model.version>2.1.1-SNAPSHOT</exchange.model.version>
+        <exchange.model.version>2.1.1</exchange.model.version>
         <date.classifier>date</date.classifier>
 
         <project.scm.id>github</project.scm.id>
