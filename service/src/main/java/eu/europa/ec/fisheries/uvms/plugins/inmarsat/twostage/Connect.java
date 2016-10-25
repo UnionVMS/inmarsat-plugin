@@ -39,33 +39,13 @@ import eu.europa.ec.fisheries.uvms.plugins.inmarsat.InmPoll.OceanRegion;
 public class Connect {
 
     final static Logger LOG = LoggerFactory.getLogger(Connect.class);
-    private String url;
-    private String port;
-    private String user;
-    private String psw;
-    private String dnid;
-    private String path = "";
 
-    private final byte[] BYTE_PATTERN = {1, 84, 38, 84};
-
-    private String getFileName() {
-        String s = "";
+    private String getFileName(String path) {
         Calendar cal = Calendar.getInstance();
-        s = getPath() + cal.getTimeInMillis() + ".dat";
-        return s;
+        return path + cal.getTimeInMillis() + ".dat";
     }
 
-    public String getPath() {
-        return path;
-    }
     public String connect(PollType poll, String path, String url, String port, String user, String psw, String dnid) {
-
-        this.path = path;
-        this.url = url;
-        this.port = port;
-        this.user = user;
-        this.psw = psw;
-        this.dnid = dnid;
 
         String response = null;
         try {
@@ -78,10 +58,10 @@ public class Connect {
             readUntil("name:", input,null);
             write(user, output);
             readUntil("word:", input,null);
-            sendPsw(output);
+            sendPsw(output, psw);
             readUntil(">", input,null);
 
-            response = issueCommand(poll, output, input);
+            response = issueCommand(poll, output, input, dnid, path);
 
             if (telnet.isConnected()) {
                 telnet.disconnect();
@@ -95,16 +75,20 @@ public class Connect {
 
     }
 
-    private void sendUser(PrintStream output) throws IOException {
-        output.print(user + "\r\n");
-        output.flush();
-        LOG.info("Sent user");
-    }
-
-    private void sendPsw(PrintStream output) throws IOException {
+    private void sendPsw(PrintStream output, String psw) throws IOException {
         output.print(psw + "\r\n");
         output.flush();
         LOG.info("Sent psw");
+    }
+
+    private void write(String value, PrintStream out) {
+        try {
+            out.println(value);
+            out.flush();
+            LOG.debug("write:" + value);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     private String buildCommand(PollType poll, OceanRegion oceanRegion) {
@@ -116,7 +100,7 @@ public class Connect {
         return inmPoll.asCommand();
     }
 
-    public String sendDownloadCommand(PrintStream out, InputStream in, FileOutputStream stream) {
+    private String sendDownloadCommand(PrintStream out, InputStream in, FileOutputStream stream, String dnid) {
         String prompt = ">";
         String cmd = "DNID " + dnid + " 1";
         try {
@@ -128,7 +112,7 @@ public class Connect {
         return null;
     }
 
-    public String sendPollCommand(PollType poll, PrintStream out, InputStream in, FileOutputStream stream, OceanRegion oceanRegion) {
+    private String sendPollCommand(PollType poll, PrintStream out, InputStream in, FileOutputStream stream, OceanRegion oceanRegion) {
         String prompt = ">";
         String cmd = buildCommand(poll, oceanRegion);
         String ret;
@@ -146,14 +130,14 @@ public class Connect {
         return null;
     }
 
-    private String issueCommand(PollType poll, PrintStream out, InputStream in) throws FileNotFoundException, IOException {
-        String filename = getFileName();
+    private String issueCommand(PollType poll, PrintStream out, InputStream in, String dnid, String path) throws FileNotFoundException, IOException {
+        String filename = getFileName(path);
         FileOutputStream stream = new FileOutputStream(filename);
-        String result = null;
+        String result;
         if (poll != null) {
             result = sendPollCommand(poll, out, in, stream);
         } else {
-            result = sendDownloadCommand(out, in, stream);
+            result = sendDownloadCommand(out, in, stream, dnid);
         }
         stream.flush();
         stream.close();
@@ -161,7 +145,7 @@ public class Connect {
         //Delete file for polls, these are persisted elsewhere
         if(poll!=null){
             File f = new File(filename);
-            if(f.exists()&&f.isFile()){
+            if(f.exists() && f.isFile()){
                 f.delete();
             }
         }
@@ -175,7 +159,7 @@ public class Connect {
      *
      * @return result of first successful poll command, or null if poll failed on every ocean region
      */
-    protected String sendPollCommand(PollType poll, PrintStream out, InputStream in, FileOutputStream stream) {
+    private String sendPollCommand(PollType poll, PrintStream out, InputStream in, FileOutputStream stream) {
         for (OceanRegion oceanRegion : OceanRegion.values()) {
             String result = sendPollCommand(poll, out, in, stream, oceanRegion);
             if (result.contains("Reference number")) {
@@ -186,17 +170,7 @@ public class Connect {
         return null;
     }
 
-    public void write(String value, PrintStream out) {
-        try {
-            out.println(value);
-            out.flush();
-            LOG.debug("write:" + value);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
-    public String readUntil(String pattern, InputStream in, FileOutputStream stream) {
+    private String readUntil(String pattern, InputStream in, FileOutputStream stream) {
         String faulPattern = "????????";
         try {
             StringBuffer sb = new StringBuffer();
