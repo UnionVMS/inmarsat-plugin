@@ -112,41 +112,30 @@ public class Connect {
         return null;
     }
 
-    private String sendPollCommand(PollType poll, PrintStream out, InputStream in, FileOutputStream stream, OceanRegion oceanRegion, String url, String port) {
-        String prompt = ">";
-        String cmd = buildCommand(poll, oceanRegion);
-        String ret;
-        try {
-            write(cmd, out);
-            ret = readUntil("Text:", in,stream, url, port);
-            if (ret != null) {
-                write(".S", out);
-                ret += readUntil(prompt, in,stream, url, port);
-            }
-            return ret;
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return null;
-    }
-
     private String issueCommand(PollType poll, PrintStream out, InputStream in, String dnid, String path, String url, String port) throws FileNotFoundException, IOException {
         String filename = getFileName(path);
-        FileOutputStream stream = new FileOutputStream(filename);
+        FileOutputStream stream = null;
+        try {
+            stream = new FileOutputStream(filename);
+        } catch (FileNotFoundException e) {
+            LOG.warn("Could not read/create file for TwoStage Command: {}", filename);
+        }
         String result;
         if (poll != null) {
             result = sendPollCommand(poll, out, in, stream, url, port);
         } else {
             result = sendDownloadCommand(out, in, stream, dnid, url, port);
         }
-        stream.flush();
-        stream.close();
-        
-        //Delete file for polls, these are persisted elsewhere
-        if(poll!=null){
-            File f = new File(filename);
-            if(f.exists() && f.isFile()){
-                f.delete();
+        if (stream != null) {
+            stream.flush();
+            stream.close();
+
+            //Delete file for polls, these are persisted elsewhere
+            if (poll != null) {
+                File f = new File(filename);
+                if (f.exists() && f.isFile()) {
+                    f.delete();
+                }
             }
         }
         out.print("QUIT \r\n");
@@ -167,6 +156,24 @@ public class Connect {
             }
         }
 
+        return null;
+    }
+
+    private String sendPollCommand(PollType poll, PrintStream out, InputStream in, FileOutputStream stream, OceanRegion oceanRegion, String url, String port) {
+        String prompt = ">";
+        String cmd = buildCommand(poll, oceanRegion);
+        String ret;
+        try {
+            write(cmd, out);
+            ret = readUntil("Text:", in,stream, url, port);
+            if (ret != null) {
+                write(".S", out);
+                ret += readUntil(prompt, in,stream, url, port);
+            }
+            return ret;
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
         return null;
     }
 
