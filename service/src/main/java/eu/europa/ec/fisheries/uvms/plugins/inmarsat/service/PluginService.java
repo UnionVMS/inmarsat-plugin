@@ -27,6 +27,7 @@ import eu.europa.ec.fisheries.uvms.exchange.model.mapper.ExchangePluginResponseM
 import eu.europa.ec.fisheries.uvms.plugins.inmarsat.InmPendingResponse;
 import eu.europa.ec.fisheries.uvms.plugins.inmarsat.StartupBean;
 import eu.europa.ec.fisheries.uvms.plugins.inmarsat.constants.ModuleQueue;
+import eu.europa.ec.fisheries.uvms.plugins.inmarsat.exception.TelnetException;
 import eu.europa.ec.fisheries.uvms.plugins.inmarsat.producer.PluginMessageProducer;
 import eu.europa.ec.fisheries.uvms.plugins.inmarsat.twostage.PluginPendingResponseList;
 import eu.europa.ec.fisheries.uvms.plugins.inmarsat.twostage.PollService;
@@ -87,14 +88,12 @@ public class PluginService {
         if (poll != null && CommandTypeType.POLL.equals(command.getCommand())) {
             String result = null;
             if (PollTypeType.POLL == poll.getPollTypeType()) {
-                result = pollService.sendPoll(poll, retriverBean.getPollPath());
-                LOG.debug("POLL returns: " + result);
-                //Register Not acknowledge response
-                if (result == null) {
-                    return AcknowledgeTypeType.NOK;
-                } 
-                //Register response as pending
-                else {
+                try {
+                    result = pollService.sendPoll(poll, retriverBean.getPollPath());
+                    LOG.debug("POLL returns: " + result);
+                    //Register Not acknowledge response
+
+                    //Register response as pending
                     InmPendingResponse ipr = new InmPendingResponse();
                     ipr.setPollType(poll);
                     ipr.setMsgId(poll.getPollId());
@@ -113,7 +112,10 @@ public class PluginService {
                     responseList.addPendingPollResponse(ipr);
 
                     //Send status update to exchange
-                    sentStatusToExcange(ipr,ExchangeLogStatusTypeType.PENDING);
+                    sentStatusToExcange(ipr, ExchangeLogStatusTypeType.PENDING);
+                } catch (TelnetException e) {
+                    LOG.error("Error while sending poll: {}", e.getMessage());
+                    return AcknowledgeTypeType.NOK;
                 }
             } else if (PollTypeType.CONFIG == poll.getPollTypeType()) {
 

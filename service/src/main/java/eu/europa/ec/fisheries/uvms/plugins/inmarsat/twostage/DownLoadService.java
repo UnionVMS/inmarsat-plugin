@@ -18,6 +18,7 @@ import java.util.concurrent.Future;
 
 import javax.ejb.*;
 
+import eu.europa.ec.fisheries.uvms.plugins.inmarsat.exception.TelnetException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -41,15 +42,19 @@ public class DownLoadService {
     public Future<Map<String, String>> download(String path, List<String> dnids) {
         Map<String, String> responses = new HashMap<>();
         for (String dnid : dnids) {
-            String response = download(path, dnid);
-            LOG.debug("Download returned: " + response);
-            responses.put(dnid, response);
+            try {
+                String response = download(path, dnid);
+                LOG.debug("Download returned: " + response);
+                responses.put(dnid, response);
+            } catch (TelnetException e) {
+                LOG.error("Exception while downloading: {}", e.getMessage());
+            }
         }
 
         return new AsyncResult<Map<String,String>>(responses);
     }
 
-    public String download(String path, String dnid) {
+    public String download(String path, String dnid) throws TelnetException {
         LOG.debug("Download invoked with DNID = " + dnid);
         return connect.connect(null, path, startUp.getSetting("URL"), startUp.getSetting("PORT"), startUp.getSetting("USERNAME"), startUp.getSetting("PSW"), dnid);
     }
