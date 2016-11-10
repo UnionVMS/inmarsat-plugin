@@ -256,7 +256,7 @@ public class InmPoll {
         String adress = getAdress();
 
         if (adress != null) {
-            adress.replace(" ", "");
+            adress = adress.replace(" ", "");
         }
 
         cmd += ","+adress;
