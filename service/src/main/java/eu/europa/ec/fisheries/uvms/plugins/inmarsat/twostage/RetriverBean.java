@@ -191,7 +191,7 @@ LES_NAME
             return new ArrayList<>();
         }
 
-        return Arrays.asList(dnidsSettingValue.trim().split("/"));
+        return Arrays.asList(dnidsSettingValue.trim().split(","));
     }
 
 }
