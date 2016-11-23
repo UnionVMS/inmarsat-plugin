@@ -172,7 +172,8 @@ LES_NAME
      */
     private List<String> getDownloadDnids() {
         List<String> downloadDnids = new ArrayList<>();
-        for (String dnid : getDnids()) {
+        List<String> dnidList = getDnids();
+        for (String dnid : dnidList) {
             Future existingFuture = connectFutures.get(dnid);
             if (!downloadDnids.contains(dnid) && (existingFuture == null || existingFuture.isDone())) {
                 downloadDnids.add(dnid);
