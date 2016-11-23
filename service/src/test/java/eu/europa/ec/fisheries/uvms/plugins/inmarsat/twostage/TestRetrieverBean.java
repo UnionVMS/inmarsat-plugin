@@ -36,7 +36,7 @@ public class TestRetrieverBean {
         retriever.downloadService = mock(DownLoadService.class);
         when(retriever.downloadService.download(null, Arrays.asList("DNID-123", "123456", "ABC"))).thenReturn(new AsyncResult<Map<String,String>>(null));
         retriever.startUp = mock(StartupBean.class);
-        when(retriever.startUp.getSetting("DNIDS")).thenReturn("DNID-123/123456/ABC");
+        when(retriever.startUp.getSetting("DNIDS")).thenReturn("DNID-123,123456,ABC,");
         when(retriever.startUp.isIsEnabled()).thenReturn(true);
     }
 
@@ -71,7 +71,7 @@ public class TestRetrieverBean {
 
     @Test
     public void testDuplicateDnids() {
-        when(retriever.startUp.getSetting("DNIDS")).thenReturn("ABC/ABC");
+        when(retriever.startUp.getSetting("DNIDS")).thenReturn("ABC,ABC,");
         retriever.connectAndRetrive();
         verify(retriever.startUp, times(1)).getSetting("DNIDS");
         verify(retriever.downloadService, times(1)).download(null, Arrays.asList("ABC"));
