@@ -145,7 +145,7 @@ public class DownLoadCacheDeliveryBean {
         mp.setLongitude(msg.getBody().getLongitude());
         movement.setPosition(mp);
 
-        movement.setPositionTime(DateUtils.parseTimestamp(msg.getBody().getPositionDate()));
+        movement.setPositionTime(msg.getBody().getPositionDate().toLocalDateTime().toDate());
 
         movement.setReportedCourse(msg.getBody().getCourse());
 

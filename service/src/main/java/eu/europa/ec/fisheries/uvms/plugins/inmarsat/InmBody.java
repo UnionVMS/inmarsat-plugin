@@ -18,6 +18,11 @@ import java.util.logging.Level;
 import javax.xml.datatype.DatatypeConfigurationException;
 import javax.xml.datatype.DatatypeFactory;
 import javax.xml.datatype.XMLGregorianCalendar;
+
+import eu.europa.ec.fisheries.uvms.exchange.model.util.DateUtils;
+import org.joda.time.DateTime;
+import org.joda.time.DateTimeZone;
+import org.joda.time.IllegalFieldValueException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -150,32 +155,40 @@ public class InmBody implements InmMessageIntf{
         int i = Integer.parseInt(s.substring(3), 2);
         return (i * 2);
     }
-    
-    public XMLGregorianCalendar getPositionDate(){
-        XMLGregorianCalendar xmlGregorianCalendar =null;
-        Calendar cal = Calendar.getInstance();
-        DateFormat yearFormat = new SimpleDateFormat("yyyy");
-        DateFormat monthFormat = new SimpleDateFormat("MM");
-        int year = Integer.parseInt(yearFormat.format(cal.getTime()));
-        int month = Integer.parseInt(monthFormat.format(cal.getTime()));
+
+    public DateTime getPositionDate() {
+        DateTime now = new DateTime(DateTimeZone.UTC);
+        return getPositionDate(now);
+    }
+
+    DateTime getPositionDate(DateTime now) {
+        int year = now.getYear();
+        int month = now.getMonthOfYear();
         int d = getDayOfMonth();
         int h = getHour();
         int m = getMinutes();
-        
-        //Since we set month to current month, verify that valus is not in the future
-        GregorianCalendar gc = new GregorianCalendar(year, month-1, d,h,m);
-        if(gc.after(cal)){
-            gc.add((GregorianCalendar.MONTH), -1);
-        }
-            
-        DatatypeFactory df;
+
+        DateTime dateTime;
         try {
-            df = DatatypeFactory.newInstance();
-            xmlGregorianCalendar = df.newXMLGregorianCalendar(gc);
-        } catch (DatatypeConfigurationException ex) {
-            LOG.debug("DateFormat", ex);
+            // Date is in current month
+            dateTime = new DateTime(year, month, d, h, m, DateTimeZone.UTC);
+            // Date is in previous month
+            if (dateTime.isAfter(now)) {
+                dateTime = dateTime.minusMonths(1);
+            }
+        } catch (IllegalFieldValueException e) {
+            // Date is in previous month, and day of month is > days of current month
+            if (month != 1) {
+                dateTime = new DateTime(year, month - 1, d, h, m, DateTimeZone.UTC);
+            }
+            // Date is in previous month and previous year (current month is january)
+            else {
+                dateTime = new DateTime(year - 1, 12, d, h, m, DateTimeZone.UTC);
+            }
         }
-        return xmlGregorianCalendar;
+
+        return dateTime;
+
     }
     
     public Double getSpeed() {
