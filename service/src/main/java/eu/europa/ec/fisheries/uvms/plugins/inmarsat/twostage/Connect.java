@@ -23,6 +23,8 @@ import java.util.Calendar;
 import javax.ejb.DependsOn;
 import javax.ejb.Stateless;
 
+import eu.europa.ec.fisheries.uvms.plugins.inmarsat.exception.PluginException;
+import eu.europa.ec.fisheries.uvms.plugins.inmarsat.exception.TelnetException;
 import org.apache.commons.net.telnet.TelnetClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -39,33 +41,13 @@ import eu.europa.ec.fisheries.uvms.plugins.inmarsat.InmPoll.OceanRegion;
 public class Connect {
 
     final static Logger LOG = LoggerFactory.getLogger(Connect.class);
-    private String url;
-    private String port;
-    private String user;
-    private String psw;
-    private String dnid;
-    private String path = "";
 
-    private final byte[] BYTE_PATTERN = {1, 84, 38, 84};
-
-    private String getFileName() {
-        String s = "";
+    private String getFileName(String path) {
         Calendar cal = Calendar.getInstance();
-        s = getPath() + cal.getTimeInMillis() + ".dat";
-        return s;
+        return path + cal.getTimeInMillis() + ".dat";
     }
 
-    public String getPath() {
-        return path;
-    }
-    public String connect(PollType poll, String path, String url, String port, String user, String psw, String dnid) {
-
-        this.path = path;
-        this.url = url;
-        this.port = port;
-        this.user = user;
-        this.psw = psw;
-        this.dnid = dnid;
+    public String connect(PollType poll, String path, String url, String port, String user, String psw, String dnid) throws TelnetException {
 
         String response = null;
         try {
@@ -75,36 +57,35 @@ public class Connect {
             BufferedInputStream input = new BufferedInputStream(telnet.getInputStream());
             PrintStream output = new PrintStream(telnet.getOutputStream());
 
-            readUntil("name:", input,null);
+            readUntil("name:", input,null, url, port);
             write(user, output);
-            readUntil("word:", input,null);
-            sendPsw(output);
-            readUntil(">", input,null);
+            readUntil("word:", input,null, url, port);
+            sendPsw(output, psw);
+            readUntil(">", input,null, url, port);
 
-            response = issueCommand(poll, output, input);
+            response = issueCommand(poll, output, input, dnid, path, url, port);
 
             if (telnet.isConnected()) {
                 telnet.disconnect();
             }
         } catch (IOException ex) {
-            LOG.debug("connect", ex);
+            LOG.error("Error when communicating with Telnet", ex);
         } catch (NullPointerException ex) {
-            LOG.debug("connect", ex);
+            throw new TelnetException(ex);
         }
         return response;
-
     }
 
-    private void sendUser(PrintStream output) throws IOException {
-        output.print(user + "\r\n");
-        output.flush();
-        LOG.info("Sent user");
-    }
-
-    private void sendPsw(PrintStream output) throws IOException {
+    private void sendPsw(PrintStream output, String psw) throws IOException {
         output.print(psw + "\r\n");
         output.flush();
         LOG.info("Sent psw");
+    }
+
+    private void write(String value, PrintStream out) throws IOException {
+        out.println(value);
+        out.flush();
+        LOG.debug("write:" + value);
     }
 
     private String buildCommand(PollType poll, OceanRegion oceanRegion) {
@@ -116,53 +97,37 @@ public class Connect {
         return inmPoll.asCommand();
     }
 
-    public String sendDownloadCommand(PrintStream out, InputStream in, FileOutputStream stream) {
+    private String sendDownloadCommand(PrintStream out, InputStream in, FileOutputStream stream, String dnid, String url, String port) throws TelnetException, IOException {
         String prompt = ">";
         String cmd = "DNID " + dnid + " 1";
-        try {
-            write(cmd, out);
-            return readUntil(prompt, in, stream);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return null;
+        write(cmd, out);
+        return readUntil(prompt, in, stream, url, port);
     }
 
-    public String sendPollCommand(PollType poll, PrintStream out, InputStream in, FileOutputStream stream, OceanRegion oceanRegion) {
-        String prompt = ">";
-        String cmd = buildCommand(poll, oceanRegion);
-        String ret;
+    private String issueCommand(PollType poll, PrintStream out, InputStream in, String dnid, String path, String url, String port) throws TelnetException, IOException {
+        String filename = getFileName(path);
+        FileOutputStream stream = null;
         try {
-            write(cmd, out);
-            ret = readUntil("Text:", in,stream);
-            if (ret != null) {
-                write(".S", out);
-                ret += readUntil(prompt, in,stream);
-            }
-            return ret;
-        } catch (Exception e) {
-            e.printStackTrace();
+            stream = new FileOutputStream(filename);
+        } catch (FileNotFoundException e) {
+            LOG.warn("Could not read/create file for TwoStage Command: {}", filename);
         }
-        return null;
-    }
-
-    private String issueCommand(PollType poll, PrintStream out, InputStream in) throws FileNotFoundException, IOException {
-        String filename = getFileName();
-        FileOutputStream stream = new FileOutputStream(filename);
-        String result = null;
+        String result;
         if (poll != null) {
-            result = sendPollCommand(poll, out, in, stream);
+            result = sendPollCommand(poll, out, in, stream, url, port);
         } else {
-            result = sendDownloadCommand(out, in, stream);
+            result = sendDownloadCommand(out, in, stream, dnid, url, port);
         }
-        stream.flush();
-        stream.close();
-        
-        //Delete file for polls, these are persisted elsewhere
-        if(poll!=null){
-            File f = new File(filename);
-            if(f.exists()&&f.isFile()){
-                f.delete();
+        if (stream != null) {
+            stream.flush();
+            stream.close();
+
+            //Delete file for polls, these are persisted elsewhere
+            if (poll != null) {
+                File f = new File(filename);
+                if (f.exists() && f.isFile()) {
+                    f.delete();
+                }
             }
         }
         out.print("QUIT \r\n");
@@ -175,9 +140,9 @@ public class Connect {
      *
      * @return result of first successful poll command, or null if poll failed on every ocean region
      */
-    protected String sendPollCommand(PollType poll, PrintStream out, InputStream in, FileOutputStream stream) {
+    private String sendPollCommand(PollType poll, PrintStream out, InputStream in, FileOutputStream stream, String url, String port) throws TelnetException, IOException {
         for (OceanRegion oceanRegion : OceanRegion.values()) {
-            String result = sendPollCommand(poll, out, in, stream, oceanRegion);
+            String result = sendPollCommand(poll, out, in, stream, oceanRegion, url, port);
             if (result.contains("Reference number")) {
                 return result;
             }
@@ -186,42 +151,47 @@ public class Connect {
         return null;
     }
 
-    public void write(String value, PrintStream out) {
-        try {
-            out.println(value);
-            out.flush();
-            LOG.debug("write:" + value);
-        } catch (Exception e) {
-            e.printStackTrace();
+    private String sendPollCommand(PollType poll, PrintStream out, InputStream in, FileOutputStream stream, OceanRegion oceanRegion, String url, String port) throws TelnetException, IOException{
+        String prompt = ">";
+        String cmd = buildCommand(poll, oceanRegion);
+        String ret;
+        write(cmd, out);
+        ret = readUntil("Text:", in,stream, url, port);
+        if (ret != null) {
+            write(".S", out);
+            ret += readUntil(prompt, in,stream, url, port);
         }
+        return ret;
     }
 
-    public String readUntil(String pattern, InputStream in, FileOutputStream stream) {
-        String faulPattern = "????????";
-        try {
-            StringBuffer sb = new StringBuffer();
-            byte[] contents = new byte[1024];
-            int bytesRead = 0;
-            do {
-                bytesRead = in.read(contents);
-                if (bytesRead > 0) {
-                    String s = new String(contents, 0, bytesRead);
-                    sb.append(s);
-                    if(stream!=null){
-                        stream.write(contents,0,bytesRead);
-                        stream.flush();
-                    }
-                    if (sb.toString().trim().endsWith(pattern)) {
-                        return sb.toString();
-                    } else if (sb.toString().trim().endsWith(faulPattern)) {
-                        return null;
+    private String readUntil(String pattern, InputStream in, FileOutputStream stream, String url, String port) throws TelnetException, IOException {
+        String[] faultPatterns = {"????????", "[Connection to 41424344 aborted: error status 0]", "Illegal address parameter."};
+        StringBuffer sb = new StringBuffer();
+        byte[] contents = new byte[1024];
+        int bytesRead = 0;
+        do {
+            bytesRead = in.read(contents);
+            if (bytesRead > 0) {
+                String s = new String(contents, 0, bytesRead);
+                LOG.debug("[ Inmarsat C READ: {}", s);
+                sb.append(s);
+                if(stream!=null){
+                    stream.write(contents, 0, bytesRead);
+                    stream.flush();
+                }
+                if (sb.toString().trim().endsWith(pattern)) {
+                    return sb.toString();
+                } else {
+                    for (String faultPattern : faultPatterns) {
+                        if (sb.toString().trim().contains(faultPattern)) {
+                            LOG.error("Error while reading from Inmarsat-C LES Telnet @ {}:{}: {}", url, port, sb.toString());
+                            throw new TelnetException("Error while reading from Inmarsat-C LES Telnet @ " + url + ":" + port + ": " + sb.toString());
+                        }
                     }
                 }
-            } while (bytesRead >= 0);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return null;
+            }
+        } while (bytesRead >= 0);
+        throw new TelnetException("Unknown response from Inmarsat-C LES Telnet @ " + url + ":" + port + ": " + sb.toString());
     }
     
 }

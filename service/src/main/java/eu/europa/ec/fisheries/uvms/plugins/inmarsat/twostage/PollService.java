@@ -16,6 +16,8 @@ import eu.europa.ec.fisheries.uvms.plugins.inmarsat.StartupBean;
 import javax.ejb.EJB;
 import javax.ejb.LocalBean;
 import javax.ejb.Stateless;
+
+import eu.europa.ec.fisheries.uvms.plugins.inmarsat.exception.TelnetException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -33,16 +35,19 @@ public class PollService {
     final static Logger LOG = LoggerFactory.getLogger(PollService.class);
     
     
-    public String sendPoll(PollType poll, String path) {
+    public String sendPoll(PollType poll, String path) throws TelnetException {
         LOG.info("sendPoll invoked");
         String s = connect.connect(poll,path,startUp.getSetting("URL"), startUp.getSetting("PORT"), startUp.getSetting("USERNAME"), startUp.getSetting("PSW"), startUp.getSetting("DNIDS"));
         LOG.info("sendPoll returned: "+s);
-        if(s!=null)
-            s=parseResponse(s);
+        if(s != null) {
+            s = parseResponse(s);
+        } else {
+            throw new TelnetException("Connect returned null response");
+        }
         return s;
     }
 
-    public String sendConfigurationPoll(PollType poll) {
+    public String sendConfigurationPoll(PollType poll) throws TelnetException {
         throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
     //Extract refnr from LES response
@@ -51,22 +56,3 @@ public class PollService {
         return s.replaceAll("[^0-9]", ""); // returns 123
     }
 }
-
-
-
-
-
-/*
-LOG.info("POLL: " + poll.getPollId());
-            LOG.info("MESAGE: " + poll.getMessage());
-            Iterator itr = poll.getPollPayload().iterator();
-            while(itr.hasNext()) {
-                KeyValueType element = (KeyValueType) itr.next();
-                LOG.info("Payload: " + element.getKey()+", value: "+element.getValue());
-            }
-            itr = poll.getPollReceiver().iterator();
-            while(itr.hasNext()) {
-                KeyValueType element = (KeyValueType) itr.next();
-                LOG.info("Reciverinfo: " + element.getKey()+", value: "+element.getValue());
-            }
-*/

@@ -1,13 +1,27 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ejb-jar xmlns = "http://java.sun.com/xml/ns/javaee" 
-         version = "3.1"
-         xmlns:xsi = "http://www.w3.org/2001/XMLSchema-instance" 
-         xsi:schemaLocation = "http://java.sun.com/xml/ns/javaee http://java.sun.com/xml/ns/javaee/ejb-jar_3_1.xsd">
-    
+<!--
+  ~ Developed with the contribution of the European Commission - Directorate General for Maritime Affairs and Fisheries
+  ~ © European Union, 2015-2016.
+  ~
+  ~ This file is part of the Integrated Fisheries Data Management (IFDM) Suite. The IFDM Suite is free software: you can
+  ~ redistribute it and/or modify it under the terms of the GNU General Public License as published by the
+  ~ Free Software Foundation, either version 3 of the License, or any later version. The IFDM Suite is distributed in
+  ~ the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+  ~ FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details. You should have received a
+  ~ copy of the GNU General Public License along with the IFDM Suite. If not, see <http://www.gnu.org/licenses/>.
+  -->
+
+<ejb-jar xmlns = "http://java.sun.com/xml/ns/javaee"
+         version = "3.0"
+         xmlns:xsi = "http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation = "http://java.sun.com/xml/ns/javaee http://java.sun.com/xml/ns/javaee/ejb-jar_3_0.xsd">
+
     <enterprise-beans>
         <message-driven>
-            <ejb-name>PluginNameEventBusListener</ejb-name>
-            <ejb-class>${application.groupid}.consumer.PluginNameEventBusListener</ejb-class>        
+            <ejb-name>PluginNameEventBusListener${application.name}</ejb-name>
+            <ejb-class>${application.groupid}.consumer.PluginNameEventBusListener</ejb-class>
+            <mapped-name>${application.destination.jndi}</mapped-name>
+            <messaging-type>javax.jms.MessageListener</messaging-type>
             <activation-config>
                 <activation-config-property>
                     <activation-config-property-name>subscriptionName</activation-config-property-name>
@@ -21,11 +35,29 @@
                     <activation-config-property-name>messageSelector</activation-config-property-name>
                     <activation-config-property-value>ServiceName='${application.groupid}'</activation-config-property-value>
                 </activation-config-property>
+                <activation-config-property>
+                    <activation-config-property-name>subscriptionDurability</activation-config-property-name>
+                    <activation-config-property-value>Durable</activation-config-property-value>
+                </activation-config-property>
+                <activation-config-property>
+                    <activation-config-property-name>destination</activation-config-property-name>
+                    <activation-config-property-value>EventBus</activation-config-property-value>
+                </activation-config-property>
+                <activation-config-property>
+                    <activation-config-property-name>connectionFactoryJndiName</activation-config-property-name>
+                    <activation-config-property-value>${application.connection.factory}</activation-config-property-value>
+                </activation-config-property>
+                <activation-config-property>
+                    <activation-config-property-name>destinationType</activation-config-property-name>
+                    <activation-config-property-value>javax.jms.Topic</activation-config-property-value>
+                </activation-config-property>
             </activation-config>
         </message-driven>
         <message-driven>
-            <ejb-name>PluginAckEventBusListener</ejb-name>
-            <ejb-class>${application.groupid}.consumer.PluginAckEventBusListener</ejb-class>        
+            <ejb-name>PluginAckEventBusListener${application.name}</ejb-name>
+            <ejb-class>${application.groupid}.consumer.PluginAckEventBusListener</ejb-class>
+            <mapped-name>${application.destination.jndi}</mapped-name>
+            <messaging-type>javax.jms.MessageListener</messaging-type>
             <activation-config>
                 <activation-config-property>
                     <activation-config-property-name>subscriptionName</activation-config-property-name>
@@ -39,8 +71,24 @@
                     <activation-config-property-name>messageSelector</activation-config-property-name>
                     <activation-config-property-value>ServiceName='${application.groupid}${application.responseTopicName}'</activation-config-property-value>
                 </activation-config-property>
+                <activation-config-property>
+                    <activation-config-property-name>subscriptionDurability</activation-config-property-name>
+                    <activation-config-property-value>Durable</activation-config-property-value>
+                </activation-config-property>
+                <activation-config-property>
+                    <activation-config-property-name>destination</activation-config-property-name>
+                    <activation-config-property-value>EventBus</activation-config-property-value>
+                </activation-config-property>
+                <activation-config-property>
+                    <activation-config-property-name>connectionFactoryJndiName</activation-config-property-name>
+                    <activation-config-property-value>${application.connection.factory}</activation-config-property-value>
+                </activation-config-property>
+                <activation-config-property>
+                    <activation-config-property-name>destinationType</activation-config-property-name>
+                    <activation-config-property-value>javax.jms.Topic</activation-config-property-value>
+                </activation-config-property>
             </activation-config>
         </message-driven>
     </enterprise-beans>
-    
+
 </ejb-jar>

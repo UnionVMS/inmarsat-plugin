@@ -12,35 +12,56 @@ copy of the GNU General Public License along with the IFDM Suite. If not, see <h
 package eu.europa.ec.fisheries.uvms.plugins.inmarsat.producer;
 
 import eu.europa.ec.fisheries.uvms.exchange.model.constant.ExchangeModelConstants;
+
+import javax.annotation.PostConstruct;
 import javax.annotation.Resource;
-import javax.ejb.LocalBean;
-import javax.ejb.Stateless;
-import javax.ejb.TransactionAttribute;
-import javax.ejb.TransactionAttributeType;
+import javax.ejb.*;
 import javax.jms.*;
+import javax.naming.InitialContext;
+import javax.naming.NamingException;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import eu.europa.ec.fisheries.uvms.plugins.inmarsat.constants.ModuleQueue;
 
-@Stateless
-@LocalBean
+@Singleton
 public class PluginMessageProducer {
 
-    @Resource(mappedName = ExchangeModelConstants.EXCHANGE_MESSAGE_IN_QUEUE)
     private Queue exchangeQueue;
-
-    @Resource(mappedName = ExchangeModelConstants.PLUGIN_EVENTBUS)
     private Topic eventBus;
-
-    @Resource(lookup = ExchangeModelConstants.CONNECTION_FACTORY)
     private ConnectionFactory connectionFactory;
-
     private Connection connection = null;
     private Session session = null;
 
     final static Logger LOG = LoggerFactory.getLogger(PluginMessageProducer.class);
+
+    @PostConstruct
+    public void resourceLookup() {
+        try {
+            InitialContext ctx = new InitialContext();
+            exchangeQueue = (Queue) ctx.lookup(ExchangeModelConstants.NO_PREFIX_EXCHANGE_MESSAGE_IN_QUEUE);
+            if (exchangeQueue == null) {
+                resourceLookupPrefix();
+            }
+            eventBus = (Topic) ctx.lookup(ExchangeModelConstants.NO_PREFIX_PLUGIN_EVENTBUS);
+            connectionFactory = (ConnectionFactory) ctx.lookup(ExchangeModelConstants.NO_PREFIX_CONNECTION_FACTORY);
+        } catch (NamingException e) {
+            resourceLookupPrefix();
+        }
+    }
+
+    private void resourceLookupPrefix() {
+        LOG.info("Could not lookup resources without 'java:/' prefix. Trying again with prefix.");
+        try {
+            InitialContext ctx = new InitialContext();
+            exchangeQueue = (Queue) ctx.lookup(ExchangeModelConstants.EXCHANGE_MESSAGE_IN_QUEUE);
+            eventBus = (Topic) ctx.lookup(ExchangeModelConstants.PLUGIN_EVENTBUS);
+            connectionFactory = (ConnectionFactory) ctx.lookup(ExchangeModelConstants.CONNECTION_FACTORY);
+        } catch (NamingException e) {
+            LOG.error("Could not lookup resources");
+        }
+    }
 
     @TransactionAttribute(TransactionAttributeType.REQUIRES_NEW)
     public void sendResponseMessage(String text, TextMessage requestMessage) throws JMSException {

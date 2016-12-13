@@ -12,12 +12,7 @@ copy of the GNU General Public License along with the IFDM Suite. If not, see <h
 package eu.europa.ec.fisheries.uvms.plugins.inmarsat.twostage;
 
 import java.io.File;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.GregorianCalendar;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.Future;
 
 import javax.annotation.PostConstruct;
@@ -142,12 +137,8 @@ LES_NAME
         CommandType command = new CommandType();
         command.setCommand(CommandTypeType.POLL);
         command.setPluginName(startUp.getPLuginApplicationProperty("application.name"));
-        
-        GregorianCalendar gregorianCalendar = new GregorianCalendar();
-        DatatypeFactory datatypeFactory = DatatypeFactory.newInstance();
-        XMLGregorianCalendar now = datatypeFactory.newXMLGregorianCalendar(gregorianCalendar);
 
-        command.setTimestamp(now);
+        command.setTimestamp(new Date());
         
         PollType poll = new PollType();
         poll.setPollId("123");
@@ -181,7 +172,8 @@ LES_NAME
      */
     private List<String> getDownloadDnids() {
         List<String> downloadDnids = new ArrayList<>();
-        for (String dnid : getDnids()) {
+        List<String> dnidList = getDnids();
+        for (String dnid : dnidList) {
             Future existingFuture = connectFutures.get(dnid);
             if (!downloadDnids.contains(dnid) && (existingFuture == null || existingFuture.isDone())) {
                 downloadDnids.add(dnid);
@@ -200,7 +192,7 @@ LES_NAME
             return new ArrayList<>();
         }
 
-        return Arrays.asList(dnidsSettingValue.trim().split("/"));
+        return Arrays.asList(dnidsSettingValue.trim().split(","));
     }
 
 }

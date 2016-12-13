@@ -11,9 +11,7 @@ copy of the GNU General Public License along with the IFDM Suite. If not, see <h
  */
 package eu.europa.ec.fisheries.uvms.plugins.inmarsat.consumer;
 
-import javax.ejb.ActivationConfigProperty;
 import javax.ejb.EJB;
-import javax.ejb.MessageDriven;
 import javax.ejb.TransactionAttribute;
 import javax.ejb.TransactionAttributeType;
 import javax.jms.Message;
@@ -26,28 +24,18 @@ import org.slf4j.LoggerFactory;
 import eu.europa.ec.fisheries.schema.exchange.plugin.types.v1.PluginFault;
 import eu.europa.ec.fisheries.schema.exchange.registry.v1.ExchangeRegistryBaseRequest;
 import eu.europa.ec.fisheries.schema.exchange.registry.v1.RegisterServiceResponse;
+import eu.europa.ec.fisheries.schema.exchange.registry.v1.RegisterServiceRequest;
 import eu.europa.ec.fisheries.schema.exchange.registry.v1.UnregisterServiceResponse;
-import eu.europa.ec.fisheries.uvms.exchange.model.constant.ExchangeModelConstants;
 import eu.europa.ec.fisheries.uvms.exchange.model.exception.ExchangeModelMarshallException;
 import eu.europa.ec.fisheries.uvms.exchange.model.mapper.JAXBMarshaller;
 import eu.europa.ec.fisheries.uvms.plugins.inmarsat.StartupBean;
-import eu.europa.ec.fisheries.uvms.plugins.inmarsat.service.PluginService;
 
-@MessageDriven(mappedName = ExchangeModelConstants.PLUGIN_EVENTBUS, activationConfig = {
-    @ActivationConfigProperty(propertyName = "messagingType", propertyValue = ExchangeModelConstants.CONNECTION_TYPE),
-    @ActivationConfigProperty(propertyName = "subscriptionDurability", propertyValue = "Durable"),
-    @ActivationConfigProperty(propertyName = "destinationType", propertyValue = ExchangeModelConstants.DESTINATION_TYPE_TOPIC),
-    @ActivationConfigProperty(propertyName = "destination", propertyValue = ExchangeModelConstants.EVENTBUS_NAME)
-})
 public class PluginAckEventBusListener implements MessageListener {
 
     final static Logger LOG = LoggerFactory.getLogger(PluginAckEventBusListener.class);
 
     @EJB
     StartupBean startupService;
-
-    @EJB
-    PluginService twostageService;
 
     @Override
     @TransactionAttribute(TransactionAttributeType.REQUIRES_NEW)
@@ -65,7 +53,6 @@ public class PluginAckEventBusListener implements MessageListener {
                 PluginFault fault = JAXBMarshaller.unmarshallTextMessage(textMessage, PluginFault.class);
                 handlePluginFault(fault);
             } else {
-                String responseMessage = null;
                 switch (request.getMethod()) {
                     case REGISTER_SERVICE:
                         RegisterServiceResponse registerResponse = JAXBMarshaller.unmarshallTextMessage(textMessage, RegisterServiceResponse.class);
@@ -74,6 +61,7 @@ public class PluginAckEventBusListener implements MessageListener {
                             case OK:
                                 LOG.info("Register OK");
                                 startupService.setIsRegistered(Boolean.TRUE);
+                                startupService.updateSettings(registerResponse.getService().getSettingList().getSetting());
                                 break;
                             case NOK:
                                 LOG.info("Register NOK: " + registerResponse.getAck().getMessage());

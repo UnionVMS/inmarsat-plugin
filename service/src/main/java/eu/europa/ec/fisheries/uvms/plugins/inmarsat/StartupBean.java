@@ -11,6 +11,7 @@ copy of the GNU General Public License along with the IFDM Suite. If not, see <h
  */
 package eu.europa.ec.fisheries.uvms.plugins.inmarsat;
 
+import eu.europa.ec.fisheries.schema.exchange.service.v1.SettingType;
 import eu.europa.ec.fisheries.schema.exchange.plugin.types.v1.PluginType;
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
@@ -30,11 +31,13 @@ import eu.europa.ec.fisheries.uvms.plugins.inmarsat.mapper.ServiceMapper;
 import eu.europa.ec.fisheries.uvms.plugins.inmarsat.producer.PluginMessageProducer;
 import eu.europa.ec.fisheries.uvms.plugins.inmarsat.service.ExchangeService;
 import eu.europa.ec.fisheries.uvms.plugins.inmarsat.service.FileHandlerBean;
+
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map.Entry;
 
 @Singleton
 @Startup
-@DependsOn({"PluginMessageProducer", "FileHandlerBean", "PluginAckEventBusListener"})
 public class StartupBean extends PluginDataHolder {
 
     final static Logger LOG = LoggerFactory.getLogger(StartupBean.class);
@@ -48,9 +51,6 @@ public class StartupBean extends PluginDataHolder {
 
     @EJB
     PluginMessageProducer messageProducer;
-
-    @EJB
-    ExchangeService service;
 
     @EJB
     FileHandlerBean fileHandler;
@@ -195,4 +195,10 @@ public class StartupBean extends PluginDataHolder {
         this.isEnabled = isEnabled;
     }
 
+    public void updateSettings(List<SettingType> settings) {
+        for (SettingType setting : settings) {
+            LOG.info("Updating setting: {} = {}", setting.getKey(), setting.getValue());
+            getSettings().put(setting.getKey(), setting.getValue());
+        }
+    }
 }

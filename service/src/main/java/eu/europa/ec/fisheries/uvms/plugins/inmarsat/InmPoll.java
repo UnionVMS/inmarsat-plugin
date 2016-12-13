@@ -252,7 +252,14 @@ public class InmPoll {
         cmd += ","+getDnind();
         cmd += ","+getResponseType().getValue();
         cmd += ","+getSubAddress().getValue();
-        cmd += ","+getAdress();
+
+        String adress = getAdress();
+
+        if (adress != null) {
+            adress = adress.replace(" ", "");
+        }
+
+        cmd += ","+adress;
         cmd += ","+getCommand().getValue();
         cmd += ","+getMemberId();
         cmd += ",";
