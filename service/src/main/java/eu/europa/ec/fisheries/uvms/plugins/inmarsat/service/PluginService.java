@@ -122,7 +122,7 @@ public class PluginService {
             }
 
         }
-        return AcknowledgeTypeType.OK;
+        return AcknowledgeTypeType.NOK;
     }
 
     private void sentStatusToExcange(InmPendingResponse ipr, ExchangeLogStatusTypeType status) {
