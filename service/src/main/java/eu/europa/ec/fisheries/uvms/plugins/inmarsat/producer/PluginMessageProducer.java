@@ -20,6 +20,7 @@ import javax.jms.*;
 import javax.naming.InitialContext;
 import javax.naming.NamingException;
 
+import eu.europa.ec.fisheries.uvms.message.JMSUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -38,29 +39,23 @@ public class PluginMessageProducer {
 
     @PostConstruct
     public void resourceLookup() {
+        LOG.debug("Open connection to JMS broker");
+        InitialContext ctx;
         try {
-            InitialContext ctx = new InitialContext();
-            exchangeQueue = (Queue) ctx.lookup(ExchangeModelConstants.NO_PREFIX_EXCHANGE_MESSAGE_IN_QUEUE);
-            if (exchangeQueue == null) {
-                resourceLookupPrefix();
-            }
-            eventBus = (Topic) ctx.lookup(ExchangeModelConstants.NO_PREFIX_PLUGIN_EVENTBUS);
-            connectionFactory = (ConnectionFactory) ctx.lookup(ExchangeModelConstants.NO_PREFIX_CONNECTION_FACTORY);
-        } catch (NamingException e) {
-            resourceLookupPrefix();
+            ctx = new InitialContext();
+        } catch (Exception e) {
+            LOG.error("Failed to get InitialContext",e);
+            throw new RuntimeException(e);
         }
-    }
-
-    private void resourceLookupPrefix() {
-        LOG.info("Could not lookup resources without 'java:/' prefix. Trying again with prefix.");
+        connectionFactory = JMSUtils.lookupConnectionFactory(ctx, ExchangeModelConstants.CONNECTION_FACTORY);
         try {
-            InitialContext ctx = new InitialContext();
-            exchangeQueue = (Queue) ctx.lookup(ExchangeModelConstants.EXCHANGE_MESSAGE_IN_QUEUE);
-            eventBus = (Topic) ctx.lookup(ExchangeModelConstants.PLUGIN_EVENTBUS);
-            connectionFactory = (ConnectionFactory) ctx.lookup(ExchangeModelConstants.CONNECTION_FACTORY);
-        } catch (NamingException e) {
-            LOG.error("Could not lookup resources");
+            connection = connectionFactory.createConnection();
+            connection.start();
+        } catch (JMSException ex) {
+            LOG.error("Error when open connection to JMS broker");
         }
+        exchangeQueue = JMSUtils.lookupQueue(ctx, ExchangeModelConstants.EXCHANGE_MESSAGE_IN_QUEUE);
+        eventBus = JMSUtils.lookupTopic(ctx, ExchangeModelConstants.PLUGIN_EVENTBUS);
     }
 
     @TransactionAttribute(TransactionAttributeType.REQUIRES_NEW)

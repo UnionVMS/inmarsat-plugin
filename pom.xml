@@ -22,6 +22,7 @@
         <commons.lang.version>3.0</commons.lang.version>
 
         <exchange.model.version>3.0.0-SNAPSHOT</exchange.model.version>
+        <uvms.common.version>2.0.14-SNAPSHOT</uvms.common.version>
         <date.classifier>date</date.classifier>
 
         <project.scm.id>github</project.scm.id>
