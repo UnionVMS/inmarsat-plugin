@@ -19,7 +19,7 @@
         <commons.net.version>3.6</commons.net.version>
         <commons.lang.version>3.6</commons.lang.version>
 
-        <exchange.model.version>3.0.7-SNAPSHOT</exchange.model.version>
+        <exchange.model.version>3.0.7</exchange.model.version>
         <uvms.common.version>2.0.27</uvms.common.version>
         <date.classifier>date</date.classifier>
 
