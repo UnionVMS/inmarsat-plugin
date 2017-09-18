@@ -3,7 +3,6 @@
 
     <modelVersion>4.0.0</modelVersion>
     <artifactId>twostage-module</artifactId>
-    <name>${project.parent.artifactId}-module</name>
     <packaging>ear</packaging>
 
     <parent>
@@ -13,7 +12,6 @@
     </parent>
 
     <build>
-        <finalName>${project.name}</finalName>
         <plugins>
             <!-- This configuration specifies what ends up in application.xml -->
             <plugin>
@@ -26,7 +24,6 @@
                             <artifactId>twostage-service</artifactId>
                         </ejbModule>
                     </modules>
-                    <skinnyWars>true</skinnyWars>
                     <defaultLibBundleDir>APP-INF/lib</defaultLibBundleDir>
                 </configuration>
             </plugin>
@@ -41,61 +38,5 @@
             <type>ejb</type>
         </dependency>
     </dependencies>
-
-   <profiles>
-        <profile>
-            <id>wildfly-deploy</id>
-            <build>
-                <plugins>	
-                    <plugin>
-                        <groupId>org.wildfly.plugins</groupId>
-                        <artifactId>wildfly-maven-plugin</artifactId>
-                        <version>1.0.2.Final</version>
-                        <configuration>
-                            <filename>${project.build.finalName}.${project.packaging}</filename>
-                            <targetDir>${project.build.directory}</targetDir>
-                            <hostname>${hostname}</hostname>
-                            <port>${port}</port>
-                            <username>${username}</username>
-                            <password>${password}</password>
-                            <force>true</force>
-                        </configuration>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
-       <profile>
-           <id>copy-ear</id>
-           <build>
-               <plugins>
-                   <plugin>
-                       <groupId>org.apache.maven.plugins</groupId>
-                       <artifactId>maven-dependency-plugin</artifactId>
-                       <version>2.10</version>
-                       <executions>
-                           <execution>
-                               <id>copy-installed</id>
-                               <phase>install</phase>
-                               <goals>
-                                   <goal>copy</goal>
-                               </goals>
-                               <configuration>
-                                   <artifactItems>
-                                       <artifactItem>
-                                           <groupId>${project.groupId}</groupId>
-                                           <artifactId>${project.artifactId}</artifactId>
-                                           <version>${project.version}</version>
-                                           <type>${project.packaging}</type>
-                                       </artifactItem>
-                                   </artifactItems>
-                                   <outputDirectory>${copy.ear.target}</outputDirectory>
-                               </configuration>
-                           </execution>
-                       </executions>
-                   </plugin>
-               </plugins>
-           </build>
-       </profile>
-    </profiles>  
 
 </project>
