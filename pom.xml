@@ -1,32 +1,68 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-	<parent>
-		<groupId>fish.focus.uvms.maven</groupId>
-		<artifactId>uvms-pom</artifactId>
-		<relativePath />
-		<version>1.9</version>
-	</parent>
+    <parent>
+        <groupId>fish.focus.uvms.maven</groupId>
+        <artifactId>uvms-pom</artifactId>
+        <relativePath />
+        <version>1.10</version>
+    </parent>
 
     <groupId>eu.europa.ec.fisheries.uvms.plugins.inmarsat</groupId>
     <artifactId>twostage</artifactId>
     <version>3.0.4-SNAPSHOT</version>
     <packaging>pom</packaging>
-    <description>Plugin template</description>
+    
+    <scm>
+        <url>${scm.url}</url>
+        <connection>${scm.connection}</connection>
+        <tag>HEAD</tag>
+    </scm>
     
     <properties>
-        <release.branch.name>uvms-3.0.3-C3PO</release.branch.name>
         <commons.net.version>3.6</commons.net.version>
-        <commons.lang.version>3.6</commons.lang.version>
-
         <exchange.model.version>3.0.7</exchange.model.version>
-        <uvms.common.version>2.0.27</uvms.common.version>
+        <uvms.common.version>2.0.29</uvms.common.version>
         <date.classifier>date</date.classifier>
-
-        <project.scm.id>github</project.scm.id>
-        <copy.ear.target>C:\dev\WebLogic\domain1213\servers\AdminServer\upload</copy.ear.target>
+        <scm.url>scm:git:https://github.com/UnionVMS/UVMS-TwoStage-PLUGIN.git</scm.url>
+        <scm.connection>${scm.url}</scm.connection>
     </properties>
     
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>commons-net</groupId>
+                <artifactId>commons-net</artifactId>
+                <version>${commons.net.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.commons</groupId>
+                <artifactId>commons-lang3</artifactId>
+                <version>${uvms-pom.commons.lang3.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>eu.europa.ec.fisheries.uvms</groupId>
+                <artifactId>uvms-commons</artifactId>
+                <version>${uvms.common.version}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>org.geotools</groupId>
+                        <artifactId>gt-geojson</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>com.vividsolutions</groupId>
+                        <artifactId>jts</artifactId>            	
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.jboss.resteasy</groupId>
+                        <artifactId>resteasy-multipart-provider</artifactId>
+                    </exclusion>
+                </exclusions>                                    
+            </dependency>
+        </dependencies>
+
+        
+    </dependencyManagement>
     <dependencies>        
         <dependency>
             <groupId>javax</groupId>
@@ -40,31 +76,6 @@
         </dependency>
     </dependencies>
 
-    <repositories>
-        <repository>
-            <id>focus-repo</id>
-            <name>Focus nexus repository</name>
-            <url>http://nexus.focus.fish/nexus/</url>
-        </repository>
-    </repositories>
-
-    <distributionManagement> 
-        <repository>
-            <id>focus-releases</id>
-            <name>UnionVms Repository</name>
-            <url>http://nexus.focus.fish/nexus/content/repositories/releases/</url>
-        </repository>
-        <snapshotRepository>
-            <id>focus-snapshots</id>
-            <name>UnionVms Snapshot Repository</name>
-            <url>http://nexus.focus.fish/nexus/content/repositories/snapshots/</url>
-        </snapshotRepository>
-    </distributionManagement>
-
-    <scm>
-        <connection>scm:git:https://github.com/UnionVMS/UVMS-TwoStage-PLUGIN.git</connection>
-      <tag>HEAD</tag>
-  </scm>
         
     <modules>
         <module>service</module>
