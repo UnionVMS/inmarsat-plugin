@@ -5,7 +5,7 @@
         <groupId>fish.focus.uvms.maven</groupId>
         <artifactId>uvms-pom</artifactId>
         <relativePath />
-        <version>1.10</version>
+        <version>1.13</version>
     </parent>
 
     <groupId>eu.europa.ec.fisheries.uvms.plugins.inmarsat</groupId>
@@ -21,7 +21,7 @@
     
     <properties>
         <commons.net.version>3.6</commons.net.version>
-        <exchange.model.version>3.0.7</exchange.model.version>
+        <exchange.model.version>4.0.3</exchange.model.version>
         <uvms.common.version>2.0.29</uvms.common.version>
         <date.classifier>date</date.classifier>
         <scm.url>scm:git:https://github.com/UnionVMS/UVMS-TwoStage-PLUGIN.git</scm.url>
@@ -72,7 +72,6 @@
             <groupId>eu.europa.ec.fisheries.uvms.exchange</groupId>
             <artifactId>exchange-model</artifactId>
             <version>${exchange.model.version}</version>
-            <classifier>${date.classifier}</classifier>
         </dependency>
     </dependencies>
 
