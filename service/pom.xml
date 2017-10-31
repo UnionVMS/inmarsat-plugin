@@ -36,10 +36,12 @@
 
     <dependencies>
         <dependency>
+            <groupId>fish.focus.uvms.commons</groupId>
+            <artifactId>commons-les</artifactId>
+        </dependency>
+        <dependency>
             <groupId>eu.europa.ec.fisheries.uvms.exchange</groupId>
             <artifactId>exchange-model</artifactId>
-            <version>${exchange.model.version}</version>
-            <type>jar</type>
         </dependency>
         <dependency>
             <groupId>commons-net</groupId>
@@ -62,7 +64,12 @@
                 <artifactId>maven-ejb-plugin</artifactId>
                 <configuration>
                     <ejbVersion>3.1</ejbVersion>
-                    <filterDeploymentDescriptor>true</filterDeploymentDescriptor>
+                    <filterDeploymentDescriptor>true</filterDeploymentDescriptor>                  
+                    <archive>
+                        <manifest>
+                            <addClasspath>true</addClasspath>
+                        </manifest>
+                    </archive>
                 </configuration>
             </plugin>
              <plugin>

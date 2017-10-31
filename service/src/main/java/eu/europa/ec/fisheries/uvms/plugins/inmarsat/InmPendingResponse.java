@@ -12,21 +12,16 @@ copy of the GNU General Public License along with the IFDM Suite. If not, see <h
 package eu.europa.ec.fisheries.uvms.plugins.inmarsat;
 
 import eu.europa.ec.fisheries.schema.exchange.plugin.types.v1.PollType;
+
 import java.io.Serializable;
 
 /**
  **/
-public class InmPendingResponse implements Serializable{
-    public enum Staus_Type {
-        UNKNOWN('U'), PENDING('P'), TRANSMITTED('T'), FAIL('F'), SUCCESSFULL('S');
-        private char value;
-        private Staus_Type(char value) {this.value = value;}
-        public char getValue() {return value;}
-    }
+public class InmPendingResponse implements Serializable {
     public PollType poll;
     public String msgId;
     public int referenceNumber;
-    public Staus_Type status;
+    public StatusType status;
     public String mobTermId;
     public String dnId;
     public String membId;
@@ -55,8 +50,6 @@ public class InmPendingResponse implements Serializable{
         this.membId = membId;
     }
 
-    
-
     public PollType getPollType() {
         return poll;
     }
@@ -81,18 +74,32 @@ public class InmPendingResponse implements Serializable{
         this.referenceNumber = referenceNumber;
     }
 
-    public Staus_Type getStatus() {
+    public StatusType getStatus() {
         return status;
     }
 
-    public void setStatus(Staus_Type status) {
+    public void setStatus(StatusType status) {
         this.status = status;
     }
+
     @Override
-    public boolean equals(Object obj){
-        if(obj!=null){
-            return ((InmPendingResponse)obj).referenceNumber == this.referenceNumber;
+    public boolean equals(Object obj) {
+        if (obj != null) {
+            return ((InmPendingResponse) obj).referenceNumber == this.referenceNumber;
         }
         return false;
+    }
+
+    public enum StatusType {
+        UNKNOWN('U'), PENDING('P'), TRANSMITTED('T'), FAIL('F'), SUCCESSFULL('S');
+        private char value;
+
+        private StatusType(char value) {
+            this.value = value;
+        }
+
+        public char getValue() {
+            return value;
+        }
     }
 }

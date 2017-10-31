@@ -1,10 +1,11 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
         <groupId>fish.focus.uvms.maven</groupId>
         <artifactId>uvms-pom</artifactId>
-        <relativePath />
+        <relativePath/>
         <version>1.13</version>
     </parent>
 
@@ -12,13 +13,13 @@
     <artifactId>twostage</artifactId>
     <version>3.0.4-SNAPSHOT</version>
     <packaging>pom</packaging>
-    
+
     <scm>
         <url>${scm.url}</url>
         <connection>${scm.connection}</connection>
         <tag>HEAD</tag>
     </scm>
-    
+
     <properties>
         <commons.net.version>3.6</commons.net.version>
         <exchange.model.version>4.0.3</exchange.model.version>
@@ -26,10 +27,16 @@
         <date.classifier>date</date.classifier>
         <scm.url>scm:git:https://github.com/UnionVMS/UVMS-TwoStage-PLUGIN.git</scm.url>
         <scm.connection>${scm.url}</scm.connection>
+        <defaultLibBundleDir>APP-INF/lib</defaultLibBundleDir>
     </properties>
-    
+
     <dependencyManagement>
         <dependencies>
+            <dependency>
+                <groupId>fish.focus.uvms.commons</groupId>
+                <artifactId>commons-les</artifactId>
+                <version>1.0-SNAPSHOT</version>
+            </dependency>
             <dependency>
                 <groupId>commons-net</groupId>
                 <artifactId>commons-net</artifactId>
@@ -51,34 +58,51 @@
                     </exclusion>
                     <exclusion>
                         <groupId>com.vividsolutions</groupId>
-                        <artifactId>jts</artifactId>            	
+                        <artifactId>jts</artifactId>
                     </exclusion>
                     <exclusion>
                         <groupId>org.jboss.resteasy</groupId>
                         <artifactId>resteasy-multipart-provider</artifactId>
                     </exclusion>
-                </exclusions>                                    
+                </exclusions>
+            </dependency>
+            <dependency>
+                <groupId>eu.europa.ec.fisheries.uvms.exchange</groupId>
+                <artifactId>exchange-model</artifactId>
+                <version>${exchange.model.version}</version>
+
             </dependency>
         </dependencies>
-
-        
     </dependencyManagement>
-    <dependencies>        
+    <dependencies>
         <dependency>
             <groupId>javax</groupId>
             <artifactId>javaee-api</artifactId>
         </dependency>
-        <dependency>
-            <groupId>eu.europa.ec.fisheries.uvms.exchange</groupId>
-            <artifactId>exchange-model</artifactId>
-            <version>${exchange.model.version}</version>
-        </dependency>
     </dependencies>
 
-        
     <modules>
         <module>service</module>
         <module>module</module>
     </modules>
-    
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>net.revelc.code.formatter</groupId>
+                <artifactId>formatter-maven-plugin</artifactId>
+                <version>2.0.1</version>
+                <inherited>false</inherited>
+                <configuration>
+                    <configFile>${project.basedir}/uvms-style.xml</configFile>
+                </configuration>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>validate</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
 </project>
