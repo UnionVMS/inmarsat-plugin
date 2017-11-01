@@ -108,7 +108,7 @@ public class PluginService {
                             ipr.setMembId(element.getValue());
                         }
                     }
-                    ipr.setStatus(InmPendingResponse.Staus_Type.PENDING);
+                    ipr.setStatus(InmPendingResponse.StatusType.PENDING);
                     responseList.addPendingPollResponse(ipr);
 
                     //Send status update to exchange

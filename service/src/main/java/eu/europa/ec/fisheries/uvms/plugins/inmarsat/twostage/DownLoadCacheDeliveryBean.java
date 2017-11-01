@@ -17,110 +17,92 @@ import eu.europa.ec.fisheries.schema.exchange.common.v1.PollStatusAcknowledgeTyp
 import eu.europa.ec.fisheries.schema.exchange.movement.mobileterminal.v1.IdList;
 import eu.europa.ec.fisheries.schema.exchange.movement.mobileterminal.v1.IdType;
 import eu.europa.ec.fisheries.schema.exchange.movement.mobileterminal.v1.MobileTerminalId;
-import eu.europa.ec.fisheries.schema.exchange.movement.v1.MovementBaseType;
-import eu.europa.ec.fisheries.schema.exchange.movement.v1.MovementComChannelType;
-import eu.europa.ec.fisheries.schema.exchange.movement.v1.MovementPoint;
-import eu.europa.ec.fisheries.schema.exchange.movement.v1.MovementSourceType;
-import eu.europa.ec.fisheries.schema.exchange.movement.v1.MovementTypeType;
-import eu.europa.ec.fisheries.schema.exchange.movement.v1.SetReportMovementType;
+import eu.europa.ec.fisheries.schema.exchange.movement.v1.*;
 import eu.europa.ec.fisheries.schema.exchange.plugin.types.v1.PluginType;
 import eu.europa.ec.fisheries.schema.exchange.v1.ExchangeLogStatusTypeType;
 import eu.europa.ec.fisheries.uvms.exchange.model.exception.ExchangeModelMarshallException;
 import eu.europa.ec.fisheries.uvms.exchange.model.mapper.ExchangePluginResponseMapper;
-import eu.europa.ec.fisheries.uvms.exchange.model.util.DateUtils;
-import eu.europa.ec.fisheries.uvms.plugins.inmarsat.InmMessage;
 import eu.europa.ec.fisheries.uvms.plugins.inmarsat.InmPendingResponse;
 import eu.europa.ec.fisheries.uvms.plugins.inmarsat.StartupBean;
 import eu.europa.ec.fisheries.uvms.plugins.inmarsat.constants.ModuleQueue;
 import eu.europa.ec.fisheries.uvms.plugins.inmarsat.producer.PluginMessageProducer;
 import eu.europa.ec.fisheries.uvms.plugins.inmarsat.service.ExchangeService;
-import java.io.BufferedInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.FilenameFilter;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.Arrays;
-import java.util.GregorianCalendar;
-import java.util.Vector;
-import java.util.concurrent.Future;
+import fish.focus.uvms.commons.les.inmarsat.InmarsatException;
+import fish.focus.uvms.commons.les.inmarsat.InmarsatFileHandler;
+import fish.focus.uvms.commons.les.inmarsat.InmarsatMessage;
+import fish.focus.uvms.commons.les.inmarsat.header.body.PositionReport;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import javax.ejb.AsyncResult;
 import javax.ejb.Asynchronous;
 import javax.ejb.EJB;
 import javax.ejb.Singleton;
 import javax.jms.JMSException;
 import javax.xml.datatype.DatatypeConfigurationException;
-import javax.xml.datatype.DatatypeFactory;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import java.io.IOException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.GregorianCalendar;
+import java.util.Map;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.Future;
 
 /**
  **/
 @Singleton
 public class DownLoadCacheDeliveryBean {
-
-    final static Logger LOG = LoggerFactory.getLogger(DownLoadCacheDeliveryBean.class);
-    private int PATTERN_LENGTH;
-    private final byte[] BYTE_PATTERN = {1, 84, 38, 84};
-   
-    private InmMessage[] fileMessages;
+    private static final Logger LOGGER = LoggerFactory.getLogger(DownLoadCacheDeliveryBean.class);
 
     @EJB
     ExchangeService service;
-
     @EJB
     StartupBean startBean;
-    
     @EJB
     PluginPendingResponseList pendingPollResponsList;
-    
-    @EJB 
+    @EJB
     PluginMessageProducer pluginMessageProducer;
-    
-   
+
+    private InmarsatMessage[] fileMessages;
+
+    /**
+     *
+     * @param path the directory to parse inmarsat files
+     * @return future
+     * @throws IOException @see {@link InmarsatFileHandler#createMessages()}
+     */
     @Asynchronous
-    public Future<String> parseAndDeliver(String path) {
-        String pattern = new String(BYTE_PATTERN);
-        String[] sArr = listCacheFiles(path);
-        fileMessages = null;
-        if (sArr != null) {
-            for (int i = 0; i < sArr.length; i++) {
-                byte[] bArr = read(path,sArr[i]);
-                String fileStr = new String(bArr);
-                if (fileStr.indexOf(pattern) >= 0) {
-                    fileMessages = byteToInmMessge(bArr, fileMessages);
-                } else {
-                    File f = new File(path + sArr[i]);
-                    LOG.info("File: " + sArr[i] + " deleted");
-                    f.delete();
+    public Future<String> parseAndDeliver(String path) throws IOException {
+
+        InmarsatFileHandler fileHandler = new InmarsatFileHandler(Paths.get(path));
+        ConcurrentMap<Path, InmarsatMessage[]> messagesFromPath = fileHandler.createMessages();
+
+        for (Map.Entry<Path, InmarsatMessage[]> entry : messagesFromPath.entrySet()) {
+            //Send message to Que
+            for (InmarsatMessage message : entry.getValue()) {
+                try {
+                    msgToQue(message);
+                } catch (DatatypeConfigurationException |InmarsatException e) {
+                    LOGGER.error("Could not send to msg que for message: {}", message, e);
                 }
             }
-            if (fileMessages != null) {
-                LOG.info("fileMessages total in directory: " + fileMessages.length);
-                for (int j = 0; j < fileMessages.length; j++) {
-                    try{
-                        msgToQue(fileMessages[j]);
-                    }catch(DatatypeConfigurationException dce){
-                    }
-                }
-                for(int k=0;k<sArr.length;k++){
-                    File f = new File(path + sArr[k]);
-                    if(f.exists()){
-                        LOG.info("File: " + sArr[k] + "processed and deleted");
-                        f.delete(); 
-                    }
-                }
-            }
+            //Send ok so move file
+            LOGGER.info("File: {} processed and moved to handled", entry.getKey());
+            fileHandler.moveFileToDir(entry.getKey(), Paths.get(entry.getKey().getParent().toString(), "handled"));
+
         }
         return new AsyncResult<String>("Done");
     }
 
-    private void msgToQue(InmMessage msg) throws DatatypeConfigurationException {
-        msg.printReport();
+    /**
+     *
+     * @param msg
+     * @throws DatatypeConfigurationException
+     * @throws InmarsatException if date
+     */
+    private void msgToQue(InmarsatMessage msg) throws DatatypeConfigurationException, InmarsatException{
         MovementBaseType movement = new MovementBaseType();
-        
+
         movement.setComChannelType(MovementComChannelType.MOBILE_TERMINAL);
         MobileTerminalId mobTermId = new MobileTerminalId();
 
@@ -130,7 +112,7 @@ public class DownLoadCacheDeliveryBean {
 
         IdList membId = new IdList();
         membId.setType(IdType.MEMBER_NUMBER);
-        membId.setValue("" + msg.getHeader().getMemberId());
+        membId.setValue("" + msg.getHeader().getMemberNo());
 
         mobTermId.getMobileTerminalIdList().add(dnidId);
         mobTermId.getMobileTerminalIdList().add(membId);
@@ -141,19 +123,19 @@ public class DownLoadCacheDeliveryBean {
 
         MovementPoint mp = new MovementPoint();
         mp.setAltitude(0.0);
-        mp.setLatitude(msg.getBody().getLatitude());
-        mp.setLongitude(msg.getBody().getLongitude());
+        mp.setLatitude(((PositionReport) msg.getBody()).getLatitude().getAsDouble());
+        mp.setLongitude(((PositionReport) msg.getBody()).getLongitude().getAsDouble());
         movement.setPosition(mp);
 
-        movement.setPositionTime(msg.getBody().getPositionDate().toLocalDateTime().toDate());
+        movement.setPositionTime(((PositionReport) msg.getBody()).getPositionDate().getDate());
 
-        movement.setReportedCourse(msg.getBody().getCourse());
+        movement.setReportedCourse((double) ((PositionReport) msg.getBody()).getCourse());
 
-        movement.setReportedSpeed(msg.getBody().getSpeed());
+        movement.setReportedSpeed(((PositionReport) msg.getBody()).getSpeed());
 
         movement.setSource(MovementSourceType.INMARSAT_C);
 
-        movement.setStatus("" + msg.getBody().getMemCode());
+        movement.setStatus("" + ((PositionReport) msg.getBody()).getMacroEncodedMessage());
 
         SetReportMovementType reportType = new SetReportMovementType();
         reportType.setMovement(movement);
@@ -163,160 +145,39 @@ public class DownLoadCacheDeliveryBean {
         reportType.setPluginType(PluginType.SATELLITE_RECEIVER);
 
         service.sendMovementReportToExchange(reportType);
-        
+
 
         //If there is a pending poll response, also generate a status update for that poll
         InmPendingResponse ipr = pendingPollResponsList.continsPollTo(dnidId.getValue(), membId.getValue());
-        if(ipr!=null){
-            LOG.info("PendingPollResponse found in list: "+ipr.getReferenceNumber());
+        if (ipr != null) {
+            LOGGER.info("PendingPollResponse found in list: " + ipr.getReferenceNumber());
             AcknowledgeType ackType = new AcknowledgeType();
             ackType.setMessage("");
             ackType.setMessageId(ipr.getMsgId());
-            
+
             PollStatusAcknowledgeType osat = new PollStatusAcknowledgeType();
             osat.setPollId(ipr.getMsgId());
             osat.setStatus(ExchangeLogStatusTypeType.SUCCESSFUL);
-            
+
             ackType.setPollStatus(osat);
             ackType.setType(AcknowledgeTypeType.OK);
-            
+
             String s;
             try {
-                s = ExchangePluginResponseMapper.mapToSetPollStatusToSuccessfulResponse(startBean.getApplicaionName(), ackType, ipr.getMsgId());
+                s = ExchangePluginResponseMapper
+                        .mapToSetPollStatusToSuccessfulResponse(startBean.getApplicaionName(), ackType, ipr.getMsgId());
                 pluginMessageProducer.sendModuleMessage(s, ModuleQueue.EXCHANGE);
                 boolean b = pendingPollResponsList.removePendingPollResponse(ipr);
-                LOG.debug("Pending poll response removed: "+b);
+                LOGGER.debug("Pending poll response removed: " + b);
             } catch (ExchangeModelMarshallException ex) {
-                LOG.debug("ExchangeModelMarshallException",ex);
-            } catch(JMSException jex){
-                LOG.debug("JMSException",jex);
+                LOGGER.debug("ExchangeModelMarshallException", ex);
+            } catch (JMSException jex) {
+                LOGGER.debug("JMSException", jex);
             }
         }
-        
-        LOG.debug("Sending momvement to Exchange");
-    }
-    //Fix for bug
-    public byte[] insertId(byte[] contents) {
-        ByteArrayOutputStream output_ = new ByteArrayOutputStream();
-        int found = -1;
 
-        for (int i = 0; i < (contents.length - BYTE_PATTERN.length); i++) {
-            //Find message
-            if (contents[i] == BYTE_PATTERN[0] && contents[i + 1] == BYTE_PATTERN[1]
-                    && contents[i + 2] == BYTE_PATTERN[2] && contents[i + 3] == BYTE_PATTERN[3]) {
-                found = i;
-            }
-            if (found >= 0 && found + 20 == i && contents[i] == (byte) 2) {
-                output_.write((byte) 255);
-                found = -1;
-            }
-            output_.write(contents[i]);
-        }
-        return output_.toByteArray();
-    }
-    private InmMessage[] byteToInmMessge(byte[] fileArray, InmMessage[] dirMessages) {
-        byte[]fileBytes = insertId(fileArray);
-        //byte[]fileBytes = fileArray;
-        InmMessage[] messages = null;
-        Vector v = new Vector();
-        PATTERN_LENGTH = BYTE_PATTERN.length;
-        //Parse file content for messages
-        if (fileBytes != null && fileBytes.length > PATTERN_LENGTH) {
-            for (int i = 0; i < (fileBytes.length - PATTERN_LENGTH); i++) {
-                //Find message
-                if (fileBytes[i] == BYTE_PATTERN[0] && fileBytes[i + 1] == BYTE_PATTERN[1]
-                        && fileBytes[i + 2] == BYTE_PATTERN[2] && fileBytes[i + 3] == BYTE_PATTERN[3]) {
-
-                    //For debug
-                   /* 
-                    byte[] report = Arrays.copyOfRange(fileBytes, i, i+42);
-                     for (int J = 0; J < report.length; J++) {
-                     int num = Integer.parseInt(String.format("%02X ", report[J]).trim(), 16);
-                     String tmp = Integer.toBinaryString(num);
-                     LOG.debug(J + "\t" + report[J] + "\t" + String.format("%02X ", report[J])+"\t" + String.format("%8s", tmp).replace(' ', '0'));
-                     }
-                    */ 
-                    InmMessage iMes;
-                    iMes = new InmMessage(Arrays.copyOfRange(fileBytes, i, fileBytes.length));
-
-                    try {
-                        if (iMes.validate()) {
-                            v.add(iMes);
-                        } else {
-                            LOG.debug("Message rejected");
-                        }
-                    } catch (Exception e) {
-                        LOG.debug("InmarsatMessages failed Validation", e);
-                    }
-
-                }
-            }
-        } else {
-            LOG.info("FileByte is null or fileSize to small");
-        }
-
-        if (dirMessages != null) {
-            v.addAll(Arrays.asList(dirMessages));
-        }
-        LOG.info("Vector size: " + v.size());
-        messages = new InmMessage[v.size()];
-        v.copyInto(messages);
-
-        return messages;
+        LOGGER.debug("Sending momvement to Exchange");
     }
 
-    private String[] listCacheFiles(String _path) {
-        File dir = new File(_path);
-        String[] sArr = null;
-        FilenameFilter datFilter = new FilenameFilter() {
-            @Override
-            public boolean accept(File dir, String name) {
-                String lowercaseName = name.toLowerCase();
-                return lowercaseName.endsWith(".dat");
-            }
-        };
-        if (dir.exists() && dir.isDirectory() && dir.canRead()) {
-            sArr = dir.list(datFilter);
-            for (int i = 0; i < sArr.length; i++) {
-                LOG.debug("File " + i + " in dir: " + sArr[i]);
-            }
-        } else {
-            LOG.info("No dir " + _path + ", or unable to read");
-        }
-        return sArr;
-    }
 
-    private byte[] read(String _path, String aInputFileName) {
-
-        LOG.info("Parsing in binary file named : " + aInputFileName);
-        File file = new File(_path + aInputFileName);
-        byte[] result = new byte[(int) file.length()];
-        if (result != null && result.length > 0) {
-            try {
-                InputStream input = null;
-                try {
-                    int totalBytesRead = 0;
-                    input = new BufferedInputStream(new FileInputStream(file));
-                    while (totalBytesRead < result.length) {
-                        int bytesRemaining = result.length - totalBytesRead;
-                        //input.read() returns -1, 0, or more :
-                        int bytesRead = input.read(result, totalBytesRead, bytesRemaining);
-                        if (bytesRead > 0) {
-                            totalBytesRead = totalBytesRead + bytesRead;
-                        }
-                    }
-                } finally {
-                    LOG.info("Closing input stream");
-                    input.close();
-                }
-            } catch (FileNotFoundException ex) {
-                LOG.error("File not found");
-            } catch (IOException ex) {
-                LOG.error("IOException", ex);
-            } catch (NullPointerException ex) {
-                LOG.error("Nullpointerexception", ex);
-            }
-        }
-        return result;
-    }
 }
