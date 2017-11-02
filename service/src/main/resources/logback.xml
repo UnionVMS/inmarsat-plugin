@@ -1,6 +1,6 @@
 <configuration debug="false" scan="false" scanPeriod="60 seconds">
     
-    <property resource="twostage.properties" />
+    <property resource="plugin.properties" />
     
     <contextName>${application.name}</contextName>
     
