@@ -45,7 +45,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.GregorianCalendar;
 import java.util.Map;
-import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.Future;
 
 /**
@@ -75,7 +74,7 @@ public class DownLoadCacheDeliveryBean {
     public Future<String> parseAndDeliver(String path) throws IOException {
 
         InmarsatFileHandler fileHandler = new InmarsatFileHandler(Paths.get(path));
-        ConcurrentMap<Path, InmarsatMessage[]> messagesFromPath = fileHandler.createMessages();
+        Map<Path, InmarsatMessage[]> messagesFromPath = fileHandler.createMessages();
 
         for (Map.Entry<Path, InmarsatMessage[]> entry : messagesFromPath.entrySet()) {
             //Send message to Que
