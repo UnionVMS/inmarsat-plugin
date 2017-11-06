@@ -53,6 +53,15 @@
         </filter>
     </appender>
 
+    <!--
+    <logger name="eu.europa.ec.fisheries.uvms.plugins.inmarsat" level="DEBUG"/>
+    <logger name="eu.europa.ec.fisheries.uvms.plugins.inmarsat.twostage" level="DEBUG"/>
+    <logger name="eu.europa.ec.fisheries.uvms.plugins.inmarsat.service" level="DEBUG"/>
+    <logger name="eu.europa.ec.fisheries.uvms.plugins.inmarsat.twostage.Connect" level="INFO"/>
+    <logger name="eu.europa.ec.fisheries.uvms.plugins.inmarsat.twostage.DownLoadService" level="INFO"/>
+    <logger name="fish.focus.uvms.commons.les.inmarsat" level="DEBUG"/>
+    -->
+
     <root level="INFO">
         <appender-ref ref="ERROR" />
         <appender-ref ref="CONSOLE" />

@@ -17,7 +17,12 @@ import eu.europa.ec.fisheries.schema.exchange.common.v1.PollStatusAcknowledgeTyp
 import eu.europa.ec.fisheries.schema.exchange.movement.mobileterminal.v1.IdList;
 import eu.europa.ec.fisheries.schema.exchange.movement.mobileterminal.v1.IdType;
 import eu.europa.ec.fisheries.schema.exchange.movement.mobileterminal.v1.MobileTerminalId;
-import eu.europa.ec.fisheries.schema.exchange.movement.v1.*;
+import eu.europa.ec.fisheries.schema.exchange.movement.v1.MovementBaseType;
+import eu.europa.ec.fisheries.schema.exchange.movement.v1.MovementComChannelType;
+import eu.europa.ec.fisheries.schema.exchange.movement.v1.MovementPoint;
+import eu.europa.ec.fisheries.schema.exchange.movement.v1.MovementSourceType;
+import eu.europa.ec.fisheries.schema.exchange.movement.v1.MovementTypeType;
+import eu.europa.ec.fisheries.schema.exchange.movement.v1.SetReportMovementType;
 import eu.europa.ec.fisheries.schema.exchange.plugin.types.v1.PluginType;
 import eu.europa.ec.fisheries.schema.exchange.v1.ExchangeLogStatusTypeType;
 import eu.europa.ec.fisheries.uvms.exchange.model.exception.ExchangeModelMarshallException;
@@ -31,152 +36,141 @@ import fish.focus.uvms.commons.les.inmarsat.InmarsatException;
 import fish.focus.uvms.commons.les.inmarsat.InmarsatFileHandler;
 import fish.focus.uvms.commons.les.inmarsat.InmarsatMessage;
 import fish.focus.uvms.commons.les.inmarsat.header.body.PositionReport;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import javax.ejb.AsyncResult;
-import javax.ejb.Asynchronous;
-import javax.ejb.EJB;
-import javax.ejb.Singleton;
-import javax.jms.JMSException;
-import javax.xml.datatype.DatatypeConfigurationException;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.GregorianCalendar;
 import java.util.Map;
+import java.util.TimeZone;
 import java.util.concurrent.Future;
+import javax.ejb.AsyncResult;
+import javax.ejb.Asynchronous;
+import javax.ejb.EJB;
+import javax.ejb.Singleton;
+import javax.jms.JMSException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-/**
- **/
+/** */
 @Singleton
 public class DownLoadCacheDeliveryBean {
-    private static final Logger LOGGER = LoggerFactory.getLogger(DownLoadCacheDeliveryBean.class);
 
-    @EJB
-    ExchangeService service;
-    @EJB
-    StartupBean startBean;
-    @EJB
-    PluginPendingResponseList pendingPollResponsList;
-    @EJB
-    PluginMessageProducer pluginMessageProducer;
+  private static final Logger LOGGER = LoggerFactory.getLogger(DownLoadCacheDeliveryBean.class);
+  @EJB private PluginPendingResponseList pendingPollResponsList;
+  @EJB private PluginMessageProducer pluginMessageProducer;
+  @EJB private ExchangeService service;
+  @EJB private StartupBean startBean;
 
-    private InmarsatMessage[] fileMessages;
+  /**
+   * @param path the directory to parse inmarsat files
+   * @return future
+   * @throws IOException @see {@link InmarsatFileHandler#createMessages()}
+   */
+  @Asynchronous
+  public Future<String> parseAndDeliver(String path) throws IOException {
 
-    /**
-     *
-     * @param path the directory to parse inmarsat files
-     * @return future
-     * @throws IOException @see {@link InmarsatFileHandler#createMessages()}
-     */
-    @Asynchronous
-    public Future<String> parseAndDeliver(String path) throws IOException {
+    InmarsatFileHandler fileHandler = new InmarsatFileHandler(Paths.get(path));
+    Map<Path, InmarsatMessage[]> messagesFromPath = fileHandler.createMessages();
 
-        InmarsatFileHandler fileHandler = new InmarsatFileHandler(Paths.get(path));
-        Map<Path, InmarsatMessage[]> messagesFromPath = fileHandler.createMessages();
-
-        for (Map.Entry<Path, InmarsatMessage[]> entry : messagesFromPath.entrySet()) {
-            //Send message to Que
-            for (InmarsatMessage message : entry.getValue()) {
-                try {
-                    msgToQue(message);
-                } catch (DatatypeConfigurationException |InmarsatException e) {
-                    LOGGER.error("Could not send to msg que for message: {}", message, e);
-                }
-            }
-            //Send ok so move file
-            LOGGER.info("File: {} processed and moved to handled", entry.getKey());
-            fileHandler.moveFileToDir(entry.getKey(), Paths.get(entry.getKey().getParent().toString(), "handled"));
-
+    for (Map.Entry<Path, InmarsatMessage[]> entry : messagesFromPath.entrySet()) {
+      // Send message to Que
+      for (InmarsatMessage message : entry.getValue()) {
+        try {
+          msgToQue(message);
+        } catch (InmarsatException e) {
+          LOGGER.error("Could not send to msg que for message: {}", message, e);
         }
-        return new AsyncResult<String>("Done");
+      }
+      // Send ok so move file
+      LOGGER.info("File: {} processed and moved to handled", entry.getKey());
+      fileHandler.moveFileToDir(
+          entry.getKey(), Paths.get(entry.getKey().getParent().toString(), "handled"));
+    }
+    return new AsyncResult<>("Done");
+  }
+
+  /**
+   * @param msg inmarsat message to send
+   * @throws InmarsatException if stored date could be set.
+   */
+  private void msgToQue(InmarsatMessage msg) throws InmarsatException {
+    MovementBaseType movement = new MovementBaseType();
+
+    movement.setComChannelType(MovementComChannelType.MOBILE_TERMINAL);
+    MobileTerminalId mobTermId = new MobileTerminalId();
+
+    IdList dnidId = new IdList();
+    dnidId.setType(IdType.DNID);
+    dnidId.setValue("" + msg.getHeader().getDnid());
+
+    IdList membId = new IdList();
+    membId.setType(IdType.MEMBER_NUMBER);
+    membId.setValue("" + msg.getHeader().getMemberNo());
+
+    mobTermId.getMobileTerminalIdList().add(dnidId);
+    mobTermId.getMobileTerminalIdList().add(membId);
+
+    movement.setMobileTerminalId(mobTermId);
+
+    movement.setMovementType(MovementTypeType.POS);
+
+    MovementPoint mp = new MovementPoint();
+    mp.setAltitude(0.0);
+    mp.setLatitude(((PositionReport) msg.getBody()).getLatitude().getAsDouble());
+    mp.setLongitude(((PositionReport) msg.getBody()).getLongitude().getAsDouble());
+    movement.setPosition(mp);
+
+    movement.setPositionTime(((PositionReport) msg.getBody()).getPositionDate().getDate());
+
+    movement.setReportedCourse((double) ((PositionReport) msg.getBody()).getCourse());
+
+    movement.setReportedSpeed(((PositionReport) msg.getBody()).getSpeed());
+
+    movement.setSource(MovementSourceType.INMARSAT_C);
+
+    movement.setStatus("" + ((PositionReport) msg.getBody()).getMacroEncodedMessage());
+
+    SetReportMovementType reportType = new SetReportMovementType();
+    reportType.setMovement(movement);
+    GregorianCalendar gcal =
+        (GregorianCalendar) GregorianCalendar.getInstance(TimeZone.getTimeZone("UTC"));
+    reportType.setTimestamp(gcal.getTime());
+    reportType.setPluginName(startBean.getRegisterClassName());
+    reportType.setPluginType(PluginType.SATELLITE_RECEIVER);
+
+    service.sendMovementReportToExchange(reportType);
+
+    // If there is a pending poll response, also generate a status update for that poll
+    InmPendingResponse ipr =
+        pendingPollResponsList.continsPollTo(dnidId.getValue(), membId.getValue());
+    if (ipr != null) {
+      LOGGER.info("PendingPollResponse found in list: " + ipr.getReferenceNumber());
+      AcknowledgeType ackType = new AcknowledgeType();
+      ackType.setMessage("");
+      ackType.setMessageId(ipr.getMsgId());
+
+      PollStatusAcknowledgeType osat = new PollStatusAcknowledgeType();
+      osat.setPollId(ipr.getMsgId());
+      osat.setStatus(ExchangeLogStatusTypeType.SUCCESSFUL);
+
+      ackType.setPollStatus(osat);
+      ackType.setType(AcknowledgeTypeType.OK);
+
+      String s;
+      try {
+        s =
+            ExchangePluginResponseMapper.mapToSetPollStatusToSuccessfulResponse(
+                startBean.getApplicaionName(), ackType, ipr.getMsgId());
+        pluginMessageProducer.sendModuleMessage(s, ModuleQueue.EXCHANGE);
+        boolean b = pendingPollResponsList.removePendingPollResponse(ipr);
+        LOGGER.debug("Pending poll response removed: " + b);
+      } catch (ExchangeModelMarshallException ex) {
+        LOGGER.debug("ExchangeModelMarshallException", ex);
+      } catch (JMSException jex) {
+        LOGGER.debug("JMSException", jex);
+      }
     }
 
-    /**
-     *
-     * @param msg
-     * @throws DatatypeConfigurationException
-     * @throws InmarsatException if date
-     */
-    private void msgToQue(InmarsatMessage msg) throws DatatypeConfigurationException, InmarsatException{
-        MovementBaseType movement = new MovementBaseType();
-
-        movement.setComChannelType(MovementComChannelType.MOBILE_TERMINAL);
-        MobileTerminalId mobTermId = new MobileTerminalId();
-
-        IdList dnidId = new IdList();
-        dnidId.setType(IdType.DNID);
-        dnidId.setValue("" + msg.getHeader().getDnid());
-
-        IdList membId = new IdList();
-        membId.setType(IdType.MEMBER_NUMBER);
-        membId.setValue("" + msg.getHeader().getMemberNo());
-
-        mobTermId.getMobileTerminalIdList().add(dnidId);
-        mobTermId.getMobileTerminalIdList().add(membId);
-
-        movement.setMobileTerminalId(mobTermId);
-
-        movement.setMovementType(MovementTypeType.POS);
-
-        MovementPoint mp = new MovementPoint();
-        mp.setAltitude(0.0);
-        mp.setLatitude(((PositionReport) msg.getBody()).getLatitude().getAsDouble());
-        mp.setLongitude(((PositionReport) msg.getBody()).getLongitude().getAsDouble());
-        movement.setPosition(mp);
-
-        movement.setPositionTime(((PositionReport) msg.getBody()).getPositionDate().getDate());
-
-        movement.setReportedCourse((double) ((PositionReport) msg.getBody()).getCourse());
-
-        movement.setReportedSpeed(((PositionReport) msg.getBody()).getSpeed());
-
-        movement.setSource(MovementSourceType.INMARSAT_C);
-
-        movement.setStatus("" + ((PositionReport) msg.getBody()).getMacroEncodedMessage());
-
-        SetReportMovementType reportType = new SetReportMovementType();
-        reportType.setMovement(movement);
-        GregorianCalendar gcal = (GregorianCalendar) GregorianCalendar.getInstance();
-        reportType.setTimestamp(gcal.getTime());
-        reportType.setPluginName(startBean.getRegisterClassName());
-        reportType.setPluginType(PluginType.SATELLITE_RECEIVER);
-
-        service.sendMovementReportToExchange(reportType);
-
-
-        //If there is a pending poll response, also generate a status update for that poll
-        InmPendingResponse ipr = pendingPollResponsList.continsPollTo(dnidId.getValue(), membId.getValue());
-        if (ipr != null) {
-            LOGGER.info("PendingPollResponse found in list: " + ipr.getReferenceNumber());
-            AcknowledgeType ackType = new AcknowledgeType();
-            ackType.setMessage("");
-            ackType.setMessageId(ipr.getMsgId());
-
-            PollStatusAcknowledgeType osat = new PollStatusAcknowledgeType();
-            osat.setPollId(ipr.getMsgId());
-            osat.setStatus(ExchangeLogStatusTypeType.SUCCESSFUL);
-
-            ackType.setPollStatus(osat);
-            ackType.setType(AcknowledgeTypeType.OK);
-
-            String s;
-            try {
-                s = ExchangePluginResponseMapper
-                        .mapToSetPollStatusToSuccessfulResponse(startBean.getApplicaionName(), ackType, ipr.getMsgId());
-                pluginMessageProducer.sendModuleMessage(s, ModuleQueue.EXCHANGE);
-                boolean b = pendingPollResponsList.removePendingPollResponse(ipr);
-                LOGGER.debug("Pending poll response removed: " + b);
-            } catch (ExchangeModelMarshallException ex) {
-                LOGGER.debug("ExchangeModelMarshallException", ex);
-            } catch (JMSException jex) {
-                LOGGER.debug("JMSException", jex);
-            }
-        }
-
-        LOGGER.debug("Sending momvement to Exchange");
-    }
-
-
+    LOGGER.debug("Sending momvement to Exchange");
+  }
 }
