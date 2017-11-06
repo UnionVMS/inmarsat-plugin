@@ -14,7 +14,6 @@ package eu.europa.ec.fisheries.uvms.plugins.inmarsat.twostage;
 import eu.europa.ec.fisheries.uvms.plugins.inmarsat.InmPendingResponse;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
@@ -26,116 +25,89 @@ import javax.ejb.DependsOn;
 import javax.ejb.EJB;
 import javax.ejb.Singleton;
 import javax.ejb.Startup;
+import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/**
- **/
+/** */
 @Singleton
 @Startup
 @DependsOn({"RetriverBean"})
 public class PluginPendingResponseList {
 
-    final static org.slf4j.Logger LOG = LoggerFactory.getLogger(PluginPendingResponseList.class);
-    private final String fileName = "pending.ser";
-    private ArrayList<InmPendingResponse> pending;
+  private static final Logger LOGGER = LoggerFactory.getLogger(PluginPendingResponseList.class);
+  private final String fileName = "pending.ser";
+  private ArrayList<InmPendingResponse> pending;
 
-    @EJB
-    RetriverBean startUp;
+  @EJB private RetriverBean startUp;
 
-    @PostConstruct
-    public void loadPendingPollResponse() {
-        pending = new ArrayList<InmPendingResponse>();
-        ObjectInputStream ois = null;
-        FileInputStream fis = null;
-        try {
-            File f = new File(startUp.getPollPath(), fileName);
-            fis = new FileInputStream(f);
-            ois = new ObjectInputStream(fis);
-            pending = (ArrayList<InmPendingResponse>) ois.readObject();
-            if (pending != null) {
-                LOG.debug("Read " + pending.size() + " peding responses");
-                for (InmPendingResponse element : pending) {
-                    LOG.debug("Refnr: " + element.getReferenceNumber());
-                }
-            } else {
-                pending = new ArrayList<InmPendingResponse>();
-            }
-        } catch (IOException ex) {
-            LOG.debug("IOExeption: "+ex.getMessage());
-        } catch (ClassNotFoundException ex) {
-            LOG.debug("ClassNotFoundException", ex);
-        } finally {
-            try {
-                if (ois != null) {
-                    ois.close();
-                }
-                if (fis != null) {
-                    fis.close();
-                }
-            } catch (IOException ex) {
-                LOG.debug("IOExeption", ex);
-            }
-        }
-    }
+  @PostConstruct
+  public void loadPendingPollResponse() {
+    pending = new ArrayList<>();
+    File f = new File(startUp.getPollPath(), fileName);
+    try (FileInputStream fis = new FileInputStream(f);
+        ObjectInputStream ois = new ObjectInputStream(fis)) {
 
-    public void addPendingPollResponse(InmPendingResponse resp) {
-        if(pending!=null){
-            pending.add(resp);
-            LOG.debug("Pending response added");
-        }
-    }
-
-    public boolean removePendingPollResponse(InmPendingResponse resp) {
-        if(pending!=null){
-            LOG.debug("Trying to remove pending poll response");
-            return pending.remove(resp);
-        }
-        return false;
-    }
-
-    public ArrayList<InmPendingResponse> getPendingPollResponses() {
-        return (ArrayList<InmPendingResponse>) pending.clone();
-    }
-
-    public boolean containsPendingPollResponse(InmPendingResponse resp) {
-        if(pending!=null)
-            return pending.contains(resp);  
-        return false;
-    }
-
-    public InmPendingResponse continsPollTo(String dnid, String memberId) {
+      //noinspection unchecked
+      pending = (ArrayList<InmPendingResponse>) ois.readObject();
+      if (pending != null) {
+        LOGGER.debug("Read " + pending.size() + " peding responses");
         for (InmPendingResponse element : pending) {
-            if (element.dnId.equalsIgnoreCase(dnid) && element.membId.equalsIgnoreCase(memberId)) {
-                return element;
-            }
+          LOGGER.debug("Refnr: " + element.getReferenceNumber());
         }
-        return null;
+      } else {
+        pending = new ArrayList<>();
+      }
+    } catch (IOException ex) {
+      LOGGER.debug("IOExeption: " + ex.getMessage());
+    } catch (ClassNotFoundException ex) {
+      LOGGER.debug("ClassNotFoundException", ex);
     }
+  }
 
-    @PreDestroy
-    public void writePendingPollResponse() {
-        ObjectOutputStream oos = null;
-        FileOutputStream fos = null;
-        try {
-            File f = new File(startUp.getPollPath(), fileName);
-            fos = new FileOutputStream(f, false);
-            oos = new ObjectOutputStream(fos);
-            oos.writeObject(pending);
-            oos.flush();
-            LOG.debug("Wrote " + pending.size() + " pending responses");
-        } catch (IOException ex) {
-            LOG.debug("IOExeption", ex);
-        } finally {
-            try {
-                if (oos != null) {
-                    oos.close();
-                }
-                if (fos != null) {
-                    fos.close();
-                }
-            } catch (IOException ex) {
-                LOG.debug("IOExeption", ex);
-            }
-        }
+  public void addPendingPollResponse(InmPendingResponse resp) {
+    if (pending != null) {
+      pending.add(resp);
+      LOGGER.debug("Pending response added");
     }
+  }
+
+  public boolean removePendingPollResponse(InmPendingResponse resp) {
+    if (pending != null) {
+      LOGGER.debug("Trying to remove pending poll response");
+      return pending.remove(resp);
+    }
+    return false;
+  }
+
+  public ArrayList<InmPendingResponse> getPendingPollResponses() {
+    //noinspection unchecked
+    return (ArrayList<InmPendingResponse>) pending.clone();
+  }
+
+  public boolean containsPendingPollResponse(InmPendingResponse resp) {
+    return pending != null && pending.contains(resp);
+  }
+
+  public InmPendingResponse continsPollTo(String dnid, String memberId) {
+    for (InmPendingResponse element : pending) {
+      if (element.dnId.equalsIgnoreCase(dnid) && element.membId.equalsIgnoreCase(memberId)) {
+        return element;
+      }
+    }
+    return null;
+  }
+
+  @PreDestroy
+  public void writePendingPollResponse() {
+    File f = new File(startUp.getPollPath(), fileName);
+
+    try (FileOutputStream fos = new FileOutputStream(f, false);
+        ObjectOutputStream oos = new ObjectOutputStream(fos)) {
+      oos.writeObject(pending);
+      oos.flush();
+      LOGGER.debug("Wrote " + pending.size() + " pending responses");
+    } catch (IOException ex) {
+      LOGGER.debug("IOExeption", ex);
+    }
+  }
 }

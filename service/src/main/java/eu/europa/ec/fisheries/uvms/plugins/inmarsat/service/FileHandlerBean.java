@@ -19,23 +19,22 @@ import javax.ejb.Startup;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/**
- **/
+/** */
 @Startup
 @Singleton
 public class FileHandlerBean {
 
-    final static Logger LOG = LoggerFactory.getLogger(FileHandlerBean.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(FileHandlerBean.class);
 
-    public Properties getPropertiesFromFile(String fileName) {
-        Properties props = new Properties();
-        try {
-            InputStream inputStream = FileHandlerBean.class.getClassLoader().getResourceAsStream(fileName);
-            props.load(inputStream);
-        } catch (IOException e) {
-            LOG.debug("Properties file failed to load");
-        }
-        return props;
+  public Properties getPropertiesFromFile(String fileName) {
+    Properties props = new Properties();
+    try {
+      InputStream inputStream =
+          FileHandlerBean.class.getClassLoader().getResourceAsStream(fileName);
+      props.load(inputStream);
+    } catch (IOException e) {
+      LOGGER.debug("Properties file failed to load");
     }
-
+    return props;
+  }
 }

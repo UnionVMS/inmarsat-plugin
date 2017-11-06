@@ -32,179 +32,162 @@ import eu.europa.ec.fisheries.uvms.plugins.inmarsat.producer.PluginMessageProduc
 import eu.europa.ec.fisheries.uvms.plugins.inmarsat.twostage.PluginPendingResponseList;
 import eu.europa.ec.fisheries.uvms.plugins.inmarsat.twostage.PollService;
 import eu.europa.ec.fisheries.uvms.plugins.inmarsat.twostage.RetriverBean;
-import java.util.Iterator;
 import java.util.List;
-
 import javax.ejb.EJB;
 import javax.ejb.LocalBean;
 import javax.ejb.Stateless;
 import javax.jms.JMSException;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/**
- **/
+/** */
 @LocalBean
 @Stateless
 public class PluginService {
 
-    @EJB
-    StartupBean startupBean;
+  private static final Logger LOGGER = LoggerFactory.getLogger(PluginService.class);
+  @EJB private StartupBean startupBean;
+  @EJB private PollService pollService;
+  @EJB private RetriverBean retriverBean;
+  @EJB private PluginPendingResponseList responseList;
+  @EJB private PluginMessageProducer pluginMessageProducer;
 
-    @EJB
-    PollService pollService;
+  /**
+   * TODO implement
+   *
+   * @param report todo
+   * @return NOK
+   */
+  public AcknowledgeTypeType setReport(ReportType report) {
+    return AcknowledgeTypeType.NOK;
+  }
 
-    @EJB
-    RetriverBean retriverBean;
+  public AcknowledgeTypeType setCommand(CommandType command) {
+    LOGGER.info(
+        startupBean.getRegisterClassName() + ".setCommand(" + command.getCommand().name() + ")");
+    LOGGER.debug("timestamp: " + command.getTimestamp());
+    PollType poll = command.getPoll();
+    if (poll != null && CommandTypeType.POLL.equals(command.getCommand())) {
+      String result;
+      if (PollTypeType.POLL == poll.getPollTypeType()) {
+        try {
+          result = pollService.sendPoll(poll, retriverBean.getPollPath());
+          LOGGER.debug("POLL returns: " + result);
+          // Register Not acknowledge response
 
-    @EJB
-    PluginPendingResponseList responseList;
-
-    @EJB
-    PluginMessageProducer pluginMessageProducer;
-
-    final static Logger LOG = LoggerFactory.getLogger(PluginService.class);
-
-    /**
-     * TODO implement
-     *
-     * @param report
-     * @return
-     */
-    public AcknowledgeTypeType setReport(ReportType report) {
-        return AcknowledgeTypeType.NOK;
-    }
-
-    /**
-     *
-     * @param command
-     * @return
-     */
-    public AcknowledgeTypeType setCommand(CommandType command) {
-        LOG.info(startupBean.getRegisterClassName() + ".setCommand(" + command.getCommand().name() + ")");
-        LOG.debug("timestamp: " + command.getTimestamp());
-        PollType poll = command.getPoll();
-        if (poll != null && CommandTypeType.POLL.equals(command.getCommand())) {
-            String result = null;
-            if (PollTypeType.POLL == poll.getPollTypeType()) {
-                try {
-                    result = pollService.sendPoll(poll, retriverBean.getPollPath());
-                    LOG.debug("POLL returns: " + result);
-                    //Register Not acknowledge response
-
-                    //Register response as pending
-                    InmPendingResponse ipr = new InmPendingResponse();
-                    ipr.setPollType(poll);
-                    ipr.setMsgId(poll.getPollId());
-                    ipr.setReferenceNumber(Integer.parseInt(result));
-                    List<KeyValueType> pollReciver = (List<KeyValueType>) poll.getPollReceiver();
-                    for (KeyValueType element : pollReciver) {
-                        if (element.getKey().equalsIgnoreCase("MOBILE_TERMINAL_ID")) {
-                            ipr.setMobTermId(element.getValue());
-                        } else if (element.getKey().equalsIgnoreCase("DNID")) {
-                            ipr.setDnId(element.getValue());
-                        } else if (element.getKey().equalsIgnoreCase("MEMBER_NUMBER")) {
-                            ipr.setMembId(element.getValue());
-                        }
-                    }
-                    ipr.setStatus(InmPendingResponse.StatusType.PENDING);
-                    responseList.addPendingPollResponse(ipr);
-
-                    //Send status update to exchange
-                    sentStatusToExcange(ipr, ExchangeLogStatusTypeType.PENDING);
-                } catch (TelnetException e) {
-                    LOG.error("Error while sending poll: {}", e.getMessage());
-                    return AcknowledgeTypeType.NOK;
-                }
-            } else if (PollTypeType.CONFIG == poll.getPollTypeType()) {
-
+          // Register response as pending
+          InmPendingResponse ipr = new InmPendingResponse();
+          ipr.setPollType(poll);
+          ipr.setMsgId(poll.getPollId());
+          ipr.setReferenceNumber(Integer.parseInt(result));
+          List<KeyValueType> pollReciver = poll.getPollReceiver();
+          for (KeyValueType element : pollReciver) {
+            if (element.getKey().equalsIgnoreCase("MOBILE_TERMINAL_ID")) {
+              ipr.setMobTermId(element.getValue());
+            } else if (element.getKey().equalsIgnoreCase("DNID")) {
+              ipr.setDnId(element.getValue());
+            } else if (element.getKey().equalsIgnoreCase("MEMBER_NUMBER")) {
+              ipr.setMembId(element.getValue());
             }
+          }
+          ipr.setStatus(InmPendingResponse.StatusType.PENDING);
+          responseList.addPendingPollResponse(ipr);
 
+          // Send status update to exchange
+          sentStatusToExchange(ipr);
+        } catch (TelnetException e) {
+          LOGGER.error("Error while sending poll: {}", e.getMessage());
+          return AcknowledgeTypeType.NOK;
         }
-        return AcknowledgeTypeType.NOK;
+      } else if (PollTypeType.CONFIG == poll.getPollTypeType()) {
+        // TODO - Should this be removed?
+      }
     }
+    return AcknowledgeTypeType.NOK;
+  }
 
-    private void sentStatusToExcange(InmPendingResponse ipr, ExchangeLogStatusTypeType status) {
+  private void sentStatusToExchange(InmPendingResponse ipr) {
 
-        AcknowledgeType ackType = new AcknowledgeType();
-        ackType.setMessage("");
-        ackType.setMessageId(ipr.getMsgId());
+    AcknowledgeType ackType = new AcknowledgeType();
+    ackType.setMessage("");
+    ackType.setMessageId(ipr.getMsgId());
 
-        PollStatusAcknowledgeType osat = new PollStatusAcknowledgeType();
-        osat.setPollId(ipr.getMsgId());
-        osat.setStatus(status);
+    PollStatusAcknowledgeType osat = new PollStatusAcknowledgeType();
+    osat.setPollId(ipr.getMsgId());
+    osat.setStatus(ExchangeLogStatusTypeType.PENDING);
 
-        ackType.setPollStatus(osat);
-        ackType.setType(AcknowledgeTypeType.OK);
+    ackType.setPollStatus(osat);
+    ackType.setType(AcknowledgeTypeType.OK);
 
-        String s;
-        try {
-            s = ExchangePluginResponseMapper.mapToSetPollStatusToSuccessfulResponse(startupBean.getApplicaionName(), ackType, ipr.getMsgId());
-            pluginMessageProducer.sendModuleMessage(s, ModuleQueue.EXCHANGE);
-            LOG.debug("Poll response " + ipr.getMsgId() + " sent to exchange with status: " + status.value());
-        } catch (ExchangeModelMarshallException ex) {
-            LOG.debug("ExchangeModelMarshallException", ex);
-        } catch (JMSException jex) {
-            LOG.debug("JMSException", jex);
-        }
-
+    String s;
+    try {
+      s =
+          ExchangePluginResponseMapper.mapToSetPollStatusToSuccessfulResponse(
+              startupBean.getApplicaionName(), ackType, ipr.getMsgId());
+      pluginMessageProducer.sendModuleMessage(s, ModuleQueue.EXCHANGE);
+      LOGGER.debug(
+          "Poll response "
+              + ipr.getMsgId()
+              + " sent to exchange with status: "
+              + ExchangeLogStatusTypeType.PENDING.value());
+    } catch (ExchangeModelMarshallException ex) {
+      LOGGER.debug("ExchangeModelMarshallException", ex);
+    } catch (JMSException jex) {
+      LOGGER.debug("JMSException", jex);
     }
+  }
 
-    /**
-     * Set the config values for the twostage
-     *
-     * @param settings
-     * @return
-     */
-    public AcknowledgeTypeType setConfig(SettingListType settings) {
-        LOG.info(startupBean.getRegisterClassName() + ".setConfig()");
-        try {
-            for (KeyValueType values : settings.getSetting()) {
-                LOG.debug("Setting [ " + values.getKey() + " : " + values.getValue() + " ]");
-                startupBean.getSettings().put(values.getKey(), values.getValue());
-            }
-            return AcknowledgeTypeType.OK;
-        } catch (Exception e) {
-            LOG.error("Failed to set config in {}", startupBean.getRegisterClassName());
-            return AcknowledgeTypeType.NOK;
-        }
-
+  /**
+   * Set the config values for the twostage
+   *
+   * @param settings the settings
+   * @return AcknowledgeTypeType
+   */
+  public AcknowledgeTypeType setConfig(SettingListType settings) {
+    LOGGER.info(startupBean.getRegisterClassName() + ".setConfig()");
+    try {
+      for (KeyValueType values : settings.getSetting()) {
+        LOGGER.debug("Setting [ " + values.getKey() + " : " + values.getValue() + " ]");
+        startupBean.getSettings().put(values.getKey(), values.getValue());
+      }
+      return AcknowledgeTypeType.OK;
+    } catch (Exception e) {
+      LOGGER.error("Failed to set config in {}", startupBean.getRegisterClassName());
+      return AcknowledgeTypeType.NOK;
     }
+  }
 
-    /**
-     * Start the twostage. Use this to enable functionality in the twostage
-     *
-     * @return
-     */
-    public AcknowledgeTypeType start() {
-        LOG.info(startupBean.getRegisterClassName() + ".start()");
-        try {
-            startupBean.setIsEnabled(Boolean.TRUE);
-            return AcknowledgeTypeType.OK;
-        } catch (Exception e) {
-            startupBean.setIsEnabled(Boolean.FALSE);
-            LOG.error("Failed to start {}", startupBean.getRegisterClassName());
-            return AcknowledgeTypeType.NOK;
-        }
-
+  /**
+   * Start the twostage. Use this to enable functionality in the twostage
+   *
+   * @return AcknowledgeTypeType
+   */
+  public AcknowledgeTypeType start() {
+    LOGGER.info(startupBean.getRegisterClassName() + ".start()");
+    try {
+      startupBean.setIsEnabled(Boolean.TRUE);
+      return AcknowledgeTypeType.OK;
+    } catch (Exception e) {
+      startupBean.setIsEnabled(Boolean.FALSE);
+      LOGGER.error("Failed to start {}", startupBean.getRegisterClassName());
+      return AcknowledgeTypeType.NOK;
     }
+  }
 
-    /**
-     * Start the twostage. Use this to disable functionality in the twostage
-     *
-     * @return
-     */
-    public AcknowledgeTypeType stop() {
-        LOG.info(startupBean.getRegisterClassName() + ".stop()");
-        try {
-            startupBean.setIsEnabled(Boolean.FALSE);
-            return AcknowledgeTypeType.OK;
-        } catch (Exception e) {
-            startupBean.setIsEnabled(Boolean.TRUE);
-            LOG.error("Failed to stop {}", startupBean.getRegisterClassName());
-            return AcknowledgeTypeType.NOK;
-        }
+  /**
+   * Start the twostage. Use this to disable functionality in the twostage
+   *
+   * @return AcknowledgeTypeType
+   */
+  public AcknowledgeTypeType stop() {
+    LOGGER.info(startupBean.getRegisterClassName() + ".stop()");
+    try {
+      startupBean.setIsEnabled(Boolean.FALSE);
+      return AcknowledgeTypeType.OK;
+    } catch (Exception e) {
+      startupBean.setIsEnabled(Boolean.TRUE);
+      LOGGER.error("Failed to stop {}", startupBean.getRegisterClassName());
+      return AcknowledgeTypeType.NOK;
     }
-
+  }
 }

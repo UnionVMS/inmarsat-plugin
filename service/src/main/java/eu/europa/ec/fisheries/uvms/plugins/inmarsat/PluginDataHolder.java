@@ -15,56 +15,53 @@ import eu.europa.ec.fisheries.schema.exchange.movement.v1.SetReportMovementType;
 import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
 
-/**
- **/
+/** */
 public abstract class PluginDataHolder {
 
-    public final static String PLUGIN_PROPERTIES = "plugin.properties";
-    public final static String PROPERTIES = "settings.properties";
-    public final static String CAPABILITIES = "capabilities.properties";
+  public static final String PLUGIN_PROPERTIES = "plugin.properties";
+  public static final String PROPERTIES = "settings.properties";
+  public static final String CAPABILITIES = "capabilities.properties";
+  private final ConcurrentHashMap<String, String> settings = new ConcurrentHashMap<>();
+  private final ConcurrentHashMap<String, String> capabilities = new ConcurrentHashMap<>();
+  private final ConcurrentHashMap<String, SetReportMovementType> cachedMovement =
+      new ConcurrentHashMap<>();
+  private Properties twostageApplicaitonProperties;
+  private Properties twostageProperties;
+  private Properties twostageCapabilities;
 
-    private Properties twostageApplicaitonProperties;
-    private Properties twostageProperties;
-    private Properties twostageCapabilities;
+  public ConcurrentHashMap<String, String> getSettings() {
+    return settings;
+  }
 
-    private final ConcurrentHashMap<String, String> settings = new ConcurrentHashMap<>();
-    private final ConcurrentHashMap<String, String> capabilities = new ConcurrentHashMap<>();
-    private final ConcurrentHashMap<String, SetReportMovementType> cachedMovement = new ConcurrentHashMap<>();
+  public ConcurrentHashMap<String, String> getCapabilities() {
+    return capabilities;
+  }
 
-    public ConcurrentHashMap<String, String> getSettings() {
-        return settings;
-    }
+  public ConcurrentHashMap<String, SetReportMovementType> getCachedMovement() {
+    return cachedMovement;
+  }
 
-    public ConcurrentHashMap<String, String> getCapabilities() {
-        return capabilities;
-    }
+  public Properties getPluginApplicaitonProperties() {
+    return twostageApplicaitonProperties;
+  }
 
-    public ConcurrentHashMap<String, SetReportMovementType> getCachedMovement() {
-        return cachedMovement;
-    }
+  public void setPluginApplicaitonProperties(Properties twostageApplicaitonProperties) {
+    this.twostageApplicaitonProperties = twostageApplicaitonProperties;
+  }
 
-    public Properties getPluginApplicaitonProperties() {
-        return twostageApplicaitonProperties;
-    }
+  public Properties getPluginProperties() {
+    return twostageProperties;
+  }
 
-    public void setPluginApplicaitonProperties(Properties twostageApplicaitonProperties) {
-        this.twostageApplicaitonProperties = twostageApplicaitonProperties;
-    }
+  public void setPluginProperties(Properties twostageProperties) {
+    this.twostageProperties = twostageProperties;
+  }
 
-    public Properties getPluginProperties() {
-        return twostageProperties;
-    }
+  public Properties getPluginCapabilities() {
+    return twostageCapabilities;
+  }
 
-    public void setPluginProperties(Properties twostageProperties) {
-        this.twostageProperties = twostageProperties;
-    }
-
-    public Properties getPluginCapabilities() {
-        return twostageCapabilities;
-    }
-
-    public void setPluginCapabilities(Properties twostageCapabilities) {
-        this.twostageCapabilities = twostageCapabilities;
-    }
-
+  public void setPluginCapabilities(Properties twostageCapabilities) {
+    this.twostageCapabilities = twostageCapabilities;
+  }
 }
