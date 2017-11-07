@@ -43,7 +43,7 @@ public class DownLoadService {
     for (String dnid : dnids) {
       try {
         String response = download(path, dnid);
-        LOGGER.debug("Download returned: " + response);
+        LOGGER.debug("Download returned: {}", response);
         responses.put(dnid, response);
       } catch (TelnetException e) {
         LOGGER.error("Exception while downloading: {}", e.getMessage());
@@ -54,7 +54,7 @@ public class DownLoadService {
   }
 
   private String download(String path, String dnid) throws TelnetException {
-    LOGGER.debug("Download invoked with DNID = " + dnid);
+    LOGGER.debug("Download invoked with DNID = {}", dnid);
     return connect.connect(
         null,
         path,

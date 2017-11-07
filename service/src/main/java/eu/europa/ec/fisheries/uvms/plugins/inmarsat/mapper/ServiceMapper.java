@@ -20,14 +20,17 @@ import eu.europa.ec.fisheries.schema.exchange.service.v1.SettingListType;
 import eu.europa.ec.fisheries.schema.exchange.service.v1.SettingType;
 import java.util.Map;
 import java.util.Properties;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /** */
 public class ServiceMapper {
-
   private static final Logger LOGGER = LoggerFactory.getLogger(ServiceMapper.class);
+
+  private ServiceMapper() {
+    throw new IllegalStateException("Utility class");
+  }
 
   public static ServiceType getServiceType(
       String serviceClassName,
@@ -55,8 +58,7 @@ public class ServiceMapper {
     return serviceType;
   }
 
-  public static SettingListType getSettingsListTypeFromMap(
-      ConcurrentHashMap<String, String> settings) {
+  public static SettingListType getSettingsListTypeFromMap(ConcurrentMap<String, String> settings) {
     SettingListType settingListType = new SettingListType();
     for (Map.Entry<String, String> tmp : settings.entrySet()) {
       SettingType setting = new SettingType();
@@ -68,7 +70,7 @@ public class ServiceMapper {
   }
 
   public static CapabilityListType getCapabilitiesListTypeFromMap(
-      ConcurrentHashMap<String, String> capabilities) {
+      ConcurrentMap<String, String> capabilities) {
     CapabilityListType capabilityListType = new CapabilityListType();
     for (Map.Entry<String, String> tmp : capabilities.entrySet()) {
       CapabilityType setting = new CapabilityType();
@@ -86,15 +88,15 @@ public class ServiceMapper {
   }
 
   public static void mapToMapFromProperties(
-      ConcurrentHashMap<String, String> map, Properties props, String registerClassName) {
-    for (Object col : props.keySet()) {
-      if (col.getClass().isAssignableFrom(String.class)) {
-        String keyString = (String) col;
+      ConcurrentMap<String, String> map, Properties props, String registerClassName) {
+
+    for (Map.Entry<Object, Object> entry : props.entrySet()) {
+      if (entry.getKey().getClass().isAssignableFrom(String.class)) {
+        String key = (String) entry.getKey();
         if (registerClassName != null) {
-          keyString = registerClassName.concat("." + keyString);
+          key = registerClassName.concat("." + key);
         }
-        String valueString = (String) props.get(col);
-        map.put(keyString, valueString);
+        map.put(key, (String) entry.getValue());
       }
     }
   }

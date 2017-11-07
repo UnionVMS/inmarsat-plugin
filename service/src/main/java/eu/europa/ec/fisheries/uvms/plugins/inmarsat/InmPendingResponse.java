@@ -21,8 +21,8 @@ public class InmPendingResponse implements Serializable {
   private int referenceNumber;
   private StatusType status;
   private String mobTermId;
-  public String dnId;
-  public String membId;
+  private String dnId;
+  private String membId;
 
   public String getMobTermId() {
     return mobTermId;

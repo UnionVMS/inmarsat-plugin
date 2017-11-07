@@ -101,11 +101,11 @@ public class DownLoadCacheDeliveryBean {
 
     IdList dnidId = new IdList();
     dnidId.setType(IdType.DNID);
-    dnidId.setValue("" + msg.getHeader().getDnid());
+    dnidId.setValue(Integer.toString(msg.getHeader().getDnid()));
 
     IdList membId = new IdList();
     membId.setType(IdType.MEMBER_NUMBER);
-    membId.setValue("" + msg.getHeader().getMemberNo());
+    membId.setValue(Integer.toString(msg.getHeader().getMemberNo()));
 
     mobTermId.getMobileTerminalIdList().add(dnidId);
     mobTermId.getMobileTerminalIdList().add(membId);
@@ -128,7 +128,7 @@ public class DownLoadCacheDeliveryBean {
 
     movement.setSource(MovementSourceType.INMARSAT_C);
 
-    movement.setStatus("" + ((PositionReport) msg.getBody()).getMacroEncodedMessage());
+    movement.setStatus(Integer.toString(((PositionReport) msg.getBody()).getMacroEncodedMessage()));
 
     SetReportMovementType reportType = new SetReportMovementType();
     reportType.setMovement(movement);
@@ -163,7 +163,7 @@ public class DownLoadCacheDeliveryBean {
                 startBean.getApplicaionName(), ackType, ipr.getMsgId());
         pluginMessageProducer.sendModuleMessage(s, ModuleQueue.EXCHANGE);
         boolean b = pendingPollResponsList.removePendingPollResponse(ipr);
-        LOGGER.debug("Pending poll response removed: " + b);
+        LOGGER.debug("Pending poll response removed: {}", b);
       } catch (ExchangeModelMarshallException ex) {
         LOGGER.debug("ExchangeModelMarshallException", ex);
       } catch (JMSException jex) {

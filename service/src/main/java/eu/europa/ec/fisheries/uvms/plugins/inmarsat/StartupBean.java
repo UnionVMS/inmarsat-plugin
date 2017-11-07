@@ -46,13 +46,13 @@ public class StartupBean extends PluginDataHolder {
   private boolean isEnabled = false;
   private boolean waitingForResponse = false;
   private int numberOfTriesExecuted = 0;
-  private String REGISTER_CLASS_NAME = "";
+  private String registerClassName;
 
   @EJB private PluginMessageProducer messageProducer;
 
   @EJB private FileHandlerBean fileHandler;
 
-  private CapabilityListType capabilities;
+  private CapabilityListType capabilityList;
   private SettingListType settingList;
   private ServiceType serviceType;
 
@@ -62,19 +62,21 @@ public class StartupBean extends PluginDataHolder {
     // This must be loaded first!!! Not doing that will end in dire problems later on!
     super.setPluginApplicaitonProperties(
         fileHandler.getPropertiesFromFile(PluginDataHolder.PLUGIN_PROPERTIES));
-    REGISTER_CLASS_NAME = getPLuginApplicationProperty("application.groupid");
+    registerClassName = getPLuginApplicationProperty("application.groupid");
 
-    LOGGER.debug("Plugin will try to register as: " + REGISTER_CLASS_NAME);
+    LOGGER.debug("Plugin will try to register as:{}", registerClassName);
     // These can be loaded in any order
-    super.setPluginProperties(fileHandler.getPropertiesFromFile(PluginDataHolder.PROPERTIES));
-    super.setPluginCapabilities(fileHandler.getPropertiesFromFile(PluginDataHolder.CAPABILITIES));
+    super.setPluginProperties(
+        fileHandler.getPropertiesFromFile(PluginDataHolder.SETTINGS_PROPERTIES));
+    super.setPluginCapabilities(
+        fileHandler.getPropertiesFromFile(PluginDataHolder.CAPABILITIES_PROPERTIES));
 
     ServiceMapper.mapToMapFromProperties(
         super.getSettings(), super.getPluginProperties(), getRegisterClassName());
     ServiceMapper.mapToMapFromProperties(
         super.getCapabilities(), super.getPluginCapabilities(), null);
 
-    capabilities = ServiceMapper.getCapabilitiesListTypeFromMap(super.getCapabilities());
+    capabilityList = ServiceMapper.getCapabilitiesListTypeFromMap(super.getCapabilities());
     settingList = ServiceMapper.getSettingsListTypeFromMap(super.getSettings());
 
     serviceType =
@@ -88,7 +90,7 @@ public class StartupBean extends PluginDataHolder {
 
     register();
 
-    LOGGER.debug("Settings updated in plugin {}", REGISTER_CLASS_NAME);
+    LOGGER.debug("Settings updated in plugin {}", registerClassName);
     for (Entry<String, String> entry : super.getSettings().entrySet()) {
       LOGGER.debug("Setting: KEY: {} , VALUE: {}", entry.getKey(), entry.getValue());
     }
@@ -123,10 +125,9 @@ public class StartupBean extends PluginDataHolder {
     try {
       String registerServiceRequest =
           ExchangeModuleRequestMapper.createRegisterServiceRequest(
-              serviceType, capabilities, settingList);
-      String correlationId =
-          messageProducer.sendEventBusMessage(
-              registerServiceRequest, ExchangeModelConstants.EXCHANGE_REGISTER_SERVICE);
+              serviceType, capabilityList, settingList);
+      messageProducer.sendEventBusMessage(
+          registerServiceRequest, ExchangeModelConstants.EXCHANGE_REGISTER_SERVICE);
     } catch (JMSException | ExchangeModelMarshallException e) {
       LOGGER.error(
           "Failed to send registration message to {}",
@@ -140,9 +141,8 @@ public class StartupBean extends PluginDataHolder {
     try {
       String unregisterServiceRequest =
           ExchangeModuleRequestMapper.createUnregisterServiceRequest(serviceType);
-      String correlationId =
-          messageProducer.sendEventBusMessage(
-              unregisterServiceRequest, ExchangeModelConstants.EXCHANGE_REGISTER_SERVICE);
+      messageProducer.sendEventBusMessage(
+          unregisterServiceRequest, ExchangeModelConstants.EXCHANGE_REGISTER_SERVICE);
     } catch (JMSException | ExchangeModelMarshallException e) {
       LOGGER.error(
           "Failed to send unregistration message to {}",
@@ -159,7 +159,7 @@ public class StartupBean extends PluginDataHolder {
   }
 
   public String getRegisterClassName() {
-    return REGISTER_CLASS_NAME;
+    return registerClassName;
   }
 
   public String getApplicaionName() {
@@ -176,10 +176,9 @@ public class StartupBean extends PluginDataHolder {
   }
 
   public String getSetting(String setting) {
-    LOGGER.debug("Trying to get setting {} ", REGISTER_CLASS_NAME + "." + setting);
-    String settingValue = super.getSettings().get(REGISTER_CLASS_NAME + "." + setting);
-    LOGGER.debug(
-        "Got setting value for " + REGISTER_CLASS_NAME + "." + setting + ": " + settingValue);
+    LOGGER.debug("Trying to get setting {}.{}", registerClassName, setting);
+    String settingValue = super.getSettings().get(registerClassName + "." + setting);
+    LOGGER.debug("Got setting value for {}.{};{}", registerClassName, setting, settingValue);
     return settingValue;
   }
 

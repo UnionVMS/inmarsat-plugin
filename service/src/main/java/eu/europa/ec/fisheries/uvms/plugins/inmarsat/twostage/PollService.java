@@ -24,11 +24,9 @@ import org.slf4j.LoggerFactory;
 @LocalBean
 @Stateless
 public class PollService {
-  @EJB private StartupBean startUp;
-
-  @EJB private Connect connect;
-
   private static final Logger LOGGER = LoggerFactory.getLogger(PollService.class);
+  @EJB private StartupBean startUp;
+  @EJB private Connect connect;
 
   public String sendPoll(PollType poll, String path) throws TelnetException {
     LOGGER.info("sendPoll invoked");
@@ -41,7 +39,7 @@ public class PollService {
             startUp.getSetting("USERNAME"),
             startUp.getSetting("PSW"),
             startUp.getSetting("DNIDS"));
-    LOGGER.info("sendPoll returned: " + s);
+    LOGGER.info("sendPoll returned:{} ", s);
     if (s != null) {
       s = parseResponse(s);
     } else {
@@ -51,8 +49,7 @@ public class PollService {
   }
 
   public String sendConfigurationPoll(PollType poll) throws TelnetException {
-    throw new UnsupportedOperationException(
-        "Not supported yet."); // To change body of generated methods, choose Tools | Templates.
+    throw new UnsupportedOperationException("Not supported yet.");
   }
   // Extract refnr from LES response
   private String parseResponse(String response) {

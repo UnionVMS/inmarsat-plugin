@@ -55,9 +55,9 @@ public class InmPoll {
     poll.getPollPayload();
     Iterator itr = poll.getPollReceiver().iterator();
 
-    setPoll_Type(Poll_Type.INDV);
+    setPollType(Poll_Type.INDV);
     setResponseType(ResponseType.DATA);
-    setSubAddress(SubAdressType.Thrane);
+    setSubAddress(SubAdressType.THRANE);
     setCommand(CommandType.DEMAND_REPORT);
     while (itr.hasNext()) {
       KeyValueType element = (KeyValueType) itr.next();
@@ -78,7 +78,7 @@ public class InmPoll {
     setPollId(poll.getPollId());
   }
 
-  private void setPoll_Type(Poll_Type pollType) {
+  private void setPollType(Poll_Type pollType) {
     this.pollType = pollType;
   }
 
@@ -156,28 +156,28 @@ public class InmPoll {
 
   public String asCommand() {
     String cmd = "POLL ";
-    cmd += getOceanRegion().getValue();
+    cmd += Integer.toString(getOceanRegion().getValue());
     cmd += "," + getPollType().getValue();
     cmd += "," + getDnind();
     cmd += "," + getResponseType().getValue();
     cmd += "," + getSubAddress().getValue();
 
-    String adress = getAdress();
+    String cmdAdress = getAdress();
 
-    if (adress != null) {
-      adress = adress.replace(" ", "");
+    if (cmdAdress != null) {
+      cmdAdress = cmdAdress.replace(" ", "");
     }
 
-    cmd += "," + adress;
+    cmd += "," + cmdAdress;
     cmd += "," + getCommand().getValue();
     cmd += "," + getMemberId();
     cmd += ",";
     if (getStartFrame() >= 0) {
-      cmd += "" + getStartFrame();
+      cmd += Integer.toString(getStartFrame());
     }
     cmd += ",";
     if (getReportsPerDay() >= 0) {
-      cmd += "" + getReportsPerDay();
+      cmd += Integer.toString(getReportsPerDay());
     }
     cmd += "," + getAck().getValue();
     return cmd;
@@ -262,9 +262,9 @@ public class InmPoll {
   }
 
   public enum SubAdressType {
-    Trimble(0),
-    Thrane(1),
-    Telesystems(7);
+    TRIMBLE(0),
+    THRANE(1),
+    TELESYSTEMS(7);
     private final int value;
 
     SubAdressType(int value) {

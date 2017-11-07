@@ -110,12 +110,6 @@ public class RetriverBean {
 
   @Schedule(minute = "*/5", hour = "*", persistent = false)
   public void parseAndDeliver() {
-    /* try{
-       pollTest();
-    } catch (DatatypeConfigurationException ex) {
-        java.util.logging.Logger.getLogger(RetriverBean.class.getName()).log(Level.SEVERE, null, ex);
-    }
-    */
     if (startUp.isIsEnabled() && (deliverFuture == null || deliverFuture.isDone())) {
       try {
         deliverFuture = deliveryBean.parseAndDeliver(getCachePath());
@@ -154,8 +148,9 @@ public class RetriverBean {
 
     InmPoll p = new InmPoll();
     p.setPollType(poll);
-    LOGGER.info("Pollcommand: " + p.asCommand());
-    //        pollService.sendPoll(poll,getPollPath());
+    if (LOGGER.isInfoEnabled()) {
+      LOGGER.info("Pollcommand: {} ", p.asCommand());
+    }
     command.setPoll(poll);
     pluginService.setCommand(command);
   }

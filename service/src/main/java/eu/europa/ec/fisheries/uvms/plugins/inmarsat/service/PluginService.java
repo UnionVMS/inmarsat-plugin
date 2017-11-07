@@ -63,34 +63,21 @@ public class PluginService {
   }
 
   public AcknowledgeTypeType setCommand(CommandType command) {
-    LOGGER.info(
-        startupBean.getRegisterClassName() + ".setCommand(" + command.getCommand().name() + ")");
-    LOGGER.debug("timestamp: " + command.getTimestamp());
+    if (LOGGER.isInfoEnabled()) {
+      LOGGER.info(
+          "{}.setCommand({})", startupBean.getRegisterClassName(), command.getCommand().name());
+      LOGGER.debug("timestamp: {}", command.getTimestamp());
+    }
     PollType poll = command.getPoll();
     if (poll != null && CommandTypeType.POLL.equals(command.getCommand())) {
       String result;
       if (PollTypeType.POLL == poll.getPollTypeType()) {
         try {
           result = pollService.sendPoll(poll, retriverBean.getPollPath());
-          LOGGER.debug("POLL returns: " + result);
+          LOGGER.debug("POLL returns: {}", result);
           // Register Not acknowledge response
+          InmPendingResponse ipr = getInmPendingResponse(poll, result);
 
-          // Register response as pending
-          InmPendingResponse ipr = new InmPendingResponse();
-          ipr.setPollType(poll);
-          ipr.setMsgId(poll.getPollId());
-          ipr.setReferenceNumber(Integer.parseInt(result));
-          List<KeyValueType> pollReciver = poll.getPollReceiver();
-          for (KeyValueType element : pollReciver) {
-            if (element.getKey().equalsIgnoreCase("MOBILE_TERMINAL_ID")) {
-              ipr.setMobTermId(element.getValue());
-            } else if (element.getKey().equalsIgnoreCase("DNID")) {
-              ipr.setDnId(element.getValue());
-            } else if (element.getKey().equalsIgnoreCase("MEMBER_NUMBER")) {
-              ipr.setMembId(element.getValue());
-            }
-          }
-          ipr.setStatus(InmPendingResponse.StatusType.PENDING);
           responseList.addPendingPollResponse(ipr);
 
           // Send status update to exchange
@@ -106,6 +93,26 @@ public class PluginService {
     return AcknowledgeTypeType.NOK;
   }
 
+  private InmPendingResponse getInmPendingResponse(PollType poll, String result) {
+    // Register response as pending
+    InmPendingResponse ipr = new InmPendingResponse();
+    ipr.setPollType(poll);
+    ipr.setMsgId(poll.getPollId());
+    ipr.setReferenceNumber(Integer.parseInt(result));
+    List<KeyValueType> pollReciver = poll.getPollReceiver();
+    for (KeyValueType element : pollReciver) {
+      if (element.getKey().equalsIgnoreCase("MOBILE_TERMINAL_ID")) {
+        ipr.setMobTermId(element.getValue());
+      } else if (element.getKey().equalsIgnoreCase("DNID")) {
+        ipr.setDnId(element.getValue());
+      } else if (element.getKey().equalsIgnoreCase("MEMBER_NUMBER")) {
+        ipr.setMembId(element.getValue());
+      }
+    }
+    ipr.setStatus(InmPendingResponse.StatusType.PENDING);
+    return ipr;
+  }
+
   private void sentStatusToExchange(InmPendingResponse ipr) {
 
     AcknowledgeType ackType = new AcknowledgeType();
@@ -119,17 +126,16 @@ public class PluginService {
     ackType.setPollStatus(osat);
     ackType.setType(AcknowledgeTypeType.OK);
 
-    String s;
     try {
-      s =
+      String s =
           ExchangePluginResponseMapper.mapToSetPollStatusToSuccessfulResponse(
               startupBean.getApplicaionName(), ackType, ipr.getMsgId());
       pluginMessageProducer.sendModuleMessage(s, ModuleQueue.EXCHANGE);
       LOGGER.debug(
-          "Poll response "
-              + ipr.getMsgId()
-              + " sent to exchange with status: "
-              + ExchangeLogStatusTypeType.PENDING.value());
+          "Poll response {} sent to exchange with status: {}",
+          ipr.getMsgId(),
+          ExchangeLogStatusTypeType.PENDING);
+
     } catch (ExchangeModelMarshallException ex) {
       LOGGER.debug("ExchangeModelMarshallException", ex);
     } catch (JMSException jex) {
