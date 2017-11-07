@@ -11,6 +11,8 @@ copy of the GNU General Public License along with the IFDM Suite. If not, see <h
  */
 package eu.europa.ec.fisheries.uvms.plugins.inmarsat.producer;
 
+import static eu.europa.ec.fisheries.uvms.plugins.inmarsat.constants.ModuleQueue.EXCHANGE;
+
 import eu.europa.ec.fisheries.uvms.commons.message.impl.JMSUtils;
 import eu.europa.ec.fisheries.uvms.exchange.model.constant.ExchangeModelConstants;
 import eu.europa.ec.fisheries.uvms.plugins.inmarsat.constants.ModuleQueue;
@@ -32,11 +34,10 @@ import org.slf4j.LoggerFactory;
 @Singleton
 public class PluginMessageProducer {
 
+  private static final Logger LOGGER = LoggerFactory.getLogger(PluginMessageProducer.class);
   private Queue exchangeQueue;
   private Topic eventBus;
   private ConnectionFactory connectionFactory;
-
-  private static final Logger LOGGER = LoggerFactory.getLogger(PluginMessageProducer.class);
 
   @PostConstruct
   public void resourceLookup() {
@@ -48,15 +49,14 @@ public class PluginMessageProducer {
   public void sendResponseMessage(String text, TextMessage requestMessage) throws JMSException {
 
     try (Connection connection = connectionFactory.createConnection();
-        final Session session = JMSUtils.connectToQueue(connection)) {
+        Session session = JMSUtils.connectToQueue(connection)) {
 
       TextMessage message = session.createTextMessage();
       message.setJMSDestination(requestMessage.getJMSReplyTo());
       message.setJMSCorrelationID(requestMessage.getJMSMessageID());
       message.setText(text);
 
-      session.createProducer(requestMessage.getJMSReplyTo()).send(message);
-      getProducer(session, requestMessage.getJMSReplyTo()).send(message);
+      sendMessage(session, requestMessage.getJMSReplyTo(), message);
 
     } catch (JMSException e) {
       LOGGER.error("[ Error when sending jms message. {}] {}", text, e.getMessage());
@@ -66,21 +66,20 @@ public class PluginMessageProducer {
 
   public String sendModuleMessage(String text, ModuleQueue queue) throws JMSException {
     try (Connection connection = connectionFactory.createConnection();
-        final Session session = JMSUtils.connectToQueue(connection)) {
+        Session session = JMSUtils.connectToQueue(connection)) {
 
       TextMessage message = session.createTextMessage();
       message.setText(text);
 
-      switch (queue) {
-        case EXCHANGE:
-          getProducer(session, exchangeQueue).send(message);
-          break;
-        default:
-          LOGGER.error("[ Sending Queue is not implemented ]");
-          break;
+      if (EXCHANGE == queue) {
+        sendMessage(session, exchangeQueue, message);
+      } else {
+        LOGGER.error("[ Sending Queue is not implemented ]");
       }
+
       LOGGER.debug("SendMessage-queue:{}, message:{}", queue, message);
       return message.getJMSMessageID();
+
     } catch (JMSException e) {
       LOGGER.error("[ Error when sending data source message. {}] {}", text, e.getMessage());
       throw new JMSException(e.getMessage());
@@ -89,13 +88,13 @@ public class PluginMessageProducer {
 
   public String sendEventBusMessage(String text, String serviceName) throws JMSException {
     try (Connection connection = connectionFactory.createConnection();
-        final Session session = JMSUtils.connectToQueue(connection)) {
+        Session session = JMSUtils.connectToQueue(connection)) {
 
       TextMessage message = session.createTextMessage();
       message.setText(text);
       message.setStringProperty(ExchangeModelConstants.SERVICE_NAME, serviceName);
 
-      getProducer(session, eventBus).send(message);
+      sendMessage(session, eventBus, message);
 
       return message.getJMSMessageID();
     } catch (JMSException e) {
@@ -104,11 +103,12 @@ public class PluginMessageProducer {
     }
   }
 
-  private MessageProducer getProducer(Session session, Destination destination)
+  private void sendMessage(Session session, Destination destination, TextMessage message)
       throws JMSException {
-    MessageProducer producer = session.createProducer(destination);
-    producer.setDeliveryMode(DeliveryMode.NON_PERSISTENT);
-    producer.setTimeToLive(60000L);
-    return producer;
+    try (MessageProducer messageProducer = session.createProducer(destination)) {
+      messageProducer.setDeliveryMode(DeliveryMode.NON_PERSISTENT);
+      messageProducer.setTimeToLive(60000L);
+      messageProducer.send(message);
+    }
   }
 }

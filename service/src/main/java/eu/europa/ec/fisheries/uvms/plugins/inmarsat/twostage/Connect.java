@@ -17,12 +17,14 @@ import eu.europa.ec.fisheries.uvms.plugins.inmarsat.InmPoll;
 import eu.europa.ec.fisheries.uvms.plugins.inmarsat.InmPoll.OceanRegion;
 import eu.europa.ec.fisheries.uvms.plugins.inmarsat.exception.TelnetException;
 import java.io.BufferedInputStream;
-import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Calendar;
 import javax.ejb.DependsOn;
 import javax.ejb.Stateless;
@@ -36,6 +38,9 @@ import org.slf4j.LoggerFactory;
 public class Connect {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(Connect.class);
+  private static final String[] faultPatterns = {
+    "????????", "[Connection to 41424344 aborted: error status 0]", "Illegal address parameter."
+  };
 
   private String getFileName(String path) {
     Calendar cal = Calendar.getInstance();
@@ -83,7 +88,7 @@ public class Connect {
   private void write(String value, PrintStream out) {
     out.println(value);
     out.flush();
-    LOGGER.debug("write:" + value);
+    LOGGER.debug("write:{}", value);
   }
 
   private String buildCommand(PollType poll, OceanRegion oceanRegion) {
@@ -136,11 +141,8 @@ public class Connect {
 
       // Delete file for polls, these are persisted elsewhere
       if (poll != null) {
-        File f = new File(filename);
-        if (f.exists() && f.isFile()) {
-          //noinspection ResultOfMethodCallIgnored
-          f.delete();
-        }
+        Path f = Paths.get(filename);
+        Files.deleteIfExists(f);
       }
     }
     out.print("QUIT \r\n");
@@ -194,12 +196,10 @@ public class Connect {
   private String readUntil(
       String pattern, InputStream in, FileOutputStream stream, String url, String port)
       throws TelnetException, IOException {
-    String[] faultPatterns = {
-      "????????", "[Connection to 41424344 aborted: error status 0]", "Illegal address parameter."
-    };
     StringBuilder sb = new StringBuilder();
     byte[] contents = new byte[1024];
     int bytesRead;
+
     do {
       bytesRead = in.read(contents);
       if (bytesRead > 0) {
@@ -210,30 +210,33 @@ public class Connect {
           stream.write(contents, 0, bytesRead);
           stream.flush();
         }
-        if (sb.toString().trim().endsWith(pattern)) {
-          return sb.toString();
+        String currentString = sb.toString();
+        if (currentString.trim().endsWith(pattern)) {
+          return currentString;
         } else {
-          for (String faultPattern : faultPatterns) {
-            if (sb.toString().trim().contains(faultPattern)) {
-              LOGGER.error(
-                  "Error while reading from Inmarsat-C LES Telnet @ {}:{}: {}",
-                  url,
-                  port,
-                  sb.toString());
-              throw new TelnetException(
-                  "Error while reading from Inmarsat-C LES Telnet @ "
-                      + url
-                      + ":"
-                      + port
-                      + ": "
-                      + sb.toString());
-            }
-          }
+          containsFault(currentString, url, port);
         }
       }
     } while (bytesRead >= 0);
 
     throw new TelnetException(
         "Unknown response from Inmarsat-C LES Telnet @ " + url + ":" + port + ": " + sb.toString());
+  }
+
+  private void containsFault(String currentString, String url, String port) throws TelnetException {
+
+    for (String faultPattern : faultPatterns) {
+      if (currentString.trim().contains(faultPattern)) {
+        LOGGER.error(
+            "Error while reading from Inmarsat-C LES Telnet @ {}:{}: {}", url, port, currentString);
+        throw new TelnetException(
+            "Error while reading from Inmarsat-C LES Telnet @ "
+                + url
+                + ":"
+                + port
+                + ": "
+                + currentString);
+      }
+    }
   }
 }

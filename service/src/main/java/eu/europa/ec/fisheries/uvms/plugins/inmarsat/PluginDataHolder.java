@@ -14,30 +14,31 @@ package eu.europa.ec.fisheries.uvms.plugins.inmarsat;
 import eu.europa.ec.fisheries.schema.exchange.movement.v1.SetReportMovementType;
 import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 /** */
 public abstract class PluginDataHolder {
 
   public static final String PLUGIN_PROPERTIES = "plugin.properties";
-  public static final String PROPERTIES = "settings.properties";
-  public static final String CAPABILITIES = "capabilities.properties";
-  private final ConcurrentHashMap<String, String> settings = new ConcurrentHashMap<>();
-  private final ConcurrentHashMap<String, String> capabilities = new ConcurrentHashMap<>();
-  private final ConcurrentHashMap<String, SetReportMovementType> cachedMovement =
+  public static final String SETTINGS_PROPERTIES = "settings.properties";
+  public static final String CAPABILITIES_PROPERTIES = "capabilities.properties";
+  private final ConcurrentMap<String, String> settings = new ConcurrentHashMap<>();
+  private final ConcurrentMap<String, String> capabilities = new ConcurrentHashMap<>();
+  private final ConcurrentMap<String, SetReportMovementType> cachedMovement =
       new ConcurrentHashMap<>();
   private Properties twostageApplicaitonProperties;
   private Properties twostageProperties;
   private Properties twostageCapabilities;
 
-  public ConcurrentHashMap<String, String> getSettings() {
+  public ConcurrentMap<String, String> getSettings() {
     return settings;
   }
 
-  public ConcurrentHashMap<String, String> getCapabilities() {
+  public ConcurrentMap<String, String> getCapabilities() {
     return capabilities;
   }
 
-  public ConcurrentHashMap<String, SetReportMovementType> getCachedMovement() {
+  public ConcurrentMap<String, SetReportMovementType> getCachedMovement() {
     return cachedMovement;
   }
 

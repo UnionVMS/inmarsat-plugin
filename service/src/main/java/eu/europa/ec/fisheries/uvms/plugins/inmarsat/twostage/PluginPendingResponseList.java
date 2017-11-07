@@ -19,6 +19,7 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.util.ArrayList;
+import java.util.List;
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 import javax.ejb.DependsOn;
@@ -35,7 +36,7 @@ import org.slf4j.LoggerFactory;
 public class PluginPendingResponseList {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(PluginPendingResponseList.class);
-  private final String fileName = "pending.ser";
+  private static final String FILE_NAME = "pending.ser";
   private ArrayList<InmPendingResponse> pending;
 
   @EJB private RetriverBean startUp;
@@ -43,22 +44,24 @@ public class PluginPendingResponseList {
   @PostConstruct
   public void loadPendingPollResponse() {
     pending = new ArrayList<>();
-    File f = new File(startUp.getPollPath(), fileName);
+    File f = new File(startUp.getPollPath(), FILE_NAME);
     try (FileInputStream fis = new FileInputStream(f);
         ObjectInputStream ois = new ObjectInputStream(fis)) {
 
       //noinspection unchecked
       pending = (ArrayList<InmPendingResponse>) ois.readObject();
       if (pending != null) {
-        LOGGER.debug("Read " + pending.size() + " peding responses");
-        for (InmPendingResponse element : pending) {
-          LOGGER.debug("Refnr: " + element.getReferenceNumber());
+        if (LOGGER.isDebugEnabled()) {
+          LOGGER.debug("Read {} pending responses", pending.size());
+          for (InmPendingResponse element : pending) {
+            LOGGER.debug("Refnr: {}", element.getReferenceNumber());
+          }
         }
       } else {
         pending = new ArrayList<>();
       }
     } catch (IOException ex) {
-      LOGGER.debug("IOExeption: " + ex.getMessage());
+      LOGGER.debug("IOExeption:", ex);
     } catch (ClassNotFoundException ex) {
       LOGGER.debug("ClassNotFoundException", ex);
     }
@@ -79,7 +82,7 @@ public class PluginPendingResponseList {
     return false;
   }
 
-  public ArrayList<InmPendingResponse> getPendingPollResponses() {
+  public List<InmPendingResponse> getPendingPollResponses() {
     //noinspection unchecked
     return (ArrayList<InmPendingResponse>) pending.clone();
   }
@@ -90,7 +93,8 @@ public class PluginPendingResponseList {
 
   public InmPendingResponse continsPollTo(String dnid, String memberId) {
     for (InmPendingResponse element : pending) {
-      if (element.dnId.equalsIgnoreCase(dnid) && element.membId.equalsIgnoreCase(memberId)) {
+      if (element.getDnId().equalsIgnoreCase(dnid)
+          && element.getMembId().equalsIgnoreCase(memberId)) {
         return element;
       }
     }
@@ -99,13 +103,13 @@ public class PluginPendingResponseList {
 
   @PreDestroy
   public void writePendingPollResponse() {
-    File f = new File(startUp.getPollPath(), fileName);
+    File f = new File(startUp.getPollPath(), FILE_NAME);
 
     try (FileOutputStream fos = new FileOutputStream(f, false);
         ObjectOutputStream oos = new ObjectOutputStream(fos)) {
       oos.writeObject(pending);
       oos.flush();
-      LOGGER.debug("Wrote " + pending.size() + " pending responses");
+      LOGGER.debug("Wrote {} pending responses", pending.size());
     } catch (IOException ex) {
       LOGGER.debug("IOExeption", ex);
     }
