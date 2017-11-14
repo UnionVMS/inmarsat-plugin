@@ -6,11 +6,11 @@
     <groupId>fish.focus.uvms.maven</groupId>
     <artifactId>uvms-pom</artifactId>
     <relativePath/>
-    <version>1.13</version>
+    <version>1.14</version>
   </parent>
 
-  <groupId>eu.europa.ec.fisheries.uvms.plugins.inmarsat</groupId>
-  <artifactId>twostage</artifactId>
+  <groupId>eu.europa.ec.fisheries.uvms.plugins</groupId>
+  <artifactId>inmarsat</artifactId>
   <version>3.0.4-SNAPSHOT</version>
   <packaging>pom</packaging>
 
@@ -22,9 +22,9 @@
 
   <properties>
     <commons.net.version>3.6</commons.net.version>
-    <exchange.model.version>4.0.3</exchange.model.version>
+    <exchange.model.version>4.0.4</exchange.model.version>
     <uvms.common.version>3.0.3</uvms.common.version>
-    <scm.url>scm:git:https://github.com/UnionVMS/UVMS-TwoStage-PLUGIN.git</scm.url>
+    <scm.url>scm:git:https://github.com/UnionVMS/inmarsat-plugin.git</scm.url>
     <scm.connection>${scm.url}</scm.connection>
     <defaultLibBundleDir>APP-INF/lib</defaultLibBundleDir>
   </properties>

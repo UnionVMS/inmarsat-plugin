@@ -1,15 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
-    <artifactId>twostage-module</artifactId>
-    <packaging>ear</packaging>
 
     <parent>
-        <groupId>eu.europa.ec.fisheries.uvms.plugins.inmarsat</groupId>
-        <artifactId>twostage</artifactId>
+        <groupId>eu.europa.ec.fisheries.uvms.plugins</groupId>
+        <artifactId>inmarsat</artifactId>
         <version>3.0.4-SNAPSHOT</version>
     </parent>
+
+    <artifactId>inmarsat-module</artifactId>
+    <packaging>ear</packaging>
 
     <build>
         <plugins>
@@ -22,8 +23,8 @@
                     <defaultLibBundleDir>${defaultLibBundleDir}</defaultLibBundleDir>
                     <modules>
                         <ejbModule>
-                            <groupId>${project.groupId}</groupId>  
-                            <artifactId>twostage-service</artifactId>
+                            <groupId>${project.groupId}</groupId>
+                            <artifactId>inmarsat-service</artifactId>
                         </ejbModule>
                     </modules>
 
@@ -34,8 +35,8 @@
 
     <dependencies>
         <dependency>
-            <groupId>${project.groupId}</groupId>  
-            <artifactId>twostage-service</artifactId>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>inmarsat-service</artifactId>
             <version>${project.version}</version>
             <type>ejb</type>
         </dependency>
