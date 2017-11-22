@@ -35,7 +35,7 @@ import eu.europa.ec.fisheries.uvms.plugins.inmarsat.service.ExchangeService;
 import fish.focus.uvms.commons.les.inmarsat.InmarsatException;
 import fish.focus.uvms.commons.les.inmarsat.InmarsatFileHandler;
 import fish.focus.uvms.commons.les.inmarsat.InmarsatMessage;
-import fish.focus.uvms.commons.les.inmarsat.header.body.PositionReport;
+import fish.focus.uvms.commons.les.inmarsat.body.PositionReport;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -144,7 +144,7 @@ public class DownLoadCacheDeliveryBean {
     InmPendingResponse ipr =
         pendingPollResponsList.continsPollTo(dnidId.getValue(), membId.getValue());
     if (ipr != null) {
-      LOGGER.info("PendingPollResponse found in list: " + ipr.getReferenceNumber());
+      LOGGER.info("PendingPollResponse found in list: {}", ipr.getReferenceNumber());
       AcknowledgeType ackType = new AcknowledgeType();
       ackType.setMessage("");
       ackType.setMessageId(ipr.getMsgId());
