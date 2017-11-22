@@ -19,7 +19,7 @@
     <enterprise-beans>
         <message-driven>
             <ejb-name>PluginNameEventBusListener${application.name}</ejb-name>
-            <ejb-class>${application.groupid}.consumer.PluginNameEventBusListener</ejb-class>
+            <ejb-class>${application.groupid}.${application.name}.consumer.PluginNameEventBusListener</ejb-class>
             <mapped-name>${application.destination.jndi}</mapped-name>
             <messaging-type>javax.jms.MessageListener</messaging-type>
             <activation-config>
@@ -33,7 +33,7 @@
                 </activation-config-property>
                 <activation-config-property>
                     <activation-config-property-name>messageSelector</activation-config-property-name>
-                    <activation-config-property-value>ServiceName='${application.groupid}'</activation-config-property-value>
+                    <activation-config-property-value>ServiceName='${application.groupid}.${application.name}'</activation-config-property-value>
                 </activation-config-property>
                 <activation-config-property>
                     <activation-config-property-name>subscriptionDurability</activation-config-property-name>
@@ -55,21 +55,21 @@
         </message-driven>
         <message-driven>
             <ejb-name>PluginAckEventBusListener${application.name}</ejb-name>
-            <ejb-class>${application.groupid}.consumer.PluginAckEventBusListener</ejb-class>
+            <ejb-class>${application.groupid}.${application.name}.consumer.PluginAckEventBusListener</ejb-class>
             <mapped-name>${application.destination.jndi}</mapped-name>
             <messaging-type>javax.jms.MessageListener</messaging-type>
             <activation-config>
                 <activation-config-property>
                     <activation-config-property-name>subscriptionName</activation-config-property-name>
-                    <activation-config-property-value>${application.groupid}${application.responseTopicName}</activation-config-property-value>
+                    <activation-config-property-value>${application.groupid}.${application.name}${application.responseTopicName}</activation-config-property-value>
                 </activation-config-property>
                 <activation-config-property>
                     <activation-config-property-name>clientId</activation-config-property-name>
-                    <activation-config-property-value>${application.groupid}${application.responseTopicName}</activation-config-property-value>
+                    <activation-config-property-value>${application.groupid}.${application.name}${application.responseTopicName}</activation-config-property-value>
                 </activation-config-property>
                 <activation-config-property>
                     <activation-config-property-name>messageSelector</activation-config-property-name>
-                    <activation-config-property-value>ServiceName='${application.groupid}${application.responseTopicName}'</activation-config-property-value>
+                    <activation-config-property-value>ServiceName='${application.groupid}.${application.name}${application.responseTopicName}'</activation-config-property-value>
                 </activation-config-property>
                 <activation-config-property>
                     <activation-config-property-name>subscriptionDurability</activation-config-property-name>
