@@ -22,7 +22,7 @@
 
   <properties>
     <commons.net.version>3.6</commons.net.version>
-    <exchange.model.version>4.0.4</exchange.model.version>
+    <exchange.model.version>4.0.5-SNAPSHOT</exchange.model.version>
     <uvms.common.version>3.0.3</uvms.common.version>
     <scm.url>scm:git:https://github.com/UnionVMS/inmarsat-plugin.git</scm.url>
     <scm.connection>${scm.url}</scm.connection>
@@ -34,7 +34,7 @@
       <dependency>
         <groupId>fish.focus.uvms.commons</groupId>
         <artifactId>commons-les</artifactId>
-        <version>1.1</version>
+        <version>1.2-SNAPSHOT</version>
       </dependency>
       <dependency>
         <groupId>commons-net</groupId>
