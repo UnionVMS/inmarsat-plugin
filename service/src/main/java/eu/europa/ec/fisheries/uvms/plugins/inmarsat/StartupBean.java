@@ -41,7 +41,7 @@ public class StartupBean extends PluginDataHolder {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(StartupBean.class);
 
-  private static final int MAX_NUMBER_OF_TRIES = 10;
+  private static final int MAX_NUMBER_OF_TRIES = 20;
   private boolean isRegistered = false;
   private boolean isEnabled = false;
   private boolean waitingForResponse = false;
@@ -85,8 +85,8 @@ public class StartupBean extends PluginDataHolder {
     serviceType =
         ServiceMapper.getServiceType(
             getRegisterClassName(),
-            getApplicaionName(),
-            "A good description for the swagencyemail",
+            "Thrane&Thrane",
+            "inmarsat plugin for the Thrane&Thrane API",
             PluginType.SATELLITE_RECEIVER,
             getPluginResponseSubscriptionName(),
             "INMARSAT_C");
@@ -106,9 +106,9 @@ public class StartupBean extends PluginDataHolder {
     unregister();
   }
 
-  @Schedule(second = "*/30", minute = "*", hour = "*", persistent = false)
+  @Schedule(second = "*/5", minute = "*", hour = "*", persistent = false)
   public void timeout(Timer timer) {
-    if (!waitingForResponse && !isRegistered && numberOfTriesExecuted < MAX_NUMBER_OF_TRIES) {
+    if (!isRegistered && numberOfTriesExecuted < MAX_NUMBER_OF_TRIES) {
       LOGGER.info(getRegisterClassName() + " is not registered, trying to register");
       register();
       numberOfTriesExecuted++;
@@ -154,7 +154,9 @@ public class StartupBean extends PluginDataHolder {
   }
 
   public String getPluginResponseSubscriptionName() {
-    return getRegisterClassName() + getPLuginApplicationProperty("application.responseTopicName");
+    return getRegisterClassName()
+        + "."
+        + getPLuginApplicationProperty("application.responseTopicName");
   }
 
   public String getResponseTopicMessageName() {
