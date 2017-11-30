@@ -160,7 +160,9 @@ public class StartupBean extends PluginDataHolder {
   }
 
   public String getResponseTopicMessageName() {
-    return getPLuginApplicationProperty("application.groupid");
+    return getPLuginApplicationProperty("application.groupid")
+        + "."
+        + getPLuginApplicationProperty("application.name");
   }
 
   public String getRegisterClassName() {
