@@ -62,7 +62,10 @@ public class StartupBean extends PluginDataHolder {
     // This must be loaded first!!! Not doing that will end in dire problems later on!
     super.setPluginApplicaitonProperties(
         fileHandler.getPropertiesFromFile(PluginDataHolder.PLUGIN_PROPERTIES));
-    registerClassName = getPLuginApplicationProperty("application.groupid");
+    registerClassName =
+        getPLuginApplicationProperty("application.groupid")
+            + "."
+            + getPLuginApplicationProperty("application.name");
 
     LOGGER.debug("Plugin will try to register as:{}", registerClassName);
     // These can be loaded in any order
@@ -155,7 +158,9 @@ public class StartupBean extends PluginDataHolder {
   }
 
   public String getResponseTopicMessageName() {
-    return getPLuginApplicationProperty("application.groupid");
+    return getPLuginApplicationProperty("application.groupid")
+        + "."
+        + getPLuginApplicationProperty("application.name");
   }
 
   public String getRegisterClassName() {
