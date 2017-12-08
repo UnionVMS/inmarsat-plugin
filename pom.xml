@@ -21,7 +21,7 @@
 
   <properties>
     <commons.net.version>3.6</commons.net.version>
-    <exchange.model.version>4.0.5</exchange.model.version>
+    <exchange.model.version>4.0.7</exchange.model.version>
     <uvms.common.version>3.0.5</uvms.common.version>
     <scm.url>scm:git:https://github.com/UnionVMS/inmarsat-plugin.git</scm.url>
     <scm.connection>${scm.url}</scm.connection>

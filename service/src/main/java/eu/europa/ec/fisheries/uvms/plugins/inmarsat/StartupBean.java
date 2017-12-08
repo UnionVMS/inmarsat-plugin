@@ -106,7 +106,7 @@ public class StartupBean extends PluginDataHolder {
     unregister();
   }
 
-  @Schedule(second = "*/5", minute = "*", hour = "*", persistent = false)
+  @Schedule(second = "*/10", minute = "*", hour = "*", persistent = false)
   public void timeout(Timer timer) {
     if (!isRegistered && numberOfTriesExecuted < MAX_NUMBER_OF_TRIES) {
       LOGGER.info(getRegisterClassName() + " is not registered, trying to register");
