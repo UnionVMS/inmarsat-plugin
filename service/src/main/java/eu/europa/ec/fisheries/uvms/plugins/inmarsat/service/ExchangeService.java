@@ -12,6 +12,8 @@ copy of the GNU General Public License along with the IFDM Suite. If not, see <h
 package eu.europa.ec.fisheries.uvms.plugins.inmarsat.service;
 
 import eu.europa.ec.fisheries.schema.exchange.movement.v1.SetReportMovementType;
+import eu.europa.ec.fisheries.schema.exchange.plugin.types.v1.PluginType;
+import eu.europa.ec.fisheries.uvms.commons.date.DateUtils;
 import eu.europa.ec.fisheries.uvms.exchange.model.exception.ExchangeModelMarshallException;
 import eu.europa.ec.fisheries.uvms.exchange.model.mapper.ExchangeModuleRequestMapper;
 import eu.europa.ec.fisheries.uvms.plugins.inmarsat.StartupBean;
@@ -39,7 +41,15 @@ public class ExchangeService {
   public void sendMovementReportToExchange(SetReportMovementType reportType) {
     try {
       String text =
-          ExchangeModuleRequestMapper.createSetMovementReportRequest(reportType, "TWOSTAGE");
+          ExchangeModuleRequestMapper.createSetMovementReportRequest(
+              reportType,
+              "TWOSTAGE",
+              null,
+              DateUtils.nowUTC().toDate(),
+              null,
+              PluginType.SATELLITE_RECEIVER,
+              "TWOSTAGE",
+              null);
       String messageId = producer.sendModuleMessage(text, ModuleQueue.EXCHANGE);
       LOGGER.debug("Sent to exchange - text:{}, id:{}", text, messageId);
       startupBean.getCachedMovement().put(messageId, reportType);
