@@ -5,6 +5,7 @@ import org.eu.ingwar.tools.arquillian.extension.suite.annotations.ArquillianSuit
 import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.shrinkwrap.api.Archive;
 import org.jboss.shrinkwrap.api.ShrinkWrap;
+import org.jboss.shrinkwrap.api.asset.EmptyAsset;
 import org.jboss.shrinkwrap.api.spec.WebArchive;
 import org.jboss.shrinkwrap.resolver.api.maven.Maven;
 
@@ -18,6 +19,7 @@ public class _BuildTestDeployment {
     public static Archive<?> createDeployment() {
 
         WebArchive testWar = ShrinkWrap.create(WebArchive.class, "test.war");
+        testWar.addAsWebInfResource(EmptyAsset.INSTANCE, "beans.xml");
 
         File[] files = Maven.resolver().loadPomFromFile("pom.xml").importRuntimeAndTestDependencies().resolve()
                 .withTransitivity().asFile();
@@ -25,9 +27,10 @@ public class _BuildTestDeployment {
 
 
 
-        testWar.addPackages(true, "eu.europa.fisheries.uvms.tests");
+        testWar.addPackages(true, "eu.europa.ec.fisheries.uvms.plugins.inmarsat");
 
-        //testWar.addClass(AssetConfigHelper.class);
+        testWar.deleteClass(StartupImpl.class);
+        testWar.addClass(StartupTestImpl.class);
 
         //testWar.addAsResource("persistence-integration.xml", "META-INF/persistence.xml");
 
