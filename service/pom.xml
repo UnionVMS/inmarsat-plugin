@@ -1,94 +1,107 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-  <modelVersion>4.0.0</modelVersion>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
 
-  <parent>
-    <groupId>eu.europa.ec.fisheries.uvms.plugins</groupId>
-    <artifactId>inmarsat</artifactId>
-    <version>3.0.8-SNAPSHOT</version>
-  </parent>
+    <parent>
+        <groupId>eu.europa.ec.fisheries.uvms.plugins</groupId>
+        <artifactId>inmarsat</artifactId>
+        <version>3.0.8-SNAPSHOT</version>
+    </parent>
 
-  <artifactId>inmarsat-service</artifactId>
-  <packaging>ejb</packaging>
+    <artifactId>inmarsat-service</artifactId>
+    <packaging>ejb</packaging>
 
-  <properties>
-    <application.name>${project.parent.artifactId}</application.name>
-    <application.responseTopicName>PLUGIN_RESPONSE</application.responseTopicName>
-    <application.groupid>${project.parent.groupId}</application.groupid>
-    <application.version>${project.parent.version}</application.version>
-    <application.logfile>/app/logs/${project.parent.artifactId}/${project.parent.artifactId}.log</application.logfile>
-    <application.error.logfile>/app/logs/${project.parent.artifactId}/${project.parent.artifactId}-error.log
-    </application.error.logfile>
+    <properties>
+        <application.name>${project.parent.artifactId}</application.name>
+        <application.responseTopicName>PLUGIN_RESPONSE</application.responseTopicName>
+        <application.groupid>${project.parent.groupId}</application.groupid>
+        <application.version>${project.parent.version}</application.version>
+        <application.logfile>/app/logs/${project.parent.artifactId}/${project.parent.artifactId}.log
+        </application.logfile>
+        <application.error.logfile>/app/logs/${project.parent.artifactId}/${project.parent.artifactId}-error.log
+        </application.error.logfile>
 
-    <application.connection.factory>jms:/ConnectionFactory</application.connection.factory>
-    <application.destination.jndi>jms:/jms/topic/EventBus</application.destination.jndi>
-  </properties>
+        <application.connection.factory>jms:/ConnectionFactory</application.connection.factory>
+        <application.destination.jndi>jms:/jms/topic/EventBus</application.destination.jndi>
 
-  <profiles>
-    <profile>
-      <id>weblogic</id>
-      <properties>
-        <application.connection.factory>ConnectionFactory</application.connection.factory>
-        <application.destination.jndi>jms/topic/EventBus</application.destination.jndi>
-      </properties>
-    </profile>
-  </profiles>
 
-  <dependencies>
-    <dependency>
-      <groupId>fish.focus.uvms.commons</groupId>
-      <artifactId>commons-les</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>eu.europa.ec.fisheries.uvms.exchange</groupId>
-      <artifactId>exchange-model</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>commons-net</groupId>
-      <artifactId>commons-net</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.commons</groupId>
-      <artifactId>commons-lang3</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>eu.europa.ec.fisheries.uvms.commons</groupId>
-      <artifactId>uvms-commons-message</artifactId>
-    </dependency>
-  </dependencies>
+    </properties>
 
-  <build>
-    <plugins>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-ejb-plugin</artifactId>
-        <configuration>
-          <ejbVersion>3.1</ejbVersion>
-          <filterDeploymentDescriptor>true</filterDeploymentDescriptor>
-          <archive>
-            <manifest>
-              <addClasspath>true</addClasspath>
-            </manifest>
-          </archive>
-        </configuration>
-      </plugin>
-      <plugin>
-        <groupId>org.codehaus.mojo</groupId>
-        <artifactId>properties-maven-plugin</artifactId>
-        <version>1.0.0</version>
-        <executions>
-          <execution>
-            <phase>generate-resources</phase>
-            <goals>
-              <goal>write-project-properties</goal>
-            </goals>
-            <configuration>
-              <outputFile>${project.build.outputDirectory}/plugin.properties</outputFile>
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>
-    </plugins>
-  </build>
+
+    <profiles>
+        <profile>
+            <id>weblogic</id>
+            <properties>
+                <application.connection.factory>ConnectionFactory</application.connection.factory>
+                <application.destination.jndi>jms/topic/EventBus</application.destination.jndi>
+            </properties>
+        </profile>
+    </profiles>
+
+    <dependencies>
+        <dependency>
+            <groupId>fish.focus.uvms.commons</groupId>
+            <artifactId>commons-les</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>eu.europa.ec.fisheries.uvms.exchange</groupId>
+            <artifactId>exchange-model</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>commons-net</groupId>
+            <artifactId>commons-net</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-lang3</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>eu.europa.ec.fisheries.uvms.commons</groupId>
+            <artifactId>uvms-commons-message</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>fish.focus.uvms.maven</groupId>
+            <artifactId>uvms-pom-arquillian-deps</artifactId>
+            <type>pom</type>
+            <scope>test</scope>
+        </dependency>
+
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-ejb-plugin</artifactId>
+                <configuration>
+                    <ejbVersion>3.1</ejbVersion>
+                    <filterDeploymentDescriptor>true</filterDeploymentDescriptor>
+                    <archive>
+                        <manifest>
+                            <addClasspath>true</addClasspath>
+                        </manifest>
+                    </archive>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>properties-maven-plugin</artifactId>
+                <version>1.0.0</version>
+                <executions>
+                    <execution>
+                        <phase>generate-resources</phase>
+                        <goals>
+                            <goal>write-project-properties</goal>
+                        </goals>
+                        <configuration>
+                            <outputFile>${project.build.outputDirectory}/plugin.properties</outputFile>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
 
 </project>
