@@ -14,46 +14,44 @@ package eu.europa.ec.fisheries.uvms.plugins.inmarsat.twostage;
 import eu.europa.ec.fisheries.schema.exchange.plugin.types.v1.PollType;
 import eu.europa.ec.fisheries.uvms.plugins.inmarsat.StartupBean;
 import eu.europa.ec.fisheries.uvms.plugins.inmarsat.exception.TelnetException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import javax.ejb.EJB;
 import javax.ejb.LocalBean;
 import javax.ejb.Stateless;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /** */
 @LocalBean
 @Stateless
 public class PollService {
-  private static final Logger LOGGER = LoggerFactory.getLogger(PollService.class);
-  @EJB private StartupBean startUp;
-  @EJB private Connect connect;
+    
+    private static final Logger LOGGER = LoggerFactory.getLogger(PollService.class);
+    @EJB
+    private StartupBean startUp;
+    @EJB
+    private Connect connect;
 
-  public String sendPoll(PollType poll, String path) throws TelnetException {
-    LOGGER.info("sendPoll invoked");
-    String s =
-        connect.connect(
-            poll,
-            path,
-            startUp.getSetting("URL"),
-            startUp.getSetting("PORT"),
-            startUp.getSetting("USERNAME"),
-            startUp.getSetting("PSW"),
-            startUp.getSetting("DNIDS"));
-    LOGGER.info("sendPoll returned:{} ", s);
-    if (s != null) {
-      s = parseResponse(s);
-    } else {
-      throw new TelnetException("Connect returned null response");
+    public String sendPoll(PollType poll, String path) throws TelnetException {
+        LOGGER.info("sendPoll invoked");
+        String s =
+                connect.connect(poll, path, startUp.getSetting("URL"), startUp.getSetting("PORT"), startUp.getSetting("USERNAME"), startUp.getSetting("PSW"), startUp.getSetting("DNIDS"));
+        LOGGER.info("sendPoll returned:{} ", s);
+        if (s != null) {
+            s = parseResponse(s);
+        } else {
+            throw new TelnetException("Connect returned null response");
+        }
+        return s;
     }
-    return s;
-  }
 
-  public String sendConfigurationPoll(PollType poll) throws TelnetException {
-    throw new UnsupportedOperationException("Not supported yet.");
-  }
-  // Extract refnr from LES response
-  private String parseResponse(String response) {
-    String s = response.substring(response.indexOf("number"));
-    return s.replaceAll("[^0-9]", ""); // returns 123
-  }
+    public String sendConfigurationPoll(PollType poll) throws TelnetException {
+        throw new UnsupportedOperationException("Not supported yet.");
+    }
+
+    // Extract refnr from LES response
+    private String parseResponse(String response) {
+        String s = response.substring(response.indexOf("number"));
+        return s.replaceAll("[^0-9]", ""); // returns 123
+    }
 }

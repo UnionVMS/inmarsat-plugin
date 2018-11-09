@@ -23,4 +23,10 @@ public class TelnetException extends Exception {
   public TelnetException(Exception ex) {
     super(ex);
   }
+
+
+  public TelnetException(String message, Throwable ex)
+  {
+      super(message, ex);
+  }
 }

@@ -19,45 +19,40 @@ import eu.europa.ec.fisheries.uvms.exchange.model.mapper.ExchangeModuleRequestMa
 import eu.europa.ec.fisheries.uvms.plugins.inmarsat.StartupBean;
 import eu.europa.ec.fisheries.uvms.plugins.inmarsat.constants.ModuleQueue;
 import eu.europa.ec.fisheries.uvms.plugins.inmarsat.producer.PluginMessageProducer;
-import java.util.UUID;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import javax.ejb.EJB;
 import javax.ejb.LocalBean;
 import javax.ejb.Stateless;
 import javax.jms.JMSException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import java.util.UUID;
 
 /** */
 @LocalBean
 @Stateless
 public class ExchangeService {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(ExchangeService.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(ExchangeService.class);
 
-  @EJB private StartupBean startupBean;
+    @EJB
+    private StartupBean startupBean;
 
-  @EJB private PluginMessageProducer producer;
+    @EJB
+    private PluginMessageProducer producer;
 
-  public void sendMovementReportToExchange(SetReportMovementType reportType) {
-    try {
-      String text =
-          ExchangeModuleRequestMapper.createSetMovementReportRequest(
-              reportType,
-              "TWOSTAGE",
-              null,
-              DateUtils.nowUTC().toDate(),
-              null,
-              PluginType.SATELLITE_RECEIVER,
-              "TWOSTAGE",
-              null);
-      String messageId = producer.sendModuleMessage(text, ModuleQueue.EXCHANGE);
-      LOGGER.debug("Sent to exchange - text:{}, id:{}", text, messageId);
-      startupBean.getCachedMovement().put(messageId, reportType);
-    } catch (ExchangeModelMarshallException e) {
-      LOGGER.error("Couldn't map movement to setreportmovementtype");
-    } catch (JMSException e) {
-      LOGGER.error("couldn't send movement");
-      startupBean.getCachedMovement().put(UUID.randomUUID().toString(), reportType);
+    public void sendMovementReportToExchange(SetReportMovementType reportType) {
+        try {
+            String text =
+                    ExchangeModuleRequestMapper.createSetMovementReportRequest(reportType, "TWOSTAGE", null, DateUtils.nowUTC().toDate(), null, PluginType.SATELLITE_RECEIVER, "TWOSTAGE", null);
+            String messageId = producer.sendModuleMessage(text, ModuleQueue.EXCHANGE);
+            LOGGER.debug("Sent to exchange - text:{}, id:{}", text, messageId);
+            startupBean.getCachedMovement().put(messageId, reportType);
+        } catch (ExchangeModelMarshallException e) {
+            LOGGER.error("Couldn't map movement to setreportmovementtype");
+        } catch (JMSException e) {
+            LOGGER.error("couldn't send movement");
+            startupBean.getCachedMovement().put(UUID.randomUUID().toString(), reportType);
+        }
     }
-  }
 }

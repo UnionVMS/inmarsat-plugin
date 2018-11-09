@@ -13,55 +13,46 @@ package eu.europa.ec.fisheries.uvms.plugins.inmarsat.twostage;
 
 import eu.europa.ec.fisheries.uvms.plugins.inmarsat.StartupBean;
 import eu.europa.ec.fisheries.uvms.plugins.inmarsat.exception.TelnetException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import javax.ejb.*;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Future;
-import javax.ejb.AsyncResult;
-import javax.ejb.Asynchronous;
-import javax.ejb.ConcurrencyManagement;
-import javax.ejb.ConcurrencyManagementType;
-import javax.ejb.EJB;
-import javax.ejb.Singleton;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /** */
 @Singleton
 @ConcurrencyManagement(ConcurrencyManagementType.BEAN)
 public class DownLoadService {
 
-  @EJB private Connect connect;
+    @EJB
+    private Connect connect;
 
-  @EJB private StartupBean startUp;
+    @EJB
+    private StartupBean startUp;
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(DownLoadService.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(DownLoadService.class);
 
-  @Asynchronous
-  public Future<Map<String, String>> download(String path, List<String> dnids) {
-    Map<String, String> responses = new HashMap<>();
-    for (String dnid : dnids) {
-      try {
-        String response = download(path, dnid);
-        LOGGER.debug("Download returned: {}", response);
-        responses.put(dnid, response);
-      } catch (TelnetException e) {
-        LOGGER.error("Exception while downloading: {}", e.getMessage());
-      }
+    @Asynchronous
+    public Future<Map<String, String>> download(String path, List<String> dnids) {
+        Map<String, String> responses = new HashMap<>();
+        for (String dnid : dnids) {
+            try {
+                String response = download(path, dnid);
+                LOGGER.debug("Download returned: {}", response);
+                responses.put(dnid, response);
+            } catch (TelnetException e) {
+                LOGGER.error("Exception while downloading: {}", e.getMessage());
+            }
+        }
+
+        return new AsyncResult<>(responses);
     }
 
-    return new AsyncResult<>(responses);
-  }
-
-  private String download(String path, String dnid) throws TelnetException {
-    LOGGER.debug("Download invoked with DNID = {}", dnid);
-    return connect.connect(
-        null,
-        path,
-        startUp.getSetting("URL"),
-        startUp.getSetting("PORT"),
-        startUp.getSetting("USERNAME"),
-        startUp.getSetting("PSW"),
-        dnid);
-  }
+    private String download(String path, String dnid) throws TelnetException {
+        LOGGER.debug("Download invoked with DNID = {}", dnid);
+        return connect.connect(null,path,startUp.getSetting("URL"),startUp.getSetting("PORT"),startUp.getSetting("USERNAME"),startUp.getSetting("PSW"),dnid);
+    }
 }
