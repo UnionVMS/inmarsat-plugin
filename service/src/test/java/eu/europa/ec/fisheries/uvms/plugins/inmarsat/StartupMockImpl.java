@@ -9,7 +9,7 @@ import javax.ejb.Timer;
 
 @Startup
 @Singleton
-public class StartupTestImpl extends PluginDataHolder  implements StartupBean{
+public class StartupMockImpl extends PluginDataHolder  implements StartupBean{
 
     public void startup() {
 

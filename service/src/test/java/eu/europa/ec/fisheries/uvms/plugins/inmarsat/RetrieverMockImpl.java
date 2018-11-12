@@ -1,51 +1,40 @@
-/*
-﻿Developed with the contribution of the European Commission - Directorate General for Maritime Affairs and Fisheries
-© European Union, 2015-2016.
-
-This file is part of the Integrated Fisheries Data Management (IFDM) Suite. The IFDM Suite is free software: you can
-redistribute it and/or modify it under the terms of the GNU General Public License as published by the
-Free Software Foundation, either version 3 of the License, or any later version. The IFDM Suite is distributed in
-the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
-FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details. You should have received a
-copy of the GNU General Public License along with the IFDM Suite. If not, see <http://www.gnu.org/licenses/>.
- */
-package eu.europa.ec.fisheries.uvms.plugins.inmarsat.twostage;
+package eu.europa.ec.fisheries.uvms.plugins.inmarsat;
 
 import eu.europa.ec.fisheries.schema.exchange.common.v1.CommandType;
 import eu.europa.ec.fisheries.schema.exchange.common.v1.CommandTypeType;
 import eu.europa.ec.fisheries.schema.exchange.common.v1.KeyValueType;
 import eu.europa.ec.fisheries.schema.exchange.plugin.types.v1.PollType;
 import eu.europa.ec.fisheries.schema.exchange.plugin.types.v1.PollTypeType;
-import eu.europa.ec.fisheries.uvms.plugins.inmarsat.InmPoll;
-import eu.europa.ec.fisheries.uvms.plugins.inmarsat.StartupBean;
 import eu.europa.ec.fisheries.uvms.plugins.inmarsat.service.PluginService;
+import eu.europa.ec.fisheries.uvms.plugins.inmarsat.twostage.DownLoadCacheDeliveryBean;
+import eu.europa.ec.fisheries.uvms.plugins.inmarsat.twostage.DownLoadService;
+import eu.europa.ec.fisheries.uvms.plugins.inmarsat.twostage.PollService;
+import eu.europa.ec.fisheries.uvms.plugins.inmarsat.twostage.RetrieverBean;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.PostConstruct;
-import javax.ejb.*;
+import javax.ejb.EJB;
+import javax.ejb.Schedule;
 import java.io.File;
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.Future;
 
-/** */
-@Singleton
-@Startup
-@DependsOn({"StartupBean"})
-public class RetriverBean {
+public class RetrieverMockImpl implements RetrieverBean {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(RetriverBean.class);
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(RetrieverBean.class);
     private final Map<String, Future> connectFutures = new HashMap<>();
     @EJB
-    DownLoadService downloadService;
+    public DownLoadService downloadService;
     @EJB
-    StartupBean startUp;
+    public StartupBean startUp;
     @EJB
-    PollService pollService;
+    private PollService pollService;
     @EJB
-    private DownLoadCacheDeliveryBean deliveryBean;
+    private  DownLoadCacheDeliveryBean deliveryBean;
     @EJB
     private PluginService pluginService;
     private Future deliverFuture = null;
@@ -57,7 +46,7 @@ public class RetriverBean {
         createDirectories();
     }
 
-    private String getCachePath() {
+    public String getCachePath() {
         return cachePath;
     }
 
@@ -79,7 +68,7 @@ public class RetriverBean {
 
         */
     @SuppressWarnings("ResultOfMethodCallIgnored")
-    private void createDirectories() {
+    public void createDirectories() {
         File f = new File(startUp.getPLuginApplicationProperty("application.logfile"));
         File dirCache = new File(f.getParentFile(), "cache");
         File dirPoll = new File(f.getParentFile(), "poll");
@@ -155,7 +144,7 @@ public class RetriverBean {
     /**
      * @return returns DNIDs available for download
      */
-    private List<String> getDownloadDnids() {
+    public List<String> getDownloadDnids() {
         List<String> downloadDnids = new ArrayList<>();
         List<String> dnidList = getDnids();
         for (String dnid : dnidList) {
@@ -171,7 +160,7 @@ public class RetriverBean {
     /**
      * @return list of DNIDs configured
      */
-    private List<String> getDnids() {
+    public  List<String> getDnids() {
         String dnidsSettingValue = startUp.getSetting("DNIDS");
         if (StringUtils.isBlank(dnidsSettingValue)) {
             return new ArrayList<>();
@@ -179,4 +168,7 @@ public class RetriverBean {
 
         return Arrays.asList(dnidsSettingValue.trim().split(","));
     }
+
+
+
 }

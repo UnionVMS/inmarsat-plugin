@@ -16,6 +16,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import eu.europa.ec.fisheries.uvms.plugins.inmarsat.RetrieverMockImpl;
 import eu.europa.ec.fisheries.uvms.plugins.inmarsat.StartupBean;
 import java.util.Arrays;
 import java.util.Collections;
@@ -26,11 +27,11 @@ import org.junit.Test;
 
 public class TestRetrieverBean {
 
-  private RetriverBean retriever;
+  private RetrieverMockImpl retriever;
 
   @Before
   public void before() {
-    retriever = new RetriverBean();
+    retriever = new RetrieverMockImpl();
     retriever.downloadService = mock(DownLoadService.class);
     when(retriever.downloadService.download(null, Arrays.asList("DNID-123", "123456", "ABC")))
         .thenReturn(new AsyncResult<Map<String, String>>(null));

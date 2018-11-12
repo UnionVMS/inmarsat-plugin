@@ -1,6 +1,7 @@
 package eu.europa.ec.fisheries.uvms.plugins.inmarsat;
 
 
+import eu.europa.ec.fisheries.uvms.plugins.inmarsat.twostage.RetrieverImpl;
 import org.eu.ingwar.tools.arquillian.extension.suite.annotations.ArquillianSuiteDeployment;
 import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.shrinkwrap.api.Archive;
@@ -29,8 +30,10 @@ public class _BuildTestDeployment {
 
         testWar.addPackages(true, "eu.europa.ec.fisheries.uvms.plugins.inmarsat");
 
+        testWar.deleteClass(RetrieverImpl.class);
         testWar.deleteClass(StartupImpl.class);
-        testWar.addClass(StartupTestImpl.class);
+        testWar.addClass(RetrieverMockImpl.class);
+        testWar.addClass(StartupMockImpl.class);
 
         //testWar.addAsResource("persistence-integration.xml", "META-INF/persistence.xml");
 
