@@ -16,6 +16,9 @@ public class TestRetrieverBeanIT extends _TransactionalTests {
 
         Assert.assertTrue(true);
 
+
+        System.out.println("HEPP");
+
     }
 
 

@@ -17,11 +17,12 @@ import eu.europa.ec.fisheries.schema.exchange.registry.v1.RegisterServiceRespons
 import eu.europa.ec.fisheries.schema.exchange.registry.v1.UnregisterServiceResponse;
 import eu.europa.ec.fisheries.uvms.exchange.model.exception.ExchangeModelMarshallException;
 import eu.europa.ec.fisheries.uvms.exchange.model.mapper.JAXBMarshaller;
-import eu.europa.ec.fisheries.uvms.plugins.inmarsat.StartupBean;
 import javax.ejb.EJB;
 import javax.jms.Message;
 import javax.jms.MessageListener;
 import javax.jms.TextMessage;
+
+import eu.europa.ec.fisheries.uvms.plugins.inmarsat.StartupBean;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

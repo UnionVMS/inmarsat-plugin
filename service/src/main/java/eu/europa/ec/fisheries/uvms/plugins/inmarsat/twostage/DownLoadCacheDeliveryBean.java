@@ -20,13 +20,14 @@ import eu.europa.ec.fisheries.schema.exchange.movement.mobileterminal.v1.MobileT
 import eu.europa.ec.fisheries.schema.exchange.movement.v1.*;
 import eu.europa.ec.fisheries.schema.exchange.plugin.types.v1.PluginType;
 import eu.europa.ec.fisheries.schema.exchange.v1.ExchangeLogStatusTypeType;
+import eu.europa.ec.fisheries.uvms.commons.date.DateUtils;
 import eu.europa.ec.fisheries.uvms.exchange.model.exception.ExchangeModelMarshallException;
+import eu.europa.ec.fisheries.uvms.exchange.model.mapper.ExchangeModuleRequestMapper;
 import eu.europa.ec.fisheries.uvms.exchange.model.mapper.ExchangePluginResponseMapper;
 import eu.europa.ec.fisheries.uvms.plugins.inmarsat.InmPendingResponse;
 import eu.europa.ec.fisheries.uvms.plugins.inmarsat.StartupBean;
 import eu.europa.ec.fisheries.uvms.plugins.inmarsat.constants.ModuleQueue;
 import eu.europa.ec.fisheries.uvms.plugins.inmarsat.producer.PluginMessageProducer;
-import eu.europa.ec.fisheries.uvms.plugins.inmarsat.service.ExchangeService;
 import fish.focus.uvms.commons.les.inmarsat.InmarsatException;
 import fish.focus.uvms.commons.les.inmarsat.InmarsatFileHandler;
 import fish.focus.uvms.commons.les.inmarsat.InmarsatMessage;
@@ -34,10 +35,8 @@ import fish.focus.uvms.commons.les.inmarsat.body.PositionReport;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.ejb.AsyncResult;
-import javax.ejb.Asynchronous;
-import javax.ejb.EJB;
-import javax.ejb.Singleton;
+import javax.ejb.*;
+import javax.inject.Inject;
 import javax.jms.JMSException;
 import java.io.IOException;
 import java.nio.file.Path;
@@ -45,21 +44,22 @@ import java.nio.file.Paths;
 import java.util.GregorianCalendar;
 import java.util.Map;
 import java.util.TimeZone;
+import java.util.UUID;
 import java.util.concurrent.Future;
 
 /** */
-@Singleton
+@LocalBean
 public class DownLoadCacheDeliveryBean {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(DownLoadCacheDeliveryBean.class);
-    @EJB
-    private PluginPendingResponseList pendingPollResponsList;
-    @EJB
-    private PluginMessageProducer pluginMessageProducer;
-    @EJB
-    private ExchangeService service;
-    @EJB
-    private StartupBean startBean;
+
+    @EJB private PluginPendingResponseList pendingPollResponsList;
+    @EJB private PluginMessageProducer pluginMessageProducer;
+    @Inject private StartupBean startBean;
+    @EJB private PluginMessageProducer producer;
+
+
+
 
     /**
      * @param path the directory to parse inmarsat files
@@ -71,7 +71,6 @@ public class DownLoadCacheDeliveryBean {
 
         InmarsatFileHandler fileHandler = new InmarsatFileHandler(Paths.get(path));
         Map<Path, InmarsatMessage[]> messagesFromPath = fileHandler.createMessages();
-
         for (Map.Entry<Path, InmarsatMessage[]> entry : messagesFromPath.entrySet()) {
             // Send message to Que
             for (InmarsatMessage message : entry.getValue()) {
@@ -83,8 +82,7 @@ public class DownLoadCacheDeliveryBean {
             }
             // Send ok so move file
             LOGGER.info("File: {} processed and moved to handled", entry.getKey());
-            fileHandler.moveFileToDir(
-                    entry.getKey(), Paths.get(entry.getKey().getParent().toString(), "handled"));
+            fileHandler.moveFileToDir(entry.getKey(), Paths.get(entry.getKey().getParent().toString(), "handled"));
         }
         return new AsyncResult<>("Done");
     }
@@ -94,26 +92,21 @@ public class DownLoadCacheDeliveryBean {
      * @throws InmarsatException if stored date could be set.
      */
     private void msgToQue(InmarsatMessage msg) throws InmarsatException {
-        MovementBaseType movement = new MovementBaseType();
 
+        MovementBaseType movement = new MovementBaseType();
         movement.setComChannelType(MovementComChannelType.MOBILE_TERMINAL);
         MobileTerminalId mobTermId = new MobileTerminalId();
-
         IdList dnidId = new IdList();
         dnidId.setType(IdType.DNID);
         dnidId.setValue(Integer.toString(msg.getHeader().getDnid()));
-
         IdList membId = new IdList();
         membId.setType(IdType.MEMBER_NUMBER);
         membId.setValue(Integer.toString(msg.getHeader().getMemberNo()));
 
         mobTermId.getMobileTerminalIdList().add(dnidId);
         mobTermId.getMobileTerminalIdList().add(membId);
-
         movement.setMobileTerminalId(mobTermId);
-
         movement.setMovementType(MovementTypeType.POS);
-
         MovementPoint mp = new MovementPoint();
         mp.setAltitude(0.0);
         mp.setLatitude(((PositionReport) msg.getBody()).getLatitude().getAsDouble());
@@ -121,24 +114,19 @@ public class DownLoadCacheDeliveryBean {
         movement.setPosition(mp);
 
         movement.setPositionTime(((PositionReport) msg.getBody()).getPositionDate().getDate());
-
         movement.setReportedCourse((double) ((PositionReport) msg.getBody()).getCourse());
-
         movement.setReportedSpeed(((PositionReport) msg.getBody()).getSpeed());
-
         movement.setSource(MovementSourceType.INMARSAT_C);
-
         movement.setStatus(Integer.toString(((PositionReport) msg.getBody()).getMacroEncodedMessage()));
 
         SetReportMovementType reportType = new SetReportMovementType();
         reportType.setMovement(movement);
-        GregorianCalendar gcal =
-                (GregorianCalendar) GregorianCalendar.getInstance(TimeZone.getTimeZone("UTC"));
+        GregorianCalendar gcal = (GregorianCalendar) GregorianCalendar.getInstance(TimeZone.getTimeZone("UTC"));
         reportType.setTimestamp(gcal.getTime());
         reportType.setPluginName(startBean.getRegisterClassName());
         reportType.setPluginType(PluginType.SATELLITE_RECEIVER);
 
-        service.sendMovementReportToExchange(reportType);
+        sendMovementReportToExchange(reportType);
 
         // If there is a pending poll response, also generate a status update for that poll
         InmPendingResponse ipr = pendingPollResponsList.continsPollTo(dnidId.getValue(), membId.getValue());
@@ -157,9 +145,7 @@ public class DownLoadCacheDeliveryBean {
             ackType.setType(AcknowledgeTypeType.OK);
 
             try {
-                String s =
-                        ExchangePluginResponseMapper.mapToSetPollStatusToSuccessfulResponse(
-                                startBean.getApplicaionName(), ackType, ipr.getMsgId());
+                String s =ExchangePluginResponseMapper.mapToSetPollStatusToSuccessfulResponse(startBean.getApplicaionName(), ackType, ipr.getMsgId());
                 pluginMessageProducer.sendModuleMessage(s, ModuleQueue.EXCHANGE);
                 boolean b = pendingPollResponsList.removePendingPollResponse(ipr);
                 LOGGER.debug("Pending poll response removed: {}", b);
@@ -172,4 +158,23 @@ public class DownLoadCacheDeliveryBean {
 
         LOGGER.debug("Sending momvement to Exchange");
     }
+
+
+
+    public void sendMovementReportToExchange(SetReportMovementType reportType) {
+        try {
+            String text =ExchangeModuleRequestMapper.createSetMovementReportRequest(reportType, "TWOSTAGE", null, DateUtils.nowUTC().toDate(), null, PluginType.SATELLITE_RECEIVER, "TWOSTAGE", null);
+            String messageId = producer.sendModuleMessage(text, ModuleQueue.EXCHANGE);
+            LOGGER.debug("Sent to exchange - text:{}, id:{}", text, messageId);
+            startBean.getCachedMovement().put(messageId, reportType);
+        } catch (ExchangeModelMarshallException e) {
+            LOGGER.error("Couldn't map movement to setreportmovementtype");
+        } catch (JMSException e) {
+            LOGGER.error("couldn't send movement");
+            startBean.getCachedMovement().put(UUID.randomUUID().toString(), reportType);
+        }
+    }
+
+
+
 }

@@ -12,23 +12,19 @@ copy of the GNU General Public License along with the IFDM Suite. If not, see <h
 package eu.europa.ec.fisheries.uvms.plugins.inmarsat.twostage;
 
 import eu.europa.ec.fisheries.uvms.plugins.inmarsat.InmPendingResponse;
+import eu.europa.ec.fisheries.uvms.plugins.inmarsat.StartupBean;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
-import javax.ejb.DependsOn;
-import javax.ejb.EJB;
-import javax.ejb.Singleton;
-import javax.ejb.Startup;
+import javax.ejb.*;
 import java.io.*;
 import java.util.ArrayList;
 import java.util.List;
 
 /** */
-@Singleton
-@Startup
-@DependsOn({"RetriverBean"})
+@LocalBean
 public class PluginPendingResponseList {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(PluginPendingResponseList.class);
@@ -36,7 +32,7 @@ public class PluginPendingResponseList {
     private ArrayList<InmPendingResponse> pending;
 
     @EJB
-    private RetriverBean startUp;
+    private StartupBean startUp;
 
     @PostConstruct
     public void loadPendingPollResponse() {

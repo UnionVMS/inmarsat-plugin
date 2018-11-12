@@ -31,7 +31,6 @@ import java.util.Calendar;
 
 /** */
 @Stateless
-@DependsOn({"RetriverBean"})
 public class Connect {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(Connect.class);
