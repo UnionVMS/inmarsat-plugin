@@ -94,11 +94,14 @@ public class PluginMessageProducer {
         }
     }
 
+
+    // TODO NON_PERSISTENT is NOT OK
     private void sendMessage(Session session, Destination destination, TextMessage message)
             throws JMSException {
         try (MessageProducer messageProducer = session.createProducer(destination)) {
-            messageProducer.setDeliveryMode(DeliveryMode.NON_PERSISTENT);
-            messageProducer.setTimeToLive(60000L);
+            messageProducer.setDeliveryMode(DeliveryMode.PERSISTENT);
+            //messageProducer.setDeliveryMode(DeliveryMode.NON_PERSISTENT);
+            //messageProducer.setTimeToLive(60000L);
             messageProducer.send(message);
         }
     }
