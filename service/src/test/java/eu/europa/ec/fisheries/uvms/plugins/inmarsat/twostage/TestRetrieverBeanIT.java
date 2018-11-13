@@ -1,6 +1,12 @@
 package eu.europa.ec.fisheries.uvms.plugins.inmarsat.twostage;
 
+import eu.europa.ec.fisheries.schema.exchange.common.v1.CommandType;
+import eu.europa.ec.fisheries.schema.exchange.common.v1.CommandTypeType;
+import eu.europa.ec.fisheries.schema.exchange.common.v1.KeyValueType;
+import eu.europa.ec.fisheries.schema.exchange.plugin.types.v1.PollType;
+import eu.europa.ec.fisheries.schema.exchange.plugin.types.v1.PollTypeType;
 import eu.europa.ec.fisheries.uvms.plugins.inmarsat.InmarsatPlugin;
+import eu.europa.ec.fisheries.uvms.plugins.inmarsat.InmarsatPoll;
 import eu.europa.ec.fisheries.uvms.plugins.inmarsat._TransactionalTests;
 import org.jboss.arquillian.junit.Arquillian;
 import org.junit.Assert;
@@ -9,6 +15,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import javax.ejb.EJB;
+import java.util.Date;
 import java.util.concurrent.ConcurrentMap;
 
 
@@ -79,6 +86,43 @@ public class TestRetrieverBeanIT extends _TransactionalTests {
     }
 
 
+    /*
+    private void pollTest() {
+        CommandType command = new CommandType();
+        command.setCommand(CommandTypeType.POLL);
+        command.setPluginName(getPLuginApplicationProperty("application.name"));
+
+        command.setTimestamp(new Date());
+
+        PollType poll = new PollType();
+        poll.setPollId("123");
+        poll.setPollTypeType(PollTypeType.POLL);
+        KeyValueType kv = new KeyValueType();
+        kv.setKey("DNID");
+        kv.setValue("10745");
+        poll.getPollReceiver().add(kv);
+
+        KeyValueType kv1 = new KeyValueType();
+        kv1.setKey("MEMBER_NUMBER");
+        kv1.setValue("255");
+        poll.getPollReceiver().add(kv1);
+
+        KeyValueType kv2 = new KeyValueType();
+        kv2.setKey("SERIAL_NUMBER");
+        kv2.setValue("426509712");
+        poll.getPollReceiver().add(kv2);
+
+        InmarsatPoll p = new InmarsatPoll();
+        p.setPollType(poll);
+        if (LOGGER.isInfoEnabled()) {
+            LOGGER.info("Pollcommand: {} ", p.asCommand());
+        }
+        command.setPoll(poll);
+        setCommand(command);
+
+
+    }
+    */
 
 
 

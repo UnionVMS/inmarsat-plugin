@@ -12,21 +12,20 @@ copy of the GNU General Public License along with the IFDM Suite. If not, see <h
 
 package eu.europa.ec.fisheries.uvms.plugins.inmarsat;
 
-/** Created by osdjup on 2016-11-07. */
 public class TelnetException extends Exception {
-  private static final long serialVersionUID = 1L;
 
-  public TelnetException(String message) {
-    super(message);
-  }
+    private static final long serialVersionUID = 1L;
 
-  public TelnetException(Exception ex) {
-    super(ex);
-  }
+    public TelnetException(String message) {
+        super(message);
+    }
+
+    public TelnetException(Exception ex) {
+        super(ex);
+    }
 
 
-  public TelnetException(String message, Throwable ex)
-  {
-      super(message, ex);
-  }
+    public TelnetException(String message, Throwable ex) {
+        super(message, ex);
+    }
 }

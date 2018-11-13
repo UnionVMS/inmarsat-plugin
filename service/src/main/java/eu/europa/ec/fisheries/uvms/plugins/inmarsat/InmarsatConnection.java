@@ -44,19 +44,15 @@ public class InmarsatConnection {
         TelnetClient telnet = null;
         try {
             LOGGER.info("Trying to download from :{}", dnid);
-
             telnet = new TelnetClient();
-
             telnet.connect(url, Integer.parseInt(port));
             BufferedInputStream input = new BufferedInputStream(telnet.getInputStream());
             PrintStream output = new PrintStream(telnet.getOutputStream());
-
             readUntil("name:", input, null, url, port);
             write(user, output);
             readUntil("word:", input, null, url, port);
             sendPsw(output, psw);
             readUntil(">", input, null, url, port);
-
             response = issueCommand(poll, output, input, dnid, path, url, port);
 
         } catch (SocketException ex) {
@@ -125,7 +121,6 @@ public class InmarsatConnection {
         if (stream != null) {
             stream.flush();
             stream.close();
-
             // Delete file for polls, these are persisted elsewhere
             if (poll != null) {
                 Path f = Paths.get(filename);
@@ -192,8 +187,7 @@ public class InmarsatConnection {
             }
         } while (bytesRead >= 0);
 
-        throw new TelnetException(
-                "Unknown response from Inmarsat-C LES Telnet @ " + url + ":" + port + ": " + sb.toString());
+        throw new TelnetException("Unknown response from Inmarsat-C LES Telnet @ " + url + ":" + port + ": " + sb.toString());
     }
 
     private void containsFault(String currentString, String url, String port) throws TelnetException {
@@ -203,12 +197,7 @@ public class InmarsatConnection {
                 LOGGER.error(
                         "Error while reading from Inmarsat-C LES Telnet @ {}:{}: {}", url, port, currentString);
                 throw new TelnetException(
-                        "Error while reading from Inmarsat-C LES Telnet @ "
-                                + url
-                                + ":"
-                                + port
-                                + ": "
-                                + currentString);
+                        "Error while reading from Inmarsat-C LES Telnet @ " + url + ":" + port+ ": " + currentString);
             }
         }
     }

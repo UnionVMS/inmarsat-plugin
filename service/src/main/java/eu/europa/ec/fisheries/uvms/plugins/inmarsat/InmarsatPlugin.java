@@ -6,6 +6,12 @@ import javax.ejb.Local;
 import java.util.List;
 import java.util.concurrent.ConcurrentMap;
 
+/** Main reason for having Interface is to be able to Mock it away so we can write test code
+ *  There is also a class (PluginAckEventBusListener) left that actually inject it and run some method aganist it
+ *  Otherwise it is ment to be a selfgoing watch (sort of . . . .)
+ *
+ */
+
 @Local
 public interface InmarsatPlugin {
 

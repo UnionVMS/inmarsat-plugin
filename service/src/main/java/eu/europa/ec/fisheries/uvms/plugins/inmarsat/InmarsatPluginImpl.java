@@ -95,8 +95,7 @@ public class InmarsatPluginImpl extends PluginDataHolder implements MessageListe
         capabilityList = ServiceMapper.getCapabilitiesListTypeFromMap(super.getCapabilities());
         settingList = ServiceMapper.getSettingsListTypeFromMap(super.getSettings());
 
-        serviceType =
-                ServiceMapper.getServiceType(getRegisterClassName(),"Thrane&Thrane","inmarsat plugin for the Thrane&Thrane API",PluginType.SATELLITE_RECEIVER,getPluginResponseSubscriptionName(),"INMARSAT_C");
+        serviceType = ServiceMapper.getServiceType(getRegisterClassName(),"Thrane&Thrane","inmarsat plugin for the Thrane&Thrane API",PluginType.SATELLITE_RECEIVER,getPluginResponseSubscriptionName(),"INMARSAT_C");
         register();
         LOGGER.debug("Settings updated in plugin {}", registerClassName);
         for (Map.Entry<String, String> entry : super.getSettings().entrySet()) {
@@ -106,7 +105,6 @@ public class InmarsatPluginImpl extends PluginDataHolder implements MessageListe
         loadPendingPollResponse();
         LOGGER.info("PLUGIN STARTED");
     }
-
 
     @PreDestroy
     private void shutdown() {
@@ -155,6 +153,66 @@ public class InmarsatPluginImpl extends PluginDataHolder implements MessageListe
     }
 
 
+    @Override
+    public void onMessage(Message inMessage) {
+
+        LOGGER.debug(
+                "Eventbus listener for twostage (MessageConstants.PLUGIN_SERVICE_CLASS_NAME): {}", getRegisterClassName());
+        TextMessage textMessage = (TextMessage) inMessage;
+
+        try {
+
+            PluginBaseRequest request =  JAXBMarshaller.unmarshallTextMessage(textMessage, PluginBaseRequest.class);
+
+            String responseMessage = null;
+
+            switch (request.getMethod()) {
+                case SET_CONFIG:
+                    SetConfigRequest setConfigRequest = JAXBMarshaller.unmarshallTextMessage(textMessage, SetConfigRequest.class);
+                    AcknowledgeTypeType setConfig = setConfig(setConfigRequest.getConfigurations());
+                    AcknowledgeType setConfigAck = ExchangePluginResponseMapper.mapToAcknowlegeType(textMessage.getJMSMessageID(), setConfig);
+                    responseMessage = ExchangePluginResponseMapper.mapToSetConfigResponse(getRegisterClassName(), setConfigAck);
+                    break;
+                case SET_COMMAND:
+                    SetCommandRequest setCommandRequest = JAXBMarshaller.unmarshallTextMessage(textMessage, SetCommandRequest.class);
+                    AcknowledgeTypeType setCommand = setCommand(setCommandRequest.getCommand());
+                    AcknowledgeType setCommandAck = ExchangePluginResponseMapper.mapToAcknowlegeType(textMessage.getJMSMessageID(), setCommand);
+                    responseMessage = ExchangePluginResponseMapper.mapToSetCommandResponse(getRegisterClassName(), setCommandAck);
+                    break;
+                case SET_REPORT:
+                    SetReportRequest setReportRequest =   JAXBMarshaller.unmarshallTextMessage(textMessage, SetReportRequest.class);
+                    AcknowledgeTypeType setReport = setReport(setReportRequest.getReport());
+                    AcknowledgeType setReportAck = ExchangePluginResponseMapper.mapToAcknowlegeType(textMessage.getJMSMessageID(), setReport);
+                    responseMessage = ExchangePluginResponseMapper.mapToSetReportResponse(getRegisterClassName(), setReportAck);
+                    break;
+                case START:
+                    JAXBMarshaller.unmarshallTextMessage(textMessage, StartRequest.class);
+                    AcknowledgeTypeType start = start();
+                    AcknowledgeType startAck = ExchangePluginResponseMapper.mapToAcknowlegeType(textMessage.getJMSMessageID(), start);
+                    responseMessage = ExchangePluginResponseMapper.mapToStartResponse(getRegisterClassName(), startAck);
+                    break;
+                case STOP:
+                    JAXBMarshaller.unmarshallTextMessage(textMessage, StopRequest.class);
+                    AcknowledgeTypeType stop = stop();
+                    AcknowledgeType stopAck = ExchangePluginResponseMapper.mapToAcknowlegeType(textMessage.getJMSMessageID(), stop);
+                    responseMessage = ExchangePluginResponseMapper.mapToStopResponse(getRegisterClassName(), stopAck);
+                    break;
+                case PING:
+                    JAXBMarshaller.unmarshallTextMessage(textMessage, PingRequest.class);
+                    responseMessage = ExchangePluginResponseMapper.mapToPingResponse(isIsEnabled(), isIsEnabled());
+                    break;
+                default:
+                    LOGGER.error("Not a supported method");
+                    break;
+            }
+            messageProducer.sendResponseMessage(responseMessage, textMessage);
+
+        } catch (ExchangeModelMarshallException | NullPointerException e) {
+            LOGGER.error("[ Error when receiving message in twostage " + getRegisterClassName() + " ]", e);
+        } catch (JMSException e) {
+            LOGGER.error("[ Error when handling JMS message in twostage " + getRegisterClassName() + " ]", e);
+        }
+    }
 
 
     private void register() {
@@ -267,39 +325,6 @@ public class InmarsatPluginImpl extends PluginDataHolder implements MessageListe
     }
 
 
-    private void pollTest() {
-        CommandType command = new CommandType();
-        command.setCommand(CommandTypeType.POLL);
-        command.setPluginName(getPLuginApplicationProperty("application.name"));
-
-        command.setTimestamp(new Date());
-
-        PollType poll = new PollType();
-        poll.setPollId("123");
-        poll.setPollTypeType(PollTypeType.POLL);
-        KeyValueType kv = new KeyValueType();
-        kv.setKey("DNID");
-        kv.setValue("10745");
-        poll.getPollReceiver().add(kv);
-
-        KeyValueType kv1 = new KeyValueType();
-        kv1.setKey("MEMBER_NUMBER");
-        kv1.setValue("255");
-        poll.getPollReceiver().add(kv1);
-
-        KeyValueType kv2 = new KeyValueType();
-        kv2.setKey("SERIAL_NUMBER");
-        kv2.setValue("426509712");
-        poll.getPollReceiver().add(kv2);
-
-        InmarsatPoll p = new InmarsatPoll();
-        p.setPollType(poll);
-        if (LOGGER.isInfoEnabled()) {
-            LOGGER.info("Pollcommand: {} ", p.asCommand());
-        }
-        command.setPoll(poll);
-        setCommand(command);
-    }
 
     /**
      * @return returns DNIDs available for download
@@ -313,7 +338,6 @@ public class InmarsatPluginImpl extends PluginDataHolder implements MessageListe
                 downloadDnids.add(dnid);
             }
         }
-
         return downloadDnids;
     }
 
@@ -647,95 +671,6 @@ public class InmarsatPluginImpl extends PluginDataHolder implements MessageListe
         }
     }
 
-
-    @Override
-    public void onMessage(Message inMessage) {
-
-        LOGGER.debug(
-                "Eventbus listener for twostage (MessageConstants.PLUGIN_SERVICE_CLASS_NAME): {}", getRegisterClassName());
-        TextMessage textMessage = (TextMessage) inMessage;
-
-        try {
-
-            PluginBaseRequest request =
-                    JAXBMarshaller.unmarshallTextMessage(textMessage, PluginBaseRequest.class);
-
-            String responseMessage = null;
-
-            switch (request.getMethod()) {
-                case SET_CONFIG:
-                    SetConfigRequest setConfigRequest =
-                            JAXBMarshaller.unmarshallTextMessage(textMessage, SetConfigRequest.class);
-                    AcknowledgeTypeType setConfig = setConfig(setConfigRequest.getConfigurations());
-                    AcknowledgeType setConfigAck =
-                            ExchangePluginResponseMapper.mapToAcknowlegeType(
-                                    textMessage.getJMSMessageID(), setConfig);
-                    responseMessage =
-                            ExchangePluginResponseMapper.mapToSetConfigResponse(
-                                    getRegisterClassName(), setConfigAck);
-                    break;
-                case SET_COMMAND:
-                    SetCommandRequest setCommandRequest =
-                            JAXBMarshaller.unmarshallTextMessage(textMessage, SetCommandRequest.class);
-                    AcknowledgeTypeType setCommand = setCommand(setCommandRequest.getCommand());
-                    AcknowledgeType setCommandAck =
-                            ExchangePluginResponseMapper.mapToAcknowlegeType(
-                                    textMessage.getJMSMessageID(), setCommand);
-                    responseMessage =
-                            ExchangePluginResponseMapper.mapToSetCommandResponse(
-                                    getRegisterClassName(), setCommandAck);
-                    break;
-                case SET_REPORT:
-                    SetReportRequest setReportRequest =
-                            JAXBMarshaller.unmarshallTextMessage(textMessage, SetReportRequest.class);
-                    AcknowledgeTypeType setReport = setReport(setReportRequest.getReport());
-                    AcknowledgeType setReportAck =
-                            ExchangePluginResponseMapper.mapToAcknowlegeType(
-                                    textMessage.getJMSMessageID(), setReport);
-                    responseMessage =
-                            ExchangePluginResponseMapper.mapToSetReportResponse(
-                                    getRegisterClassName(), setReportAck);
-                    break;
-                case START:
-                    JAXBMarshaller.unmarshallTextMessage(textMessage, StartRequest.class);
-                    AcknowledgeTypeType start = start();
-                    AcknowledgeType startAck =
-                            ExchangePluginResponseMapper.mapToAcknowlegeType(
-                                    textMessage.getJMSMessageID(), start);
-                    responseMessage =
-                            ExchangePluginResponseMapper.mapToStartResponse(
-                                    getRegisterClassName(), startAck);
-                    break;
-                case STOP:
-                    JAXBMarshaller.unmarshallTextMessage(textMessage, StopRequest.class);
-                    AcknowledgeTypeType stop = stop();
-                    AcknowledgeType stopAck =
-                            ExchangePluginResponseMapper.mapToAcknowlegeType(textMessage.getJMSMessageID(), stop);
-                    responseMessage =
-                            ExchangePluginResponseMapper.mapToStopResponse(getRegisterClassName(), stopAck);
-                    break;
-                case PING:
-                    JAXBMarshaller.unmarshallTextMessage(textMessage, PingRequest.class);
-                    responseMessage =
-                            ExchangePluginResponseMapper.mapToPingResponse(isIsEnabled(), isIsEnabled());
-                    break;
-                default:
-                    LOGGER.error("Not supported method");
-                    break;
-            }
-
-            messageProducer.sendResponseMessage(responseMessage, textMessage);
-
-        } catch (ExchangeModelMarshallException | NullPointerException e) {
-            LOGGER.error(
-                    "[ Error when receiving message in twostage " + getRegisterClassName() + " ]", e);
-        } catch (JMSException ex) {
-            LOGGER.error(
-                    "[ Error when handling JMS message in twostage " + getRegisterClassName() + " ]",
-                    ex);
-        }
-    }
-
     private void loadPendingPollResponse() {
         pending = new ArrayList<>();
         File f = new File(pollPath, FILE_NAME);
@@ -762,6 +697,7 @@ public class InmarsatPluginImpl extends PluginDataHolder implements MessageListe
     }
 
     private void addPendingPollResponse(InmarsatPendingResponse resp) {
+
         if (pending != null) {
             pending.add(resp);
             LOGGER.debug("Pending response added");
@@ -808,6 +744,9 @@ public class InmarsatPluginImpl extends PluginDataHolder implements MessageListe
             LOGGER.debug("IOExeption", ex);
         }
     }
+
+
+
 
 
 
