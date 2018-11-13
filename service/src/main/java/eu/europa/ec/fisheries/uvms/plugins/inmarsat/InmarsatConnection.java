@@ -18,6 +18,7 @@ import org.apache.commons.net.telnet.TelnetClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.ejb.LocalBean;
 import java.io.*;
 import java.net.SocketException;
 import java.nio.file.Files;
@@ -25,6 +26,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Calendar;
 
+@LocalBean
 public class InmarsatConnection {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(InmarsatConnection.class);

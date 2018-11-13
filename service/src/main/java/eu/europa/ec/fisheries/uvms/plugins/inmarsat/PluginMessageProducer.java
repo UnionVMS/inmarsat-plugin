@@ -17,12 +17,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.PostConstruct;
-import javax.ejb.Singleton;
+import javax.ejb.LocalBean;
 import javax.jms.*;
 
 import static eu.europa.ec.fisheries.uvms.plugins.inmarsat.ModuleQueue.EXCHANGE;
 
-@Singleton
+@LocalBean
 public class PluginMessageProducer {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(PluginMessageProducer.class);

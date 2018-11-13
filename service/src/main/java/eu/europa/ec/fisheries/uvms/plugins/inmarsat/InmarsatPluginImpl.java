@@ -32,6 +32,7 @@ import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 import javax.ejb.*;
 import javax.ejb.Timer;
+import javax.inject.Inject;
 import javax.jms.JMSException;
 import javax.jms.Message;
 import javax.jms.MessageListener;
@@ -59,11 +60,11 @@ public class InmarsatPluginImpl extends PluginDataHolder implements MessageListe
 
     private ArrayList<InmarsatPendingResponse> pending;
 
-
-    @EJB
+    @Inject
     private PluginMessageProducer messageProducer;
 
-    private InmarsatConnection connect = new InmarsatConnection();
+    @Inject
+    private InmarsatConnection connect ;
 
     private CapabilityListType capabilityList;
     private SettingListType settingList;
@@ -71,11 +72,9 @@ public class InmarsatPluginImpl extends PluginDataHolder implements MessageListe
 
     private final Map<String, Future> connectFutures = new HashMap<>();
 
-
     private Future deliverFuture = null;
     private String cachePath = null;
     private String pollPath = null;
-
 
     @PostConstruct
     private void startup() {
