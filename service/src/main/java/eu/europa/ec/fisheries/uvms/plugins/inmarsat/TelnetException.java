@@ -10,7 +10,7 @@ FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more d
 copy of the GNU General Public License along with the IFDM Suite. If not, see <http://www.gnu.org/licenses/>.
 */
 
-package eu.europa.ec.fisheries.uvms.plugins.inmarsat.exception;
+package eu.europa.ec.fisheries.uvms.plugins.inmarsat;
 
 /** Created by osdjup on 2016-11-07. */
 public class TelnetException extends Exception {

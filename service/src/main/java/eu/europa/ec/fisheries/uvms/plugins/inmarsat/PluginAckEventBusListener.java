@@ -9,7 +9,7 @@ the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the impl
 FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details. You should have received a
 copy of the GNU General Public License along with the IFDM Suite. If not, see <http://www.gnu.org/licenses/>.
  */
-package eu.europa.ec.fisheries.uvms.plugins.inmarsat.consumer;
+package eu.europa.ec.fisheries.uvms.plugins.inmarsat;
 
 import eu.europa.ec.fisheries.schema.exchange.plugin.types.v1.PluginFault;
 import eu.europa.ec.fisheries.schema.exchange.registry.v1.ExchangeRegistryBaseRequest;
@@ -22,7 +22,6 @@ import javax.jms.Message;
 import javax.jms.MessageListener;
 import javax.jms.TextMessage;
 
-import eu.europa.ec.fisheries.uvms.plugins.inmarsat.StartupBean;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -30,7 +29,7 @@ public class PluginAckEventBusListener implements MessageListener {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(PluginAckEventBusListener.class);
 
-  @EJB private StartupBean startupService;
+  @EJB private InmarsatPlugin startupService;
 
   @Override
   public void onMessage(Message inMessage) {

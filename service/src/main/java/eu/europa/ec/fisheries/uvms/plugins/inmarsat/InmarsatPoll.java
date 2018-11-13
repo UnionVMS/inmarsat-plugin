@@ -16,7 +16,7 @@ import eu.europa.ec.fisheries.schema.exchange.plugin.types.v1.PollType;
 import java.util.Iterator;
 
 /** */
-public class InmPoll {
+public class InmarsatPoll {
 
   private OceanRegion oceanRegion;
   private Poll_Type pollType;

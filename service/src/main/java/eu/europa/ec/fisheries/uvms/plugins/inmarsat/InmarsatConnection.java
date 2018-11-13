@@ -9,19 +9,15 @@ the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the impl
 FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details. You should have received a
 copy of the GNU General Public License along with the IFDM Suite. If not, see <http://www.gnu.org/licenses/>.
  */
-package eu.europa.ec.fisheries.uvms.plugins.inmarsat.twostage;
+package eu.europa.ec.fisheries.uvms.plugins.inmarsat;
 
 import eu.europa.ec.fisheries.schema.exchange.plugin.types.v1.PollType;
 import eu.europa.ec.fisheries.schema.exchange.plugin.types.v1.PollTypeType;
-import eu.europa.ec.fisheries.uvms.plugins.inmarsat.InmPoll;
-import eu.europa.ec.fisheries.uvms.plugins.inmarsat.InmPoll.OceanRegion;
-import eu.europa.ec.fisheries.uvms.plugins.inmarsat.exception.TelnetException;
+import eu.europa.ec.fisheries.uvms.plugins.inmarsat.InmarsatPoll.OceanRegion;
 import org.apache.commons.net.telnet.TelnetClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.ejb.DependsOn;
-import javax.ejb.Stateless;
 import java.io.*;
 import java.net.SocketException;
 import java.nio.file.Files;
@@ -29,11 +25,9 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Calendar;
 
-/** */
-@Stateless
-public class Connect {
+public class InmarsatConnection {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(Connect.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(InmarsatConnection.class);
     private static final String[] faultPatterns = {
             "????????", "[Connection to 41424344 aborted: error status 0]", "Illegal address parameter."
     };
@@ -98,10 +92,10 @@ public class Connect {
 
     private String buildCommand(PollType poll, OceanRegion oceanRegion) {
 
-        InmPoll inmPoll = new InmPoll();
+        InmarsatPoll inmPoll = new InmarsatPoll();
         inmPoll.setPollType(poll);
         inmPoll.setOceanRegion(oceanRegion);
-        if (poll.getPollTypeType() == PollTypeType.CONFIG) inmPoll.setAck(InmPoll.AckType.TRUE);
+        if (poll.getPollTypeType() == PollTypeType.CONFIG) inmPoll.setAck(InmarsatPoll.AckType.TRUE);
         return inmPoll.asCommand();
     }
 

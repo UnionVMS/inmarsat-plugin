@@ -9,13 +9,13 @@ the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the impl
 FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details. You should have received a
 copy of the GNU General Public License along with the IFDM Suite. If not, see <http://www.gnu.org/licenses/>.
  */
-package eu.europa.ec.fisheries.uvms.plugins.inmarsat.producer;
+package eu.europa.ec.fisheries.uvms.plugins.inmarsat;
 
-import static eu.europa.ec.fisheries.uvms.plugins.inmarsat.constants.ModuleQueue.EXCHANGE;
+import static eu.europa.ec.fisheries.uvms.plugins.inmarsat.ModuleQueue.EXCHANGE;
 
 import eu.europa.ec.fisheries.uvms.commons.message.impl.JMSUtils;
 import eu.europa.ec.fisheries.uvms.exchange.model.constant.ExchangeModelConstants;
-import eu.europa.ec.fisheries.uvms.plugins.inmarsat.constants.ModuleQueue;
+
 import javax.annotation.PostConstruct;
 import javax.ejb.Singleton;
 import javax.jms.Connection;

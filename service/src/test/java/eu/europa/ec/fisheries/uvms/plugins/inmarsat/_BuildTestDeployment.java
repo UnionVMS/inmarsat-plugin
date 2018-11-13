@@ -29,8 +29,8 @@ public class _BuildTestDeployment {
 
         testWar.addPackages(true, "eu.europa.ec.fisheries.uvms.plugins.inmarsat");
 
-        testWar.deleteClass(StartupImpl.class);
-        testWar.addClass(StrMock.class);
+        testWar.deleteClass(InmarsatPluginImpl.class);
+        testWar.addClass(InmarsatPluginMock.class);
 
         //testWar.addAsResource("persistence-integration.xml", "META-INF/persistence.xml");
 

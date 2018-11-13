@@ -15,7 +15,7 @@ import eu.europa.ec.fisheries.schema.exchange.plugin.types.v1.PollType;
 import java.io.Serializable;
 
 /** */
-public class InmPendingResponse implements Serializable {
+public class InmarsatPendingResponse implements Serializable {
   private PollType poll;
   private String msgId;
   private int referenceNumber;
@@ -85,7 +85,7 @@ public class InmPendingResponse implements Serializable {
     if (this == o) return true;
     if (o == null || getClass() != o.getClass()) return false;
 
-    InmPendingResponse that = (InmPendingResponse) o;
+    InmarsatPendingResponse that = (InmarsatPendingResponse) o;
 
     return referenceNumber == that.referenceNumber;
   }
