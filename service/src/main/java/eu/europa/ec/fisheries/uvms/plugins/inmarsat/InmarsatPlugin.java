@@ -1,5 +1,10 @@
 package eu.europa.ec.fisheries.uvms.plugins.inmarsat;
 
+import eu.europa.ec.fisheries.schema.exchange.common.v1.AcknowledgeTypeType;
+import eu.europa.ec.fisheries.schema.exchange.common.v1.CommandType;
+import eu.europa.ec.fisheries.schema.exchange.common.v1.KeyValueType;
+import eu.europa.ec.fisheries.schema.exchange.common.v1.ReportType;
+import eu.europa.ec.fisheries.schema.exchange.service.v1.SettingListType;
 import eu.europa.ec.fisheries.schema.exchange.service.v1.SettingType;
 
 import javax.ejb.Local;
@@ -27,5 +32,16 @@ public interface InmarsatPlugin {
     boolean isIsRegistered();
     boolean isWaitingForResponse();
     String getRegisterClassName();
+
+
+    AcknowledgeTypeType setReport(ReportType report);
+    AcknowledgeTypeType setCommand(CommandType command);
+    AcknowledgeTypeType setConfig(SettingListType settings) ;
+    AcknowledgeTypeType start() ;
+    AcknowledgeTypeType stop() ;
+
+
+
+
 
 }

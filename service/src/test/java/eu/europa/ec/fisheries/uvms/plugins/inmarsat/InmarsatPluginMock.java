@@ -1,7 +1,12 @@
 package eu.europa.ec.fisheries.uvms.plugins.inmarsat;
 
+import eu.europa.ec.fisheries.schema.exchange.common.v1.AcknowledgeTypeType;
+import eu.europa.ec.fisheries.schema.exchange.common.v1.CommandType;
+import eu.europa.ec.fisheries.schema.exchange.common.v1.ReportType;
 import eu.europa.ec.fisheries.schema.exchange.plugin.types.v1.PollType;
+import eu.europa.ec.fisheries.schema.exchange.service.v1.SettingListType;
 import eu.europa.ec.fisheries.schema.exchange.service.v1.SettingType;
+import eu.europa.ec.fisheries.uvms.plugins.inmarsat.message.PluginMessageProducer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -11,6 +16,7 @@ import javax.ejb.Schedule;
 import javax.ejb.Singleton;
 import javax.ejb.Startup;
 import javax.ejb.Timer;
+import javax.inject.Inject;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -24,6 +30,15 @@ public class InmarsatPluginMock extends PluginDataHolder implements InmarsatPlug
     private static final Logger LOGGER = LoggerFactory.getLogger(InmarsatPluginMock.class);
     private static final int MAX_NUMBER_OF_TRIES = 20;
     private final Map<String, Future> connectFutures = new HashMap<>();
+
+
+
+    @Inject
+    private PluginMessageProducer messageProducer;
+
+    @Inject
+    private InmarsatConnection connect ;
+
 
 
     boolean isEnabled = false;
@@ -143,6 +158,31 @@ public class InmarsatPluginMock extends PluginDataHolder implements InmarsatPlug
     @Override
     public String getRegisterClassName() {
         return registerClassName;
+    }
+
+    @Override
+    public AcknowledgeTypeType setReport(ReportType report) {
+        return null;
+    }
+
+    @Override
+    public AcknowledgeTypeType setCommand(CommandType command) {
+        return null;
+    }
+
+    @Override
+    public AcknowledgeTypeType setConfig(SettingListType settings) {
+        return null;
+    }
+
+    @Override
+    public AcknowledgeTypeType start() {
+        return null;
+    }
+
+    @Override
+    public AcknowledgeTypeType stop() {
+        return null;
     }
 
     public String getApplicaionName() {

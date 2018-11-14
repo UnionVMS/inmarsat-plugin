@@ -9,7 +9,6 @@ import eu.europa.ec.fisheries.schema.exchange.movement.v1.*;
 import eu.europa.ec.fisheries.schema.exchange.plugin.types.v1.PluginType;
 import eu.europa.ec.fisheries.schema.exchange.plugin.types.v1.PollType;
 import eu.europa.ec.fisheries.schema.exchange.plugin.types.v1.PollTypeType;
-import eu.europa.ec.fisheries.schema.exchange.plugin.v1.*;
 import eu.europa.ec.fisheries.schema.exchange.service.v1.CapabilityListType;
 import eu.europa.ec.fisheries.schema.exchange.service.v1.ServiceType;
 import eu.europa.ec.fisheries.schema.exchange.service.v1.SettingListType;
@@ -20,7 +19,7 @@ import eu.europa.ec.fisheries.uvms.exchange.model.constant.ExchangeModelConstant
 import eu.europa.ec.fisheries.uvms.exchange.model.exception.ExchangeModelMarshallException;
 import eu.europa.ec.fisheries.uvms.exchange.model.mapper.ExchangeModuleRequestMapper;
 import eu.europa.ec.fisheries.uvms.exchange.model.mapper.ExchangePluginResponseMapper;
-import eu.europa.ec.fisheries.uvms.exchange.model.mapper.JAXBMarshaller;
+import eu.europa.ec.fisheries.uvms.plugins.inmarsat.message.PluginMessageProducer;
 import fish.focus.uvms.commons.les.inmarsat.InmarsatException;
 import fish.focus.uvms.commons.les.inmarsat.InmarsatFileHandler;
 import fish.focus.uvms.commons.les.inmarsat.InmarsatMessage;
@@ -34,9 +33,6 @@ import javax.ejb.*;
 import javax.ejb.Timer;
 import javax.inject.Inject;
 import javax.jms.JMSException;
-import javax.jms.Message;
-import javax.jms.MessageListener;
-import javax.jms.TextMessage;
 import java.io.*;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -45,7 +41,7 @@ import java.util.concurrent.Future;
 
 @Startup
 @Singleton
-public class InmarsatPluginImpl extends PluginDataHolder implements MessageListener, InmarsatPlugin {
+public class InmarsatPluginImpl extends PluginDataHolder implements  InmarsatPlugin {
 
 
     private static final Logger LOGGER = LoggerFactory.getLogger(InmarsatPluginImpl.class);
@@ -150,69 +146,6 @@ public class InmarsatPluginImpl extends PluginDataHolder implements MessageListe
             LOGGER.debug("deliverFuture is not null and busy");
         }
     }
-
-
-    @Override
-    public void onMessage(Message inMessage) {
-
-        LOGGER.debug(
-                "Eventbus listener for twostage (MessageConstants.PLUGIN_SERVICE_CLASS_NAME): {}", getRegisterClassName());
-        TextMessage textMessage = (TextMessage) inMessage;
-
-        try {
-
-            PluginBaseRequest request =  JAXBMarshaller.unmarshallTextMessage(textMessage, PluginBaseRequest.class);
-
-            String responseMessage = null;
-
-            switch (request.getMethod()) {
-                case SET_CONFIG:
-                    SetConfigRequest setConfigRequest = JAXBMarshaller.unmarshallTextMessage(textMessage, SetConfigRequest.class);
-                    AcknowledgeTypeType setConfig = setConfig(setConfigRequest.getConfigurations());
-                    AcknowledgeType setConfigAck = ExchangePluginResponseMapper.mapToAcknowlegeType(textMessage.getJMSMessageID(), setConfig);
-                    responseMessage = ExchangePluginResponseMapper.mapToSetConfigResponse(getRegisterClassName(), setConfigAck);
-                    break;
-                case SET_COMMAND:
-                    SetCommandRequest setCommandRequest = JAXBMarshaller.unmarshallTextMessage(textMessage, SetCommandRequest.class);
-                    AcknowledgeTypeType setCommand = setCommand(setCommandRequest.getCommand());
-                    AcknowledgeType setCommandAck = ExchangePluginResponseMapper.mapToAcknowlegeType(textMessage.getJMSMessageID(), setCommand);
-                    responseMessage = ExchangePluginResponseMapper.mapToSetCommandResponse(getRegisterClassName(), setCommandAck);
-                    break;
-                case SET_REPORT:
-                    SetReportRequest setReportRequest =   JAXBMarshaller.unmarshallTextMessage(textMessage, SetReportRequest.class);
-                    AcknowledgeTypeType setReport = setReport(setReportRequest.getReport());
-                    AcknowledgeType setReportAck = ExchangePluginResponseMapper.mapToAcknowlegeType(textMessage.getJMSMessageID(), setReport);
-                    responseMessage = ExchangePluginResponseMapper.mapToSetReportResponse(getRegisterClassName(), setReportAck);
-                    break;
-                case START:
-                    JAXBMarshaller.unmarshallTextMessage(textMessage, StartRequest.class);
-                    AcknowledgeTypeType start = start();
-                    AcknowledgeType startAck = ExchangePluginResponseMapper.mapToAcknowlegeType(textMessage.getJMSMessageID(), start);
-                    responseMessage = ExchangePluginResponseMapper.mapToStartResponse(getRegisterClassName(), startAck);
-                    break;
-                case STOP:
-                    JAXBMarshaller.unmarshallTextMessage(textMessage, StopRequest.class);
-                    AcknowledgeTypeType stop = stop();
-                    AcknowledgeType stopAck = ExchangePluginResponseMapper.mapToAcknowlegeType(textMessage.getJMSMessageID(), stop);
-                    responseMessage = ExchangePluginResponseMapper.mapToStopResponse(getRegisterClassName(), stopAck);
-                    break;
-                case PING:
-                    JAXBMarshaller.unmarshallTextMessage(textMessage, PingRequest.class);
-                    responseMessage = ExchangePluginResponseMapper.mapToPingResponse(isIsEnabled(), isIsEnabled());
-                    break;
-                default:
-                    LOGGER.error("Not a supported method");
-                    break;
-            }
-            messageProducer.sendResponseMessage(responseMessage, textMessage);
-
-        } catch (ExchangeModelMarshallException | NullPointerException e) {
-            LOGGER.error("[ Error when receiving message in twostage " + getRegisterClassName() + " ]", e);
-        } catch (JMSException e) {
-            LOGGER.error("[ Error when handling JMS message in twostage " + getRegisterClassName() + " ]", e);
-        }
-    }
-
 
     private void register() {
         LOGGER.info("Registering to Exchange Module");
@@ -531,11 +464,11 @@ public class InmarsatPluginImpl extends PluginDataHolder implements MessageListe
         }
     }
 
-    private AcknowledgeTypeType setReport(ReportType report) {
+    public AcknowledgeTypeType setReport(ReportType report) {
         return AcknowledgeTypeType.NOK;
     }
 
-    private AcknowledgeTypeType setCommand(CommandType command) {
+    public  AcknowledgeTypeType setCommand(CommandType command) {
         if (LOGGER.isInfoEnabled()) {
             LOGGER.info(
                     "{}.setCommand({})", getRegisterClassName(), command.getCommand().name());
@@ -622,7 +555,7 @@ public class InmarsatPluginImpl extends PluginDataHolder implements MessageListe
      * @param settings the settings
      * @return AcknowledgeTypeType
      */
-    private AcknowledgeTypeType setConfig(SettingListType settings) {
+    public AcknowledgeTypeType setConfig(SettingListType settings) {
         LOGGER.info(getRegisterClassName() + ".setConfig()");
         try {
             for (KeyValueType values : settings.getSetting()) {
@@ -641,7 +574,7 @@ public class InmarsatPluginImpl extends PluginDataHolder implements MessageListe
      *
      * @return AcknowledgeTypeType
      */
-    private AcknowledgeTypeType start() {
+    public AcknowledgeTypeType start() {
         LOGGER.info(getRegisterClassName() + ".start()");
         try {
             setIsEnabled(Boolean.TRUE);
@@ -658,7 +591,7 @@ public class InmarsatPluginImpl extends PluginDataHolder implements MessageListe
      *
      * @return AcknowledgeTypeType
      */
-    private AcknowledgeTypeType stop() {
+    public AcknowledgeTypeType stop() {
         LOGGER.info(getRegisterClassName() + ".stop()");
         try {
             setIsEnabled(Boolean.FALSE);

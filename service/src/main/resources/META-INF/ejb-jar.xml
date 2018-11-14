@@ -19,7 +19,7 @@
     <enterprise-beans>
         <message-driven>
             <ejb-name>PluginNameEventBusListener${application.name}</ejb-name>
-            <ejb-class>${application.groupid}.${application.name}.consumer.PluginNameEventBusListener</ejb-class>
+            <ejb-class>eu.europa.ec.fisheries.uvms.plugins.inmarsat.message.PluginNameEventBusListener</ejb-class>
             <mapped-name>${application.destination.jndi}</mapped-name>
             <messaging-type>javax.jms.MessageListener</messaging-type>
             <activation-config>
@@ -55,7 +55,7 @@
         </message-driven>
         <message-driven>
             <ejb-name>PluginAckEventBusListener${application.name}</ejb-name>
-            <ejb-class>${application.groupid}.${application.name}.consumer.PluginAckEventBusListener</ejb-class>
+            <ejb-class>eu.europa.ec.fisheries.uvms.plugins.inmarsat.message.PluginAckEventBusListener</ejb-class>
             <mapped-name>${application.destination.jndi}</mapped-name>
             <messaging-type>javax.jms.MessageListener</messaging-type>
             <activation-config>

@@ -9,7 +9,7 @@ the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the impl
 FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details. You should have received a
 copy of the GNU General Public License along with the IFDM Suite. If not, see <http://www.gnu.org/licenses/>.
  */
-package eu.europa.ec.fisheries.uvms.plugins.inmarsat;
+package eu.europa.ec.fisheries.uvms.plugins.inmarsat.message;
 
 import eu.europa.ec.fisheries.schema.exchange.plugin.types.v1.PluginFault;
 import eu.europa.ec.fisheries.schema.exchange.registry.v1.ExchangeRegistryBaseRequest;
@@ -17,6 +17,7 @@ import eu.europa.ec.fisheries.schema.exchange.registry.v1.RegisterServiceRespons
 import eu.europa.ec.fisheries.schema.exchange.registry.v1.UnregisterServiceResponse;
 import eu.europa.ec.fisheries.uvms.exchange.model.exception.ExchangeModelMarshallException;
 import eu.europa.ec.fisheries.uvms.exchange.model.mapper.JAXBMarshaller;
+import eu.europa.ec.fisheries.uvms.plugins.inmarsat.InmarsatPlugin;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
