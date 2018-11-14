@@ -21,7 +21,7 @@ import eu.europa.ec.fisheries.uvms.plugins.inmarsat.InmarsatPlugin;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.ejb.EJB;
+import javax.inject.Inject;
 import javax.jms.Message;
 import javax.jms.MessageListener;
 import javax.jms.TextMessage;
@@ -30,7 +30,7 @@ public class PluginAckEventBusListener implements MessageListener {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(PluginAckEventBusListener.class);
 
-    @EJB
+    @Inject
     private InmarsatPlugin startupService;
 
     @Override

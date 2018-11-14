@@ -23,7 +23,7 @@ import eu.europa.ec.fisheries.schema.exchange.plugin.v1.StopRequest;
 import eu.europa.ec.fisheries.uvms.exchange.model.exception.ExchangeModelMarshallException;
 import eu.europa.ec.fisheries.uvms.exchange.model.mapper.ExchangePluginResponseMapper;
 import eu.europa.ec.fisheries.uvms.exchange.model.mapper.JAXBMarshaller;
-import javax.ejb.EJB;
+import javax.inject.Inject;
 import javax.jms.JMSException;
 import javax.jms.Message;
 import javax.jms.MessageListener;
@@ -37,9 +37,9 @@ public class PluginNameEventBusListener implements MessageListener {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(PluginNameEventBusListener.class);
 
-  @EJB private PluginMessageProducer messageProducer;
+  @Inject private PluginMessageProducer messageProducer;
 
-  @EJB private InmarsatPlugin startup;
+  @Inject private InmarsatPlugin startup;
 
   @Override
   public void onMessage(Message inMessage) {

@@ -15,6 +15,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import javax.ejb.EJB;
+import javax.inject.Inject;
 import java.util.Date;
 import java.util.concurrent.ConcurrentMap;
 
@@ -25,7 +26,7 @@ public class TestRetrieverBeanIT extends _TransactionalTests {
 
     ConcurrentMap<String, String> settingsAsString ;
 
-    @EJB
+    @Inject
     private InmarsatPlugin startupBean;
 
 

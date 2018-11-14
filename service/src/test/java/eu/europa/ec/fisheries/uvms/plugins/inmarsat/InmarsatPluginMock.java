@@ -34,6 +34,8 @@ public class InmarsatPluginMock extends PluginDataHolder implements InmarsatPlug
 
 
     @Inject
+    private InmarsatPlugin startupService;
+    @Inject
     private PluginMessageProducer messageProducer;
 
     @Inject
