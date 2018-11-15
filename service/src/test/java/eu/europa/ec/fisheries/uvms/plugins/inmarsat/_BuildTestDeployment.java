@@ -32,6 +32,11 @@ public class _BuildTestDeployment {
         testWar.deleteClass(InmarsatPluginImpl.class);
         testWar.addClass(InmarsatPluginMock.class);
 
+        testWar.addAsResource("plugin.properties", "plugin.properties");
+        testWar.addAsResource("capabilities.properties", "capabilities.properties");
+        testWar.addAsResource("settings.properties", "settings.properties");
+
+
         //testWar.addAsResource("persistence-integration.xml", "META-INF/persistence.xml");
 
         return testWar;

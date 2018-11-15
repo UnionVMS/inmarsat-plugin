@@ -1,4 +1,4 @@
-package eu.europa.ec.fisheries.uvms.plugins.inmarsat.twostage;
+package eu.europa.ec.fisheries.uvms.plugins.inmarsat;
 
 import eu.europa.ec.fisheries.schema.exchange.common.v1.CommandType;
 import eu.europa.ec.fisheries.schema.exchange.common.v1.CommandTypeType;
@@ -8,6 +8,7 @@ import eu.europa.ec.fisheries.schema.exchange.plugin.types.v1.PollTypeType;
 import eu.europa.ec.fisheries.uvms.plugins.inmarsat.InmarsatPlugin;
 import eu.europa.ec.fisheries.uvms.plugins.inmarsat.InmarsatPoll;
 import eu.europa.ec.fisheries.uvms.plugins.inmarsat._TransactionalTests;
+import org.jboss.arquillian.container.test.api.RunAsClient;
 import org.jboss.arquillian.junit.Arquillian;
 import org.junit.Assert;
 import org.junit.Before;
@@ -23,8 +24,8 @@ import java.util.concurrent.ConcurrentMap;
 @RunWith(Arquillian.class)
 public class TestRetrieverBeanIT extends _TransactionalTests {
 
-
-    ConcurrentMap<String, String> settingsAsString ;
+   // private JMSHelper jmsHelper = new JMSHelper();
+    private ConcurrentMap<String, String> settingsAsString ;
 
     @Inject
     private InmarsatPlugin startupBean;
@@ -39,8 +40,6 @@ public class TestRetrieverBeanIT extends _TransactionalTests {
         settingsAsString = startupBean.getSettings();
     }
 
-
-
     @Test
     public void testSetAndGetSetting() {
         String dnids = startupBean.getSetting("DNIDS");
@@ -54,7 +53,7 @@ public class TestRetrieverBeanIT extends _TransactionalTests {
     }
 
     @Test
-    public void testEnabled() {
+    public void testSomeProps() {
 
         startupBean.setIsEnabled(false);
         boolean isEnabled = startupBean.isIsEnabled();
@@ -79,12 +78,12 @@ public class TestRetrieverBeanIT extends _TransactionalTests {
         Assert.assertTrue(waiting);
 
         String registerClassName = startupBean.getRegisterClassName();
-        Assert.assertNull(registerClassName);
-
-
-
+        Assert.assertNotNull(registerClassName);
 
     }
+
+
+
 
 
     /*
