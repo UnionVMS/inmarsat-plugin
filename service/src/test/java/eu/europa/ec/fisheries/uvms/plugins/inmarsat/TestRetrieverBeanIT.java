@@ -33,16 +33,7 @@ public class TestRetrieverBeanIT extends _TransactionalTests {
     }
 
 
-    @Test
-    public void timerverification() throws InterruptedException {
-
-
-
-        Thread.sleep(25 * 1000);
-
-    }
-
-
+ 
 
 
     @Test
