@@ -250,6 +250,7 @@ public class InmarsatPluginMock extends PluginDataHolder implements InmarsatPlug
 
     @SuppressWarnings("ResultOfMethodCallIgnored")
     private void createDirectories() {
+        /*
         File f = new File(getPLuginApplicationProperty("application.logfile"));
         File dirCache = new File(f.getParentFile(), "cache");
         File dirPoll = new File(f.getParentFile(), "poll");
@@ -261,6 +262,7 @@ public class InmarsatPluginMock extends PluginDataHolder implements InmarsatPlug
         }
         cachePath = dirCache.getAbsolutePath() + File.separator;
         pollPath = dirPoll.getAbsolutePath() + File.separator;
+*/
     }
 
 
