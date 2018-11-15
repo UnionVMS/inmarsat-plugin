@@ -91,9 +91,12 @@ public class InmarsatPluginMock extends PluginDataHolder implements InmarsatPlug
 
         serviceType = ServiceMapper.getServiceType(getRegisterClassName(),"Thrane&Thrane","inmarsat plugin for the Thrane&Thrane API", PluginType.SATELLITE_RECEIVER,getPluginResponseSubscriptionName(),"INMARSAT_C");
         register();
-        LOGGER.debug("Settings updated in plugin {}", registerClassName);
-        for (Map.Entry<String, String> entry : super.getSettings().entrySet()) {
-            LOGGER.debug("Setting: KEY: {} , VALUE: {}", entry.getKey(), entry.getValue());
+
+        if(LOGGER.isDebugEnabled()) {
+            LOGGER.debug("Settings updated in plugin {}", registerClassName);
+            for (Map.Entry<String, String> entry : super.getSettings().entrySet()) {
+                LOGGER.debug("Setting: KEY: {} , VALUE: {}", entry.getKey(), entry.getValue());
+            }
         }
 
         loadPendingPollResponse();

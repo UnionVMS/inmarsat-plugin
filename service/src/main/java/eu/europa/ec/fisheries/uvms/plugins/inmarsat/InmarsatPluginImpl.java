@@ -75,12 +75,11 @@ public class InmarsatPluginImpl extends PluginDataHolder implements  InmarsatPlu
     @PostConstruct
     private void startup() {
 
-        Properties props = getPropertiesFromFile(PluginDataHolder.PLUGIN_PROPERTIES);
-        super.setPluginApplicaitonProperties(props);
+        Properties pluginProperties = getPropertiesFromFile(PluginDataHolder.PLUGIN_PROPERTIES);
+        super.setPluginApplicaitonProperties(pluginProperties);
         createDirectories();
         registerClassName = getPLuginApplicationProperty("application.groupid") + "." + getPLuginApplicationProperty("application.name");
         LOGGER.debug("Plugin will try to register as:{}", registerClassName);
-
         super.setPluginProperties(getPropertiesFromFile(PluginDataHolder.SETTINGS_PROPERTIES));
         super.setPluginCapabilities(getPropertiesFromFile(PluginDataHolder.CAPABILITIES_PROPERTIES));
         ServiceMapper.mapToMapFromProperties(super.getSettings(), super.getPluginProperties(), getRegisterClassName());
@@ -88,12 +87,15 @@ public class InmarsatPluginImpl extends PluginDataHolder implements  InmarsatPlu
 
         capabilityList = ServiceMapper.getCapabilitiesListTypeFromMap(super.getCapabilities());
         settingList = ServiceMapper.getSettingsListTypeFromMap(super.getSettings());
-
         serviceType = ServiceMapper.getServiceType(getRegisterClassName(),"Thrane&Thrane","inmarsat plugin for the Thrane&Thrane API", PluginType.SATELLITE_RECEIVER,getPluginResponseSubscriptionName(),"INMARSAT_C");
+
         register();
-        LOGGER.debug("Settings updated in plugin {}", registerClassName);
-        for (Map.Entry<String, String> entry : super.getSettings().entrySet()) {
-            LOGGER.debug("Setting: KEY: {} , VALUE: {}", entry.getKey(), entry.getValue());
+
+        if(LOGGER.isDebugEnabled()) {
+            LOGGER.debug("Settings updated in plugin {}", registerClassName);
+            for (Map.Entry<String, String> entry : super.getSettings().entrySet()) {
+                LOGGER.debug("Setting: KEY: {} , VALUE: {}", entry.getKey(), entry.getValue());
+            }
         }
 
         loadPendingPollResponse();
