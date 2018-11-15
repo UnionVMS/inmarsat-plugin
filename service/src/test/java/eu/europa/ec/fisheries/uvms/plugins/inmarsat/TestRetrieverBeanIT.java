@@ -24,32 +24,24 @@ import java.util.concurrent.ConcurrentMap;
 @RunWith(Arquillian.class)
 public class TestRetrieverBeanIT extends _TransactionalTests {
 
-   // private JMSHelper jmsHelper = new JMSHelper();
-    private ConcurrentMap<String, String> settingsAsString ;
-
     @Inject
     private InmarsatPlugin startupBean;
 
 
     @Before
     public void before(){
-        startupBean.getSettings().put("DNID-123","DNID-123");
-        startupBean.getSettings().put("123456","123456");
-        startupBean.getSettings().put("ABC","ABC");
-        startupBean.getSettings().put("DNIDS","DNIDS");
-        settingsAsString = startupBean.getSettings();
     }
 
     @Test
     public void testSetAndGetSetting() {
         String dnids = startupBean.getSetting("DNIDS");
-        Assert.assertEquals("DNIDS", dnids);
+        Assert.assertEquals("1", dnids);
     }
 
     @Test
     public void testSetAndGetSettings() {
         ConcurrentMap<String, String> dnids = startupBean.getSettings();
-        Assert.assertEquals(settingsAsString, dnids);
+        Assert.assertEquals(5, dnids.size());
     }
 
     @Test
