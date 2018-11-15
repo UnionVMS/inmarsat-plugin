@@ -11,7 +11,6 @@ import java.util.concurrent.ConcurrentMap;
 
 
 @RunWith(Arquillian.class)
-@Ignore
 public class TestRetrieverBeanIT extends _BuildTestDeployment {
 
     @Inject
@@ -19,18 +18,26 @@ public class TestRetrieverBeanIT extends _BuildTestDeployment {
 
 
     @Test
+    public void test() {
+    }
+
+
+    @Test
+    @Ignore
     public void testSetAndGetSetting() {
         String dnids = startupBean.getSetting("DNIDS");
         Assert.assertEquals("1", dnids);
     }
 
     @Test
+    @Ignore
     public void testSetAndGetSettings() {
         ConcurrentMap<String, String> dnids = startupBean.getSettings();
         Assert.assertEquals(5, dnids.size());
     }
 
     @Test
+    @Ignore
     public void testSomeProps() {
 
         startupBean.setIsEnabled(false);
