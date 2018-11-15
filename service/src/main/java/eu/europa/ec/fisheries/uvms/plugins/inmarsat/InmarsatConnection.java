@@ -40,7 +40,7 @@ public class InmarsatConnection {
         return path + cal.getTimeInMillis() + ".dat";
     }
 
-    public String connect(PollType poll, String path, String url, String port, String user, String psw, String dnid) throws TelnetException {
+    public String connect(PollType poll, String path, String url, String port, String user, String pwd, String dnid) throws TelnetException {
 
         String response = null;
         TelnetClient telnet = null;
@@ -53,7 +53,7 @@ public class InmarsatConnection {
             readUntil("name:", input, null, url, port);
             write(user, output);
             readUntil("word:", input, null, url, port);
-            sendPsw(output, psw);
+            sendPwd(output, pwd);
             readUntil(">", input, null, url, port);
             response = issueCommand(poll, output, input, dnid, path, url, port);
 
@@ -62,6 +62,7 @@ public class InmarsatConnection {
         } catch (IOException ex) {
             LOGGER.error("Error when communicating with Telnet", ex);
         } catch (NullPointerException ex) {
+            LOGGER.error(ex.toString(), ex);
             throw new TelnetException(ex);
         } finally {
             if (telnet != null && telnet.isConnected()) {
@@ -75,9 +76,9 @@ public class InmarsatConnection {
         return response;
     }
 
-    private void sendPsw(PrintStream output, String psw) {
+    private void sendPwd(PrintStream output, String pwd) {
 
-        output.print(psw + "\r\n");
+        output.print(pwd + "\r\n");
         output.flush();
     }
 
