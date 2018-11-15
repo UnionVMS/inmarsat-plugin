@@ -1,36 +1,19 @@
 package eu.europa.ec.fisheries.uvms.plugins.inmarsat;
 
-import eu.europa.ec.fisheries.schema.exchange.common.v1.CommandType;
-import eu.europa.ec.fisheries.schema.exchange.common.v1.CommandTypeType;
-import eu.europa.ec.fisheries.schema.exchange.common.v1.KeyValueType;
-import eu.europa.ec.fisheries.schema.exchange.plugin.types.v1.PollType;
-import eu.europa.ec.fisheries.schema.exchange.plugin.types.v1.PollTypeType;
-import eu.europa.ec.fisheries.uvms.plugins.inmarsat.InmarsatPlugin;
-import eu.europa.ec.fisheries.uvms.plugins.inmarsat.InmarsatPoll;
-import eu.europa.ec.fisheries.uvms.plugins.inmarsat._TransactionalTests;
-import org.jboss.arquillian.container.test.api.RunAsClient;
 import org.jboss.arquillian.junit.Arquillian;
 import org.junit.Assert;
-import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
-import javax.ejb.EJB;
 import javax.inject.Inject;
-import java.util.Date;
 import java.util.concurrent.ConcurrentMap;
 
 
 @RunWith(Arquillian.class)
-public class TestRetrieverBeanIT extends _TransactionalTests {
+public class TestRetrieverBeanIT extends _BuildTestDeployment {
 
     @Inject
     private InmarsatPlugin startupBean;
-
-
-
-
-
 
 
     @Test
