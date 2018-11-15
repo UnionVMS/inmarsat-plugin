@@ -28,9 +28,6 @@ public class TestRetrieverBeanIT extends _TransactionalTests {
     private InmarsatPlugin startupBean;
 
 
-    @Before
-    public void before(){
-    }
 
 
 
