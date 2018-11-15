@@ -32,6 +32,19 @@ public class TestRetrieverBeanIT extends _TransactionalTests {
     public void before(){
     }
 
+
+    @Test
+    public void timerverification() throws InterruptedException {
+
+
+
+        Thread.sleep(25 * 1000);
+
+    }
+
+
+
+
     @Test
     public void testSetAndGetSetting() {
         String dnids = startupBean.getSetting("DNIDS");

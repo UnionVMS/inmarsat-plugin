@@ -106,7 +106,9 @@ public class InmarsatPluginMock extends PluginDataHolder implements InmarsatPlug
         unregister();
     }
 
-    @Schedule(second = "*/10", minute = "*", hour = "*", persistent = false)
+    /* OBS THE TIMERS ARE MUCH MORE FREQUENT THAN IN THE REAL PLUGIN */
+
+    @Schedule(second = "*/1", minute = "*", hour = "*", persistent = false)
     private void timeout(Timer timer) {
         if (!isRegistered && numberOfTriesExecuted < MAX_NUMBER_OF_TRIES) {
             LOGGER.info(getRegisterClassName() + " is not registered, trying to register");
@@ -121,8 +123,9 @@ public class InmarsatPluginMock extends PluginDataHolder implements InmarsatPlug
         }
     }
 
-    @Schedule(minute = "*/3", hour = "*", persistent = false)
-    private void connectAndRetrive() {
+    @Schedule(second = "*/3", minute = "*", hour = "*", persistent = false)
+    private void connectAndRetrieve() {
+        /*
         if (isIsEnabled()) {
             List<String> dnids = getDownloadDnids();
             Future<Map<String, String>> future = download(getCachePath(), dnids);
@@ -131,10 +134,13 @@ public class InmarsatPluginMock extends PluginDataHolder implements InmarsatPlug
                 connectFutures.put(dnid, future);
             }
         }
+        */
+        LOGGER.info("connectAndRetrieve");
     }
 
-    @Schedule(minute = "*/5", hour = "*", persistent = false)
+    @Schedule(second = "*/2", minute = "*", hour = "*", persistent = false)
     private void parseAndDeliver() {
+        /*
         if (isIsEnabled() && (deliverFuture == null || deliverFuture.isDone())) {
             try {
                 deliverFuture = parseAndDeliver(getCachePath());
@@ -144,6 +150,8 @@ public class InmarsatPluginMock extends PluginDataHolder implements InmarsatPlug
         } else {
             LOGGER.debug("deliverFuture is not null and busy");
         }
+        */
+        LOGGER.info("parseAndDeliver");
     }
 
     private void register() {
