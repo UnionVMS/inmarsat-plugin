@@ -17,27 +17,21 @@ public class TestRetrieverBeanIT extends _BuildTestDeployment {
     private InmarsatPlugin startupBean;
 
 
-    @Test
-    public void test() {
-    }
 
 
     @Test
-    @Ignore
     public void testSetAndGetSetting() {
         String dnids = startupBean.getSetting("DNIDS");
         Assert.assertEquals("1", dnids);
     }
 
     @Test
-    @Ignore
     public void testSetAndGetSettings() {
         ConcurrentMap<String, String> dnids = startupBean.getSettings();
         Assert.assertEquals(5, dnids.size());
     }
 
     @Test
-    @Ignore
     public void testSomeProps() {
 
         startupBean.setIsEnabled(false);
