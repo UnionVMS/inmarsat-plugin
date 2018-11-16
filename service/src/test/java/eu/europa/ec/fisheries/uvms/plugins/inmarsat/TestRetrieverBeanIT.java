@@ -1,5 +1,6 @@
 package eu.europa.ec.fisheries.uvms.plugins.inmarsat;
 
+import org.jboss.arquillian.container.test.api.OperateOnDeployment;
 import org.jboss.arquillian.junit.Arquillian;
 import org.junit.Assert;
 import org.junit.Test;
@@ -15,22 +16,31 @@ public class TestRetrieverBeanIT extends _BuildTestDeployment {
     @Inject
     private InmarsatPlugin startupBean;
 
+    @Test
+    @OperateOnDeployment("normal")
+    public void test() {
+        String dnids = startupBean.getSetting("DNIDS");
+        Assert.assertEquals("1", dnids);
+    }
 
 
 
     @Test
+    @OperateOnDeployment("normal")
     public void testSetAndGetSetting() {
         String dnids = startupBean.getSetting("DNIDS");
         Assert.assertEquals("1", dnids);
     }
 
     @Test
+    @OperateOnDeployment("normal")
     public void testSetAndGetSettings() {
         ConcurrentMap<String, String> settings = startupBean.getSettings();
         Assert.assertEquals(5, settings.size());
     }
 
     @Test
+    @OperateOnDeployment("normal")
     public void testSomeProps() {
 
         startupBean.setIsEnabled(false);

@@ -15,7 +15,28 @@ import java.io.File;
 public class _BuildTestDeployment {
 
 
-    @Deployment(name = "normal", order = 1)
+
+    @Deployment(name = "exchangesim", order = 1)
+    public static Archive<?> createExchangeRegisterSimulation() {
+
+        WebArchive testWar = ShrinkWrap.create(WebArchive.class, "exchange.war");
+        testWar.addAsWebInfResource(EmptyAsset.INSTANCE, "beans.xml");
+
+        File[] files = Maven.resolver().loadPomFromFile("pom.xml").importRuntimeAndTestDependencies().resolve()
+                .withTransitivity().asFile();
+        testWar.addAsLibraries(files);
+
+        testWar.addClass(ExchangePluginRegistrationSimulatorListener.class);
+        testWar.addClass(ExchangePluginRegistrationSimulatorProducer.class);
+
+        return testWar;
+    }
+
+
+
+
+
+    @Deployment(name = "normal", order = 2)
     public static Archive<?> createDeployment() {
 
         WebArchive testWar = ShrinkWrap.create(WebArchive.class, "test.war");
