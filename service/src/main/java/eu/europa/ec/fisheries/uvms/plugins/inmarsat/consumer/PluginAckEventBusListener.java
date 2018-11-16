@@ -21,11 +21,64 @@ import eu.europa.ec.fisheries.uvms.plugins.inmarsat.InmarsatPlugin;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.ejb.ActivationConfigProperty;
+import javax.ejb.MessageDriven;
 import javax.inject.Inject;
 import javax.jms.Message;
 import javax.jms.MessageListener;
 import javax.jms.TextMessage;
 
+
+/*
+       <message-driven>
+            <ejb-name>PluginAckEventBusListenerinmarsat</ejb-name>
+            <ejb-class>eu.europa.ec.fisheries.uvms.plugins.inmarsat.consumer.PluginAckEventBusListener</ejb-class>
+            <mapped-name>jms:/jms/topic/EventBus</mapped-name>
+            <messaging-type>javax.jms.MessageListener</messaging-type>
+            <activation-config>
+                <activation-config-property>
+                    <activation-config-property-name>subscriptionName</activation-config-property-name>
+                    <activation-config-property-value>eu.europa.ec.fisheries.uvms.plugins.inmarsat.PLUGIN_RESPONSE</activation-config-property-value>
+                </activation-config-property>
+                <activation-config-property>
+                    <activation-config-property-name>clientId</activation-config-property-name>
+                    <activation-config-property-value>eu.europa.ec.fisheries.uvms.plugins.inmarsat.PLUGIN_RESPONSE</activation-config-property-value>
+                </activation-config-property>
+                <activation-config-property>
+                    <activation-config-property-name>messageSelector</activation-config-property-name>
+                    <activation-config-property-value>ServiceName='eu.europa.ec.fisheries.uvms.plugins.inmarsat.PLUGIN_RESPONSE'</activation-config-property-value>
+                </activation-config-property>
+                <activation-config-property>
+                    <activation-config-property-name>subscriptionDurability</activation-config-property-name>
+                    <activation-config-property-value>Durable</activation-config-property-value>
+                </activation-config-property>
+                <activation-config-property>
+                    <activation-config-property-name>destination</activation-config-property-name>
+                    <activation-config-property-value>EventBus</activation-config-property-value>
+                </activation-config-property>
+                <activation-config-property>
+                    <activation-config-property-name>connectionFactoryJndiName</activation-config-property-name>
+                    <activation-config-property-value>jms:/ConnectionFactory</activation-config-property-value>
+                </activation-config-property>
+                <activation-config-property>
+                    <activation-config-property-name>destinationType</activation-config-property-name>
+                    <activation-config-property-value>javax.jms.Topic</activation-config-property-value>
+                </activation-config-property>
+            </activation-config>
+        </message-driven>
+
+        */
+
+
+@MessageDriven(mappedName="jms:/jms/topic/EventBus", activationConfig =  {
+        @ActivationConfigProperty(propertyName = "subscriptionName",          propertyValue = "eu.europa.ec.fisheries.uvms.plugins.inmarsat.PLUGIN_RESPONSE"),
+        @ActivationConfigProperty(propertyName = "clientId",                  propertyValue = "eu.europa.ec.fisheries.uvms.plugins.inmarsat.PLUGIN_RESPONSE"),
+        @ActivationConfigProperty(propertyName = "messageSelector",           propertyValue = "ServiceName='eu.europa.ec.fisheries.uvms.plugins.inmarsat.PLUGIN_RESPONSE'"),
+        @ActivationConfigProperty(propertyName = "subscriptionDurability",    propertyValue = "Durable"),
+        @ActivationConfigProperty(propertyName = "destination",               propertyValue = "EventBus"),
+        @ActivationConfigProperty(propertyName = "connectionFactoryJndiName", propertyValue = "jms:/ConnectionFactory"),
+        @ActivationConfigProperty(propertyName = "destinationType",           propertyValue = "javax.jms.Topic")
+})
 public class PluginAckEventBusListener implements MessageListener {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(PluginAckEventBusListener.class);
