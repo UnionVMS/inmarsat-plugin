@@ -2,7 +2,6 @@ package eu.europa.ec.fisheries.uvms.plugins.inmarsat;
 
 import org.jboss.arquillian.junit.Arquillian;
 import org.junit.Assert;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -27,8 +26,8 @@ public class TestRetrieverBeanIT extends _BuildTestDeployment {
 
     @Test
     public void testSetAndGetSettings() {
-        ConcurrentMap<String, String> dnids = startupBean.getSettings();
-        Assert.assertEquals(5, dnids.size());
+        ConcurrentMap<String, String> settings = startupBean.getSettings();
+        Assert.assertEquals(5, settings.size());
     }
 
     @Test
