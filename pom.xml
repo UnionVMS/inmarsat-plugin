@@ -10,13 +10,13 @@
 
   <groupId>eu.europa.ec.fisheries.uvms.plugins</groupId>
   <artifactId>inmarsat</artifactId>
-  <version>3.0.9</version>
+  <version>3.0.10-SNAPSHOT</version>
   <packaging>pom</packaging>
 
   <scm>
     <url>${scm.url}</url>
     <connection>${scm.connection}</connection>
-    <tag>inmarsat-3.0.9</tag>
+    <tag>HEAD</tag>
   </scm>
 
   <properties>
