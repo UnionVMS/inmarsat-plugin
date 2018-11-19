@@ -14,11 +14,13 @@ import eu.europa.ec.fisheries.schema.exchange.service.v1.SettingListType;
 import eu.europa.ec.fisheries.schema.exchange.service.v1.SettingType;
 import eu.europa.ec.fisheries.schema.exchange.v1.ExchangeLogStatusTypeType;
 import eu.europa.ec.fisheries.uvms.commons.date.DateUtils;
+import eu.europa.ec.fisheries.uvms.commons.message.api.MessageException;
 import eu.europa.ec.fisheries.uvms.exchange.model.constant.ExchangeModelConstants;
 import eu.europa.ec.fisheries.uvms.exchange.model.exception.ExchangeModelMarshallException;
 import eu.europa.ec.fisheries.uvms.exchange.model.mapper.ExchangeModuleRequestMapper;
 import eu.europa.ec.fisheries.uvms.exchange.model.mapper.ExchangePluginResponseMapper;
-import eu.europa.ec.fisheries.uvms.plugins.inmarsat.message.PluginMessageProducer;
+import eu.europa.ec.fisheries.uvms.plugins.inmarsat.message.PluginToEventBusTopicProducer;
+import eu.europa.ec.fisheries.uvms.plugins.inmarsat.message.PluginToExchangeProducer;
 import fish.focus.uvms.commons.les.inmarsat.InmarsatException;
 import fish.focus.uvms.commons.les.inmarsat.InmarsatFileHandler;
 import fish.focus.uvms.commons.les.inmarsat.InmarsatMessage;
@@ -32,7 +34,6 @@ import javax.annotation.PreDestroy;
 import javax.ejb.*;
 import javax.ejb.Timer;
 import javax.inject.Inject;
-import javax.jms.JMSException;
 import java.io.*;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -57,10 +58,13 @@ public class InmarsatPluginMock extends PluginDataHolder implements InmarsatPlug
     private ArrayList<InmarsatPendingResponse> pending;
 
     @Inject
-    private PluginMessageProducer messageProducer;
+    private PluginToEventBusTopicProducer evtBusProducer;
 
     @Inject
-    private InmarsatConnection connect ;
+    private PluginToExchangeProducer messageProducer;
+
+    @Inject
+    private InmarsatConnection connect;
 
     private CapabilityListType capabilityList;
     private SettingListType settingList;
@@ -89,10 +93,10 @@ public class InmarsatPluginMock extends PluginDataHolder implements InmarsatPlug
         capabilityList = ServiceMapper.getCapabilitiesListTypeFromMap(super.getCapabilities());
         settingList = ServiceMapper.getSettingsListTypeFromMap(super.getSettings());
 
-        serviceType = ServiceMapper.getServiceType(getRegisterClassName(),"Thrane&Thrane","inmarsat plugin for the Thrane&Thrane API", PluginType.SATELLITE_RECEIVER,getPluginResponseSubscriptionName(),"INMARSAT_C");
+        serviceType = ServiceMapper.getServiceType(getRegisterClassName(), "Thrane&Thrane", "inmarsat plugin for the Thrane&Thrane API", PluginType.SATELLITE_RECEIVER, getPluginResponseSubscriptionName(), "INMARSAT_C");
         register();
 
-        if(LOGGER.isDebugEnabled()) {
+        if (LOGGER.isDebugEnabled()) {
             LOGGER.debug("Settings updated in plugin {}", registerClassName);
             for (Map.Entry<String, String> entry : super.getSettings().entrySet()) {
                 LOGGER.debug("Setting: KEY: {} , VALUE: {}", entry.getKey(), entry.getValue());
@@ -122,7 +126,7 @@ public class InmarsatPluginMock extends PluginDataHolder implements InmarsatPlug
             LOGGER.info(getRegisterClassName() + " is registered. Cancelling timer.");
             timer.cancel();
         } else if (numberOfTriesExecuted >= MAX_NUMBER_OF_TRIES) {
-            LOGGER.info( getRegisterClassName() + " failed to register, maximum number of retries reached.");
+            LOGGER.info(getRegisterClassName() + " failed to register, maximum number of retries reached.");
         }
     }
 
@@ -162,9 +166,9 @@ public class InmarsatPluginMock extends PluginDataHolder implements InmarsatPlug
         setWaitingForResponse(true);
         try {
             String registerServiceRequest = ExchangeModuleRequestMapper.createRegisterServiceRequest(serviceType, capabilityList, settingList);
-            messageProducer.sendEventBusMessage(registerServiceRequest, ExchangeModelConstants.EXCHANGE_REGISTER_SERVICE);
-        } catch (JMSException | ExchangeModelMarshallException e) {
-            LOGGER.error("Failed to send registration message to {}",ExchangeModelConstants.EXCHANGE_REGISTER_SERVICE);
+            evtBusProducer.sendEventBusMessage(registerServiceRequest, ExchangeModelConstants.EXCHANGE_REGISTER_SERVICE);
+        } catch (ExchangeModelMarshallException | MessageException e) {
+            LOGGER.error("Failed to send registration message to {}", ExchangeModelConstants.EXCHANGE_REGISTER_SERVICE);
             setWaitingForResponse(false);
         }
     }
@@ -172,19 +176,19 @@ public class InmarsatPluginMock extends PluginDataHolder implements InmarsatPlug
     private void unregister() {
         LOGGER.info("Unregistering from Exchange Module");
         try {
-            String unregisterServiceRequest =ExchangeModuleRequestMapper.createUnregisterServiceRequest(serviceType);
-            messageProducer.sendEventBusMessage(unregisterServiceRequest, ExchangeModelConstants.EXCHANGE_REGISTER_SERVICE);
-        } catch (JMSException | ExchangeModelMarshallException e) {
-            LOGGER.error("Failed to send unregistration message to {}",ExchangeModelConstants.EXCHANGE_REGISTER_SERVICE);
+            String unregisterServiceRequest = ExchangeModuleRequestMapper.createUnregisterServiceRequest(serviceType);
+            evtBusProducer.sendEventBusMessage(unregisterServiceRequest, ExchangeModelConstants.EXCHANGE_REGISTER_SERVICE);
+        } catch (ExchangeModelMarshallException | MessageException e) {
+            LOGGER.error("Failed to send unregistration message to {}", ExchangeModelConstants.EXCHANGE_REGISTER_SERVICE);
         }
     }
 
     public String getPluginResponseSubscriptionName() {
-        return getRegisterClassName()+ "." + getPLuginApplicationProperty("application.responseTopicName");
+        return getRegisterClassName() + "." + getPLuginApplicationProperty("application.responseTopicName");
     }
 
     private String getResponseTopicMessageName() {
-        return getPLuginApplicationProperty("application.groupid")+ "."+ getPLuginApplicationProperty("application.name");
+        return getPLuginApplicationProperty("application.groupid") + "." + getPLuginApplicationProperty("application.name");
     }
 
     public String getRegisterClassName() {
@@ -268,7 +272,6 @@ public class InmarsatPluginMock extends PluginDataHolder implements InmarsatPlug
     }
 
 
-
     /**
      * @return returns DNIDs available for download
      */
@@ -311,7 +314,6 @@ public class InmarsatPluginMock extends PluginDataHolder implements InmarsatPlug
     }
 
 
-
     @Asynchronous
     private Future<Map<String, String>> download(String path, List<String> dnids) {
         Map<String, String> responses = new HashMap<>();
@@ -330,9 +332,8 @@ public class InmarsatPluginMock extends PluginDataHolder implements InmarsatPlug
 
     private String download(String path, String dnid) throws TelnetException {
         LOGGER.debug("Download invoked with DNID = {}", dnid);
-        return connect.connect(null,path, getSetting("URL"),getSetting("PORT"),getSetting("USERNAME"),getSetting("PSW"),dnid);
+        return connect.connect(null, path, getSetting("URL"), getSetting("PORT"), getSetting("USERNAME"), getSetting("PSW"), dnid);
     }
-
 
 
     private String sendPoll(PollType poll, String path, String url, String port, String username, String psw, String dnids) throws TelnetException {
@@ -357,8 +358,6 @@ public class InmarsatPluginMock extends PluginDataHolder implements InmarsatPlug
         String s = response.substring(response.indexOf("number"));
         return s.replaceAll("[^0-9]", ""); // returns 123
     }
-
-
 
 
     /**
@@ -446,12 +445,12 @@ public class InmarsatPluginMock extends PluginDataHolder implements InmarsatPlug
 
             try {
                 String s = ExchangePluginResponseMapper.mapToSetPollStatusToSuccessfulResponse(getApplicaionName(), ackType, ipr.getMsgId());
-                messageProducer.sendModuleMessage(s, ModuleQueue.EXCHANGE);
+                messageProducer.sendModuleMessage(s, null);
                 boolean b = removePendingPollResponse(ipr);
                 LOGGER.debug("Pending poll response removed: {}", b);
             } catch (ExchangeModelMarshallException ex) {
                 LOGGER.debug("ExchangeModelMarshallException", ex);
-            } catch (JMSException jex) {
+            } catch (MessageException jex) {
                 LOGGER.debug("JMSException", jex);
             }
         }
@@ -460,16 +459,15 @@ public class InmarsatPluginMock extends PluginDataHolder implements InmarsatPlug
     }
 
 
-
     private void sendMovementReportToExchange(SetReportMovementType reportType) {
         try {
-            String text =ExchangeModuleRequestMapper.createSetMovementReportRequest(reportType, "TWOSTAGE", null, DateUtils.nowUTC().toDate(), null, PluginType.SATELLITE_RECEIVER, "TWOSTAGE", null);
-            String messageId = messageProducer.sendModuleMessage(text, ModuleQueue.EXCHANGE);
+            String text = ExchangeModuleRequestMapper.createSetMovementReportRequest(reportType, "TWOSTAGE", null, DateUtils.nowUTC().toDate(), null, PluginType.SATELLITE_RECEIVER, "TWOSTAGE", null);
+            String messageId = messageProducer.sendModuleMessage(text, null);
             LOGGER.debug("Sent to exchange - text:{}, id:{}", text, messageId);
             getCachedMovement().put(messageId, reportType);
         } catch (ExchangeModelMarshallException e) {
             LOGGER.error("Couldn't map movement to setreportmovementtype");
-        } catch (JMSException e) {
+        } catch (MessageException e) {
             LOGGER.error("couldn't send movement");
             getCachedMovement().put(UUID.randomUUID().toString(), reportType);
         }
@@ -479,7 +477,7 @@ public class InmarsatPluginMock extends PluginDataHolder implements InmarsatPlug
         return AcknowledgeTypeType.NOK;
     }
 
-    public  AcknowledgeTypeType setCommand(CommandType command) {
+    public AcknowledgeTypeType setCommand(CommandType command) {
         if (LOGGER.isInfoEnabled()) {
             LOGGER.info(
                     "{}.setCommand({})", getRegisterClassName(), command.getCommand().name());
@@ -547,15 +545,11 @@ public class InmarsatPluginMock extends PluginDataHolder implements InmarsatPlug
             String s =
                     ExchangePluginResponseMapper.mapToSetPollStatusToSuccessfulResponse(
                             getApplicaionName(), ackType, ipr.getMsgId());
-            messageProducer.sendModuleMessage(s, ModuleQueue.EXCHANGE);
-            LOGGER.debug(
-                    "Poll response {} sent to exchange with status: {}",
-                    ipr.getMsgId(),
-                    ExchangeLogStatusTypeType.PENDING);
-
+            messageProducer.sendModuleMessage(s, null);
+            LOGGER.debug("Poll response {} sent to exchange with status: {}", ipr.getMsgId(), ExchangeLogStatusTypeType.PENDING);
         } catch (ExchangeModelMarshallException ex) {
             LOGGER.debug("ExchangeModelMarshallException", ex);
-        } catch (JMSException jex) {
+        } catch (MessageException jex) {
             LOGGER.debug("JMSException", jex);
         }
     }
@@ -687,10 +681,6 @@ public class InmarsatPluginMock extends PluginDataHolder implements InmarsatPlug
             LOGGER.debug("IOExeption", ex);
         }
     }
-
-
-
-
 
 
 }

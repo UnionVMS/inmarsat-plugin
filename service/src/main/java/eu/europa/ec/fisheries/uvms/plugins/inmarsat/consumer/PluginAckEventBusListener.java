@@ -28,48 +28,6 @@ import javax.jms.Message;
 import javax.jms.MessageListener;
 import javax.jms.TextMessage;
 
-
-/*
-       <message-driven>
-            <ejb-name>PluginAckEventBusListenerinmarsat</ejb-name>
-            <ejb-class>eu.europa.ec.fisheries.uvms.plugins.inmarsat.consumer.PluginAckEventBusListener</ejb-class>
-            <mapped-name>jms:/jms/topic/EventBus</mapped-name>
-            <messaging-type>javax.jms.MessageListener</messaging-type>
-            <activation-config>
-                <activation-config-property>
-                    <activation-config-property-name>subscriptionName</activation-config-property-name>
-                    <activation-config-property-value>eu.europa.ec.fisheries.uvms.plugins.inmarsat.PLUGIN_RESPONSE</activation-config-property-value>
-                </activation-config-property>
-                <activation-config-property>
-                    <activation-config-property-name>clientId</activation-config-property-name>
-                    <activation-config-property-value>eu.europa.ec.fisheries.uvms.plugins.inmarsat.PLUGIN_RESPONSE</activation-config-property-value>
-                </activation-config-property>
-                <activation-config-property>
-                    <activation-config-property-name>messageSelector</activation-config-property-name>
-                    <activation-config-property-value>ServiceName='eu.europa.ec.fisheries.uvms.plugins.inmarsat.PLUGIN_RESPONSE'</activation-config-property-value>
-                </activation-config-property>
-                <activation-config-property>
-                    <activation-config-property-name>subscriptionDurability</activation-config-property-name>
-                    <activation-config-property-value>Durable</activation-config-property-value>
-                </activation-config-property>
-                <activation-config-property>
-                    <activation-config-property-name>destination</activation-config-property-name>
-                    <activation-config-property-value>EventBus</activation-config-property-value>
-                </activation-config-property>
-                <activation-config-property>
-                    <activation-config-property-name>connectionFactoryJndiName</activation-config-property-name>
-                    <activation-config-property-value>jms:/ConnectionFactory</activation-config-property-value>
-                </activation-config-property>
-                <activation-config-property>
-                    <activation-config-property-name>destinationType</activation-config-property-name>
-                    <activation-config-property-value>javax.jms.Topic</activation-config-property-value>
-                </activation-config-property>
-            </activation-config>
-        </message-driven>
-
-        */
-
-
 @MessageDriven(mappedName="jms:/jms/topic/EventBus", activationConfig =  {
         @ActivationConfigProperty(propertyName = "subscriptionName",          propertyValue = "eu.europa.ec.fisheries.uvms.plugins.inmarsat.PLUGIN_RESPONSE"),
         @ActivationConfigProperty(propertyName = "clientId",                  propertyValue = "eu.europa.ec.fisheries.uvms.plugins.inmarsat.PLUGIN_RESPONSE"),
@@ -88,14 +46,10 @@ public class PluginAckEventBusListener implements MessageListener {
 
     @Override
     public void onMessage(Message inMessage) {
-
         LOGGER.info("Eventbus listener for twostage at selector: {} got a message", startupService.getPluginResponseSubscriptionName());
         TextMessage textMessage = (TextMessage) inMessage;
-
         try {
-
             ExchangeRegistryBaseRequest request = tryConsumeRegistryBaseRequest(textMessage);
-
             if (request == null) {
                 PluginFault fault = JAXBMarshaller.unmarshallTextMessage(textMessage, PluginFault.class);
                 handlePluginFault(fault);

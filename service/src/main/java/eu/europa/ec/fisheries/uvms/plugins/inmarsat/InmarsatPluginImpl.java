@@ -15,11 +15,13 @@ import eu.europa.ec.fisheries.schema.exchange.service.v1.SettingListType;
 import eu.europa.ec.fisheries.schema.exchange.service.v1.SettingType;
 import eu.europa.ec.fisheries.schema.exchange.v1.ExchangeLogStatusTypeType;
 import eu.europa.ec.fisheries.uvms.commons.date.DateUtils;
+import eu.europa.ec.fisheries.uvms.commons.message.api.MessageException;
 import eu.europa.ec.fisheries.uvms.exchange.model.constant.ExchangeModelConstants;
 import eu.europa.ec.fisheries.uvms.exchange.model.exception.ExchangeModelMarshallException;
 import eu.europa.ec.fisheries.uvms.exchange.model.mapper.ExchangeModuleRequestMapper;
 import eu.europa.ec.fisheries.uvms.exchange.model.mapper.ExchangePluginResponseMapper;
-import eu.europa.ec.fisheries.uvms.plugins.inmarsat.message.PluginMessageProducer;
+import eu.europa.ec.fisheries.uvms.plugins.inmarsat.message.PluginToEventBusTopicProducer;
+import eu.europa.ec.fisheries.uvms.plugins.inmarsat.message.PluginToExchangeProducer;
 import fish.focus.uvms.commons.les.inmarsat.InmarsatException;
 import fish.focus.uvms.commons.les.inmarsat.InmarsatFileHandler;
 import fish.focus.uvms.commons.les.inmarsat.InmarsatMessage;
@@ -32,7 +34,6 @@ import javax.annotation.PreDestroy;
 import javax.ejb.*;
 import javax.ejb.Timer;
 import javax.inject.Inject;
-import javax.jms.JMSException;
 import java.io.*;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -57,7 +58,10 @@ public class InmarsatPluginImpl extends PluginDataHolder implements  InmarsatPlu
     private ArrayList<InmarsatPendingResponse> pending;
 
     @Inject
-    private PluginMessageProducer messageProducer;
+    private PluginToEventBusTopicProducer messageProducer;
+
+    @Inject
+    private PluginToExchangeProducer exchangeProducer;
 
     @Inject
     private InmarsatConnection connect ;
@@ -154,7 +158,7 @@ public class InmarsatPluginImpl extends PluginDataHolder implements  InmarsatPlu
         try {
             String registerServiceRequest = ExchangeModuleRequestMapper.createRegisterServiceRequest(serviceType, capabilityList, settingList);
             messageProducer.sendEventBusMessage(registerServiceRequest, ExchangeModelConstants.EXCHANGE_REGISTER_SERVICE);
-        } catch (JMSException | ExchangeModelMarshallException e) {
+        } catch (ExchangeModelMarshallException | MessageException e) {
             LOGGER.error("Failed to send registration message to {}",ExchangeModelConstants.EXCHANGE_REGISTER_SERVICE);
             setWaitingForResponse(false);
         }
@@ -165,7 +169,7 @@ public class InmarsatPluginImpl extends PluginDataHolder implements  InmarsatPlu
         try {
             String unregisterServiceRequest =ExchangeModuleRequestMapper.createUnregisterServiceRequest(serviceType);
             messageProducer.sendEventBusMessage(unregisterServiceRequest, ExchangeModelConstants.EXCHANGE_REGISTER_SERVICE);
-        } catch (JMSException | ExchangeModelMarshallException e) {
+        } catch (ExchangeModelMarshallException | MessageException e) {
             LOGGER.error("Failed to send unregistration message to {}",ExchangeModelConstants.EXCHANGE_REGISTER_SERVICE);
         }
     }
@@ -436,12 +440,12 @@ public class InmarsatPluginImpl extends PluginDataHolder implements  InmarsatPlu
 
             try {
                 String s = ExchangePluginResponseMapper.mapToSetPollStatusToSuccessfulResponse(getApplicaionName(), ackType, ipr.getMsgId());
-                messageProducer.sendModuleMessage(s, ModuleQueue.EXCHANGE);
+                exchangeProducer.sendModuleMessage(s, null);
                 boolean b = removePendingPollResponse(ipr);
                 LOGGER.debug("Pending poll response removed: {}", b);
             } catch (ExchangeModelMarshallException ex) {
                 LOGGER.debug("ExchangeModelMarshallException", ex);
-            } catch (JMSException jex) {
+            } catch (MessageException jex) {
                 LOGGER.debug("JMSException", jex);
             }
         }
@@ -454,12 +458,12 @@ public class InmarsatPluginImpl extends PluginDataHolder implements  InmarsatPlu
     private void sendMovementReportToExchange(SetReportMovementType reportType) {
         try {
             String text =ExchangeModuleRequestMapper.createSetMovementReportRequest(reportType, "TWOSTAGE", null, DateUtils.nowUTC().toDate(), null, PluginType.SATELLITE_RECEIVER, "TWOSTAGE", null);
-            String messageId = messageProducer.sendModuleMessage(text, ModuleQueue.EXCHANGE);
+            String messageId = exchangeProducer.sendModuleMessage(text, null);
             LOGGER.debug("Sent to exchange - text:{}, id:{}", text, messageId);
             getCachedMovement().put(messageId, reportType);
         } catch (ExchangeModelMarshallException e) {
             LOGGER.error("Couldn't map movement to setreportmovementtype");
-        } catch (JMSException e) {
+        } catch (MessageException e) {
             LOGGER.error("couldn't send movement");
             getCachedMovement().put(UUID.randomUUID().toString(), reportType);
         }
@@ -534,18 +538,12 @@ public class InmarsatPluginImpl extends PluginDataHolder implements  InmarsatPlu
         ackType.setType(AcknowledgeTypeType.OK);
 
         try {
-            String s =
-                    ExchangePluginResponseMapper.mapToSetPollStatusToSuccessfulResponse(
-                            getApplicaionName(), ackType, ipr.getMsgId());
-            messageProducer.sendModuleMessage(s, ModuleQueue.EXCHANGE);
-            LOGGER.debug(
-                    "Poll response {} sent to exchange with status: {}",
-                    ipr.getMsgId(),
-                    ExchangeLogStatusTypeType.PENDING);
-
+            String s = ExchangePluginResponseMapper.mapToSetPollStatusToSuccessfulResponse(getApplicaionName(), ackType, ipr.getMsgId());
+            exchangeProducer.sendModuleMessage(s, null);
+            LOGGER.debug("Poll response {} sent to exchange with status: {}", ipr.getMsgId(), ExchangeLogStatusTypeType.PENDING);
         } catch (ExchangeModelMarshallException ex) {
             LOGGER.debug("ExchangeModelMarshallException", ex);
-        } catch (JMSException jex) {
+        } catch (MessageException jex) {
             LOGGER.debug("JMSException", jex);
         }
     }

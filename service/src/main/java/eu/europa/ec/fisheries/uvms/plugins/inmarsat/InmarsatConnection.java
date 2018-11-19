@@ -30,12 +30,9 @@ import java.util.Calendar;
 public class InmarsatConnection {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(InmarsatConnection.class);
-    private static final String[] faultPatterns = {
-            "????????", "[Connection to 41424344 aborted: error status 0]", "Illegal address parameter."
-    };
+    private static final String[] faultPatterns = {"????????", "[Connection to 41424344 aborted: error status 0]", "Illegal address parameter."};
 
     private String getFileName(String path) {
-
         Calendar cal = Calendar.getInstance();
         return path + cal.getTimeInMillis() + ".dat";
     }
