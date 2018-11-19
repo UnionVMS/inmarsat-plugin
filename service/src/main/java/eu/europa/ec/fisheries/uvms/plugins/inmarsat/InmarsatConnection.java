@@ -54,8 +54,6 @@ public class InmarsatConnection {
             readUntil(">", input, null, url, port);
             response = issueCommand(poll, output, input, dnid, path, url, port);
 
-        } catch (SocketException ex) {
-            LOGGER.error("Error when communicating with Telnet", ex);
         } catch (IOException ex) {
             LOGGER.error("Error when communicating with Telnet", ex);
         } catch (NullPointerException ex) {
