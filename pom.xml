@@ -20,6 +20,7 @@
   </scm>
 
   <properties>
+    <docker.dev.version>3.29.1.w14</docker.dev.version>
     <commons.net.version>3.6</commons.net.version>
     <exchange.model.version>4.0.22</exchange.model.version>
     <uvms.common.version>3.0.23</uvms.common.version>
@@ -54,7 +55,12 @@
         <groupId>eu.europa.ec.fisheries.uvms.exchange</groupId>
         <artifactId>exchange-model</artifactId>
         <version>${exchange.model.version}</version>
-
+      </dependency>
+      <dependency>
+        <groupId>fish.focus.uvms.maven</groupId>
+        <artifactId>uvms-pom-arquillian-deps</artifactId>
+        <version>1.18</version>
+        <type>pom</type>
       </dependency>
     </dependencies>
   </dependencyManagement>
@@ -71,7 +77,7 @@
   </modules>
   <build>
     <plugins>
-      <plugin>
+      <!--plugin>
           <groupId>com.coveo</groupId>
           <artifactId>fmt-maven-plugin</artifactId>
           <version>2.1.0</version>
@@ -82,7 +88,7 @@
                   </goals>
               </execution>
           </executions>
-      </plugin>
+      </plugin-->
     </plugins>
   </build>
 </project>

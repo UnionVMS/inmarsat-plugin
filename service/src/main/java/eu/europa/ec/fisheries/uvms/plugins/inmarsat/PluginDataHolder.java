@@ -12,6 +12,7 @@ copy of the GNU General Public License along with the IFDM Suite. If not, see <h
 package eu.europa.ec.fisheries.uvms.plugins.inmarsat;
 
 import eu.europa.ec.fisheries.schema.exchange.movement.v1.SetReportMovementType;
+
 import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -19,50 +20,49 @@ import java.util.concurrent.ConcurrentMap;
 /** */
 public abstract class PluginDataHolder {
 
-  public static final String PLUGIN_PROPERTIES = "plugin.properties";
-  public static final String SETTINGS_PROPERTIES = "settings.properties";
-  public static final String CAPABILITIES_PROPERTIES = "capabilities.properties";
-  private final ConcurrentMap<String, String> settings = new ConcurrentHashMap<>();
-  private final ConcurrentMap<String, String> capabilities = new ConcurrentHashMap<>();
-  private final ConcurrentMap<String, SetReportMovementType> cachedMovement =
-      new ConcurrentHashMap<>();
-  private Properties twostageApplicaitonProperties;
-  private Properties twostageProperties;
-  private Properties twostageCapabilities;
+    public static final String PLUGIN_PROPERTIES = "plugin.properties";
+    public static final String SETTINGS_PROPERTIES = "settings.properties";
+    public static final String CAPABILITIES_PROPERTIES = "capabilities.properties";
+    private final ConcurrentMap<String, String> settings = new ConcurrentHashMap<>();
+    private final ConcurrentMap<String, String> capabilities = new ConcurrentHashMap<>();
+    private final ConcurrentMap<String, SetReportMovementType> cachedMovement = new ConcurrentHashMap<>();
+    private Properties twostageApplicaitonProperties;
+    private Properties twostageProperties;
+    private Properties twostageCapabilities;
 
-  public ConcurrentMap<String, String> getSettings() {
-    return settings;
-  }
+    public ConcurrentMap<String, String> getSettings() {
+        return settings;
+    }
 
-  public ConcurrentMap<String, String> getCapabilities() {
-    return capabilities;
-  }
+    public ConcurrentMap<String, String> getCapabilities() {
+        return capabilities;
+    }
 
-  public ConcurrentMap<String, SetReportMovementType> getCachedMovement() {
-    return cachedMovement;
-  }
+    public ConcurrentMap<String, SetReportMovementType> getCachedMovement() {
+        return cachedMovement;
+    }
 
-  public Properties getPluginApplicaitonProperties() {
-    return twostageApplicaitonProperties;
-  }
+    public Properties getPluginApplicaitonProperties() {
+        return twostageApplicaitonProperties;
+    }
 
-  public void setPluginApplicaitonProperties(Properties twostageApplicaitonProperties) {
-    this.twostageApplicaitonProperties = twostageApplicaitonProperties;
-  }
+    public void setPluginApplicaitonProperties(Properties twostageApplicaitonProperties) {
+        this.twostageApplicaitonProperties = twostageApplicaitonProperties;
+    }
 
-  public Properties getPluginProperties() {
-    return twostageProperties;
-  }
+    public Properties getPluginProperties() {
+        return twostageProperties;
+    }
 
-  public void setPluginProperties(Properties twostageProperties) {
-    this.twostageProperties = twostageProperties;
-  }
+    public void setPluginProperties(Properties twostageProperties) {
+        this.twostageProperties = twostageProperties;
+    }
 
-  public Properties getPluginCapabilities() {
-    return twostageCapabilities;
-  }
+    public Properties getPluginCapabilities() {
+        return twostageCapabilities;
+    }
 
-  public void setPluginCapabilities(Properties twostageCapabilities) {
-    this.twostageCapabilities = twostageCapabilities;
-  }
+    public void setPluginCapabilities(Properties twostageCapabilities) {
+        this.twostageCapabilities = twostageCapabilities;
+    }
 }
