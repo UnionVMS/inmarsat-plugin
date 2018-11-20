@@ -29,6 +29,7 @@ import fish.focus.uvms.commons.les.inmarsat.body.PositionReport;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 import javax.ejb.*;
@@ -42,6 +43,7 @@ import java.util.concurrent.Future;
 
 @Startup
 @Singleton
+@DependsOn("PluginToEventBusTopicProducer")
 public class InmarsatPluginImpl extends PluginDataHolder implements  InmarsatPlugin {
 
 
