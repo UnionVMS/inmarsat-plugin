@@ -327,8 +327,7 @@ public class InmarsatPluginImpl extends PluginDataHolder implements  InmarsatPlu
 
     private String sendPoll(PollType poll, String path, String url, String port, String username, String psw, String dnids) throws TelnetException {
         LOGGER.info("sendPoll invoked");
-        String s =
-                connect.connect(poll, path, url, port, username, psw, dnids);
+        String s = connect.connect(poll, path, url, port, username, psw, dnids);
         LOGGER.info("sendPoll returned:{} ", s);
         if (s != null) {
             s = parseResponse(s);

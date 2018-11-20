@@ -101,7 +101,7 @@ public class InmarsatConnection {
     private String sendDownloadCommand(PrintStream out, InputStream in, FileOutputStream stream, String dnid, String url, String port) throws TelnetException, IOException {
 
         String ret = "";
-        for (OceanRegion oceanRegion : OceanRegion.values()){
+        for (OceanRegion oceanRegion : OceanRegion.values()) {
             String val = String.valueOf(oceanRegion.getValue());
             String prompt = ">";
             String cmd = "DNID " + dnid + " " + val;
@@ -111,7 +111,18 @@ public class InmarsatConnection {
         return ret;
     }
 
+
     private String issueCommand(PollType poll, PrintStream out, InputStream in, String dnid, String path, String url, String port) throws TelnetException, IOException {
+
+        if (poll != null) {
+            return issueCommandPoll(poll, out, in, dnid, path, url, port);
+        } else {
+            return issueCommandDownload(out, in, dnid, path, url, port);
+        }
+    }
+
+
+    private String issueCommandPoll(PollType poll, PrintStream out, InputStream in, String dnid, String path, String url, String port) throws TelnetException, IOException {
 
         String filename = getFileName(path);
         FileOutputStream stream = null;
@@ -120,25 +131,50 @@ public class InmarsatConnection {
         } catch (FileNotFoundException e) {
             LOGGER.warn("Could not read/create file for TwoStage Command: {}", filename);
         }
-        String result;
-        if (poll != null) {
-            result = sendPollCommand(poll, out, in, stream, url, port);
-        } else {
-            result = sendDownloadCommand(out, in, stream, dnid, url, port);
-        }
+        String result = sendPollCommand(poll, out, in, stream, url, port);
         if (stream != null) {
             stream.flush();
             stream.close();
             // Delete file for polls, these are persisted elsewhere
-            if (poll != null) {
-                Path f = Paths.get(filename);
-                Files.deleteIfExists(f);
-            }
+            Path f = Paths.get(filename);
+            Files.deleteIfExists(f);
         }
         out.print("QUIT \r\n");
         out.flush();
         return result;
     }
+
+    private String issueCommandDownload(PrintStream out, InputStream in, String dnid, String path, String url, String port) throws TelnetException, IOException {
+
+        String ret = "";
+        for (OceanRegion oceanRegion : OceanRegion.values()) {
+
+            String filename = getFileName(path);
+            FileOutputStream stream = null;
+            try {
+                stream = new FileOutputStream(filename);
+                String cmd = "DNID " + dnid + " " + String.valueOf(oceanRegion.getValue());
+                write(cmd, out);
+                ret = ret + readUntil(">", in, stream, url, port);
+
+            } catch (Exception e) {
+                LOGGER.warn("Could not read/create file for TwoStage Command: {}", filename);
+            }
+            finally{
+                if (stream != null) {
+                    stream.flush();
+                    stream.close();
+                }
+            }
+        }
+        out.print("QUIT \r\n");
+        out.flush();
+        return ret;
+    }
+
+
+
+
 
     /**
      * Sends one or more poll commands, one for each ocean region, until a reference number is
@@ -205,7 +241,7 @@ public class InmarsatConnection {
                 LOGGER.error(
                         "Error while reading from Inmarsat-C LES Telnet @ {}:{}: {}", url, port, currentString);
                 throw new TelnetException(
-                        "Error while reading from Inmarsat-C LES Telnet @ " + url + ":" + port+ ": " + currentString);
+                        "Error while reading from Inmarsat-C LES Telnet @ " + url + ":" + port + ": " + currentString);
             }
         }
     }
