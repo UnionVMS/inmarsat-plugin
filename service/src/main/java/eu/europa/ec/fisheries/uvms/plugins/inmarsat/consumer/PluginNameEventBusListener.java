@@ -116,62 +116,38 @@ public class PluginNameEventBusListener implements MessageListener {
 
       switch (request.getMethod()) {
         case SET_CONFIG:
-          SetConfigRequest setConfigRequest =
-              JAXBMarshaller.unmarshallTextMessage(textMessage, SetConfigRequest.class);
+          SetConfigRequest setConfigRequest =  JAXBMarshaller.unmarshallTextMessage(textMessage, SetConfigRequest.class);
           AcknowledgeTypeType setConfig = startup.setConfig(setConfigRequest.getConfigurations());
-          AcknowledgeType setConfigAck =
-              ExchangePluginResponseMapper.mapToAcknowlegeType(
-                  textMessage.getJMSMessageID(), setConfig);
-          responseMessage =
-              ExchangePluginResponseMapper.mapToSetConfigResponse(
-                  startup.getRegisterClassName(), setConfigAck);
+          AcknowledgeType setConfigAck =  ExchangePluginResponseMapper.mapToAcknowlegeType(textMessage.getJMSMessageID(), setConfig);
+          responseMessage = ExchangePluginResponseMapper.mapToSetConfigResponse(startup.getRegisterClassName(), setConfigAck);
           break;
         case SET_COMMAND:
-          SetCommandRequest setCommandRequest =
-              JAXBMarshaller.unmarshallTextMessage(textMessage, SetCommandRequest.class);
+          SetCommandRequest setCommandRequest = JAXBMarshaller.unmarshallTextMessage(textMessage, SetCommandRequest.class);
           AcknowledgeTypeType setCommand = startup.setCommand(setCommandRequest.getCommand());
-          AcknowledgeType setCommandAck =
-              ExchangePluginResponseMapper.mapToAcknowlegeType(
-                  textMessage.getJMSMessageID(), setCommand);
-          responseMessage =
-              ExchangePluginResponseMapper.mapToSetCommandResponse(
-                  startup.getRegisterClassName(), setCommandAck);
+          AcknowledgeType setCommandAck = ExchangePluginResponseMapper.mapToAcknowlegeType(textMessage.getJMSMessageID(), setCommand);
+          responseMessage = ExchangePluginResponseMapper.mapToSetCommandResponse(startup.getRegisterClassName(), setCommandAck);
           break;
         case SET_REPORT:
-          SetReportRequest setReportRequest =
-              JAXBMarshaller.unmarshallTextMessage(textMessage, SetReportRequest.class);
+          SetReportRequest setReportRequest =JAXBMarshaller.unmarshallTextMessage(textMessage, SetReportRequest.class);
           AcknowledgeTypeType setReport = startup.setReport(setReportRequest.getReport());
-          AcknowledgeType setReportAck =
-              ExchangePluginResponseMapper.mapToAcknowlegeType(
-                  textMessage.getJMSMessageID(), setReport);
-          responseMessage =
-              ExchangePluginResponseMapper.mapToSetReportResponse(
-                  startup.getRegisterClassName(), setReportAck);
+          AcknowledgeType setReportAck = ExchangePluginResponseMapper.mapToAcknowlegeType(textMessage.getJMSMessageID(), setReport);
+          responseMessage = ExchangePluginResponseMapper.mapToSetReportResponse(startup.getRegisterClassName(), setReportAck);
           break;
         case START:
           JAXBMarshaller.unmarshallTextMessage(textMessage, StartRequest.class);
           AcknowledgeTypeType start = startup.start();
-          AcknowledgeType startAck =
-              ExchangePluginResponseMapper.mapToAcknowlegeType(
-                  textMessage.getJMSMessageID(), start);
-          responseMessage =
-              ExchangePluginResponseMapper.mapToStartResponse(
-                  startup.getRegisterClassName(), startAck);
+          AcknowledgeType startAck = ExchangePluginResponseMapper.mapToAcknowlegeType( textMessage.getJMSMessageID(), start);
+          responseMessage = ExchangePluginResponseMapper.mapToStartResponse(startup.getRegisterClassName(), startAck);
           break;
         case STOP:
           JAXBMarshaller.unmarshallTextMessage(textMessage, StopRequest.class);
           AcknowledgeTypeType stop = startup.stop();
-          AcknowledgeType stopAck =
-              ExchangePluginResponseMapper.mapToAcknowlegeType(textMessage.getJMSMessageID(), stop);
-          responseMessage =
-              ExchangePluginResponseMapper.mapToStopResponse(
-                  startup.getRegisterClassName(), stopAck);
+          AcknowledgeType stopAck = ExchangePluginResponseMapper.mapToAcknowlegeType(textMessage.getJMSMessageID(), stop);
+          responseMessage = ExchangePluginResponseMapper.mapToStopResponse(startup.getRegisterClassName(), stopAck);
           break;
         case PING:
           JAXBMarshaller.unmarshallTextMessage(textMessage, PingRequest.class);
-          responseMessage =
-              ExchangePluginResponseMapper.mapToPingResponse(
-                  startup.isIsEnabled(), startup.isIsEnabled());
+          responseMessage = ExchangePluginResponseMapper.mapToPingResponse(startup.isIsEnabled(), startup.isIsEnabled());
           break;
         default:
           LOGGER.error("Not supported method");
