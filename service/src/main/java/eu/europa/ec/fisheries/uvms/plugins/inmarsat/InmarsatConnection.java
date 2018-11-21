@@ -98,19 +98,6 @@ public class InmarsatConnection {
         return inmPoll.asCommand();
     }
 
-    private String sendDownloadCommand(PrintStream out, InputStream in, FileOutputStream stream, String dnid, String url, String port) throws TelnetException, IOException {
-
-        String ret = "";
-        for (OceanRegion oceanRegion : OceanRegion.values()) {
-            String val = String.valueOf(oceanRegion.getValue());
-            String prompt = ">";
-            String cmd = "DNID " + dnid + " " + val;
-            write(cmd, out);
-            ret = ret + readUntil(prompt, in, stream, url, port);
-        }
-        return ret;
-    }
-
 
     private String issueCommand(PollType poll, PrintStream out, InputStream in, String dnid, String path, String url, String port) throws TelnetException, IOException {
 
