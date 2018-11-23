@@ -68,8 +68,10 @@ public class InmarsatConnection {
 
         } catch (SocketException ex) {
             LOGGER.error("Error when communicating with Telnet", ex);
+            throw new TelnetException(ex);
         } catch (IOException ex) {
             LOGGER.error("Error when communicating with Telnet", ex);
+            throw new TelnetException(ex);
         } catch (NullPointerException | InterruptedException ex) {
             LOGGER.error(ex.toString(), ex);
             throw new TelnetException(ex);
@@ -152,9 +154,6 @@ public class InmarsatConnection {
                 String cmd = "DNID " + dnid + " " + String.valueOf(oceanRegion.getValue());
                 write(cmd, out);
                 ret = ret + readUntil(">", in, stream, url, port);
-
-            } catch (Exception e) {
-                LOGGER.warn("Could not read/create file for TwoStage Command: {}", filename);
             }
             finally{
                 if (stream != null) {
@@ -167,9 +166,6 @@ public class InmarsatConnection {
         out.flush();
         return ret;
     }
-
-
-
 
 
     /**
