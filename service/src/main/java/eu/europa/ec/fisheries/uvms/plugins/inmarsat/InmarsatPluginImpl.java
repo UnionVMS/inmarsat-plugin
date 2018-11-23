@@ -110,6 +110,7 @@ public class InmarsatPluginImpl extends PluginDataHolder implements  InmarsatPlu
 
     @Schedule(second = "*/10", minute = "*", hour = "*", persistent = false)
     private void timeout(Timer timer) {
+        LOGGER.error("HEARTBEAT timeout running. isRegistered=" + isRegistered + " ,numberOfTriesExecuted=" + numberOfTriesExecuted + " threadId=" + Thread.currentThread().toString());
         if (!isRegistered && numberOfTriesExecuted < MAX_NUMBER_OF_TRIES) {
             LOGGER.info(getRegisterClassName() + " is not registered, trying to register");
             register();
@@ -124,7 +125,8 @@ public class InmarsatPluginImpl extends PluginDataHolder implements  InmarsatPlu
     }
 
     @Schedule(minute = "*/3", hour = "*", persistent = false)
-    private void connectAndRetrive() {
+    private void connectAndRetrieve() {
+        LOGGER.error("HEARTBEAT connectAndRetrieve running. IsEnabled=" + isEnabled  + " threadId=" + Thread.currentThread().toString());
         if (isIsEnabled()) {
             List<String> dnids = getDownloadDnids();
             Future<Map<String, String>> future = download(getCachePath(), dnids);
@@ -137,6 +139,7 @@ public class InmarsatPluginImpl extends PluginDataHolder implements  InmarsatPlu
 
     @Schedule(minute = "*/5", hour = "*", persistent = false)
     private void parseAndDeliver() {
+        LOGGER.error("HEARTBEAT parseAndDeliver running. IsEnabled=" + isEnabled + " deliveredFuture="+ deliverFuture  + " threadId=" + Thread.currentThread().toString());
         if (isIsEnabled() && (deliverFuture == null || deliverFuture.isDone())) {
             try {
                 deliverFuture = parseAndDeliver(getCachePath());

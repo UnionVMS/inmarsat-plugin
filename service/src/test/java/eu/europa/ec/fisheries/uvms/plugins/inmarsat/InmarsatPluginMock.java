@@ -113,9 +113,12 @@ public class InmarsatPluginMock extends PluginDataHolder implements InmarsatPlug
 
     @Schedule(second = "*/1", minute = "*", hour = "*", persistent = false)
     private void timeout(Timer timer) {
+        LOGGER.error("HEARTBEAT timeout running. isRegistered=" + isRegistered + " ,numberOfTriesExecuted=" + numberOfTriesExecuted + " threadId=" + Thread.currentThread().toString());
         if (!isRegistered && numberOfTriesExecuted < MAX_NUMBER_OF_TRIES) {
             LOGGER.info(getRegisterClassName() + " is not registered, trying to register");
             register();
+            isRegistered = true;
+            isEnabled = true;
             numberOfTriesExecuted++;
         }
         if (isRegistered) {
@@ -128,6 +131,7 @@ public class InmarsatPluginMock extends PluginDataHolder implements InmarsatPlug
 
     @Schedule(second = "*/3", minute = "*", hour = "*", persistent = false)
     private void connectAndRetrieve() {
+        LOGGER.error("HEARTBEAT connectAndRetrieve running. IsEnabled=" + isEnabled  + " threadId=" + Thread.currentThread().toString());
         /*
         if (isIsEnabled()) {
             List<String> dnids = getDownloadDnids();
@@ -143,6 +147,8 @@ public class InmarsatPluginMock extends PluginDataHolder implements InmarsatPlug
 
     @Schedule(second = "*/2", minute = "*", hour = "*", persistent = false)
     private void parseAndDeliver() {
+        LOGGER.error("HEARTBEAT parseAndDeliver running. IsEnabled=" + isEnabled + " deliveredFuture="+ deliverFuture  + " threadId=" + Thread.currentThread().toString());
+
         /*
         if (isIsEnabled() && (deliverFuture == null || deliverFuture.isDone())) {
             try {
