@@ -68,10 +68,10 @@ public class InmarsatConnection {
 
         } catch (SocketException ex) {
             LOGGER.error("Error when communicating with Telnet", ex);
-            throw new TelnetException(ex);
+//            throw new TelnetException(ex);
         } catch (IOException ex) {
             LOGGER.error("Error when communicating with Telnet", ex);
-            throw new TelnetException(ex);
+//            throw new TelnetException(ex);
         } catch (NullPointerException | InterruptedException ex) {
             LOGGER.error(ex.toString(), ex);
             throw new TelnetException(ex);
