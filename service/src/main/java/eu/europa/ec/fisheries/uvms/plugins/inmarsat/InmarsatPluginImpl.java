@@ -127,27 +127,37 @@ public class InmarsatPluginImpl extends PluginDataHolder implements  InmarsatPlu
     @Schedule(minute = "*/3", hour = "*", persistent = false)
     private void connectAndRetrieve() {
         LOGGER.error("HEARTBEAT connectAndRetrieve running. IsEnabled=" + isEnabled  + " threadId=" + Thread.currentThread().toString());
-        if (isIsEnabled()) {
-            List<String> dnids = getDownloadDnids();
-            Future<Map<String, String>> future = download(getCachePath(), dnids);
 
-            for (String dnid : dnids) {
-                connectFutures.put(dnid, future);
+        try {
+            if (isIsEnabled()) {
+                List<String> dnids = getDownloadDnids();
+                Future<Map<String, String>> future = download(getCachePath(), dnids);
+
+                for (String dnid : dnids) {
+                    connectFutures.put(dnid, future);
+                }
             }
+        }catch(Throwable t){
+            LOGGER.error(t.toString(), t );
         }
     }
 
     @Schedule(minute = "*/5", hour = "*", persistent = false)
     private void parseAndDeliver() {
         LOGGER.error("HEARTBEAT parseAndDeliver running. IsEnabled=" + isEnabled + " deliveredFuture="+ deliverFuture  + " threadId=" + Thread.currentThread().toString());
+
+        try {
         if (isIsEnabled() && (deliverFuture == null || deliverFuture.isDone())) {
-            try {
+//            try {
                 deliverFuture = parseAndDeliver(getCachePath());
-            } catch (IOException e) {
+//            } catch (IOException e) {
                 LOGGER.error("Couldn't deliver ");
-            }
+//            }
         } else {
             LOGGER.debug("deliverFuture is not null and busy");
+        }
+        }catch(Throwable t){
+            LOGGER.error(t.toString(), t );
         }
     }
 
