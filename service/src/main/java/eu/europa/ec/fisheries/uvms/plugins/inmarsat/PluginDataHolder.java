@@ -25,7 +25,7 @@ public abstract class PluginDataHolder {
     public static final String CAPABILITIES_PROPERTIES = "capabilities.properties";
     private final ConcurrentMap<String, String> settings = new ConcurrentHashMap<>();
     private final ConcurrentMap<String, String> capabilities = new ConcurrentHashMap<>();
-    private final ConcurrentMap<String, SetReportMovementType> cachedMovement = new ConcurrentHashMap<>();
+    //private final ConcurrentMap<String, SetReportMovementType> cachedMovement = new ConcurrentHashMap<>();
     private Properties twostageApplicaitonProperties;
     private Properties twostageProperties;
     private Properties twostageCapabilities;
@@ -38,9 +38,9 @@ public abstract class PluginDataHolder {
         return capabilities;
     }
 
-    public ConcurrentMap<String, SetReportMovementType> getCachedMovement() {
-        return cachedMovement;
-    }
+    //public ConcurrentMap<String, SetReportMovementType> getCachedMovement() {
+    //    return cachedMovement;
+    //}
 
     public Properties getPluginApplicaitonProperties() {
         return twostageApplicaitonProperties;

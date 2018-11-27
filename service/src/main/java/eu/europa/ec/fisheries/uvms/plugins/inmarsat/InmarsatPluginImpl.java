@@ -21,12 +21,14 @@ import eu.europa.ec.fisheries.uvms.exchange.model.mapper.ExchangeModuleRequestMa
 import eu.europa.ec.fisheries.uvms.exchange.model.mapper.ExchangePluginResponseMapper;
 import eu.europa.ec.fisheries.uvms.plugins.inmarsat.message.PluginMessageProducer;
 import fish.focus.uvms.commons.les.inmarsat.InmarsatException;
-import fish.focus.uvms.commons.les.inmarsat.InmarsatFileHandler;
+import fish.focus.uvms.commons.les.inmarsat.InmarsatInterpreter;
 import fish.focus.uvms.commons.les.inmarsat.InmarsatMessage;
 import fish.focus.uvms.commons.les.inmarsat.body.PositionReport;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.net.telnet.TelnetClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 import javax.ejb.*;
@@ -34,19 +36,22 @@ import javax.ejb.Timer;
 import javax.inject.Inject;
 import javax.jms.JMSException;
 import java.io.*;
-import java.nio.file.Path;
-import java.nio.file.Paths;
+import java.net.SocketException;
 import java.util.*;
 import java.util.concurrent.Future;
 
 @Startup
 @Singleton
-public class InmarsatPluginImpl extends PluginDataHolder implements  InmarsatPlugin {
+public class InmarsatPluginImpl extends PluginDataHolder implements InmarsatPlugin {
+
+
+    private static final String[] faultPatterns = {
+            "????????", "[Connection to 41424344 aborted: error status 0]", "Illegal address parameter."
+    };
 
 
     private static final Logger LOGGER = LoggerFactory.getLogger(InmarsatPluginImpl.class);
 
-    private static final String FILE_NAME = "pending.ser";
     private static final int MAX_NUMBER_OF_TRIES = 20;
     private boolean isRegistered = false;
     private boolean isEnabled = false;
@@ -54,13 +59,14 @@ public class InmarsatPluginImpl extends PluginDataHolder implements  InmarsatPlu
     private int numberOfTriesExecuted = 0;
     private String registerClassName;
 
-    private ArrayList<InmarsatPendingResponse> pending;
-
     @Inject
     private PluginMessageProducer messageProducer;
 
     @Inject
-    private InmarsatConnection connect ;
+    private InmarsatPollConnection connect;
+
+    @Inject
+    private InmarsatInterpreter fileHandler;
 
     private CapabilityListType capabilityList;
     private SettingListType settingList;
@@ -68,16 +74,11 @@ public class InmarsatPluginImpl extends PluginDataHolder implements  InmarsatPlu
 
     private final Map<String, Future> connectFutures = new HashMap<>();
 
-    private Future deliverFuture = null;
-    private String cachePath = null;
-    private String pollPath = null;
-
     @PostConstruct
     private void startup() {
 
         Properties pluginProperties = getPropertiesFromFile(PluginDataHolder.PLUGIN_PROPERTIES);
         super.setPluginApplicaitonProperties(pluginProperties);
-        createDirectories();
         registerClassName = getPLuginApplicationProperty("application.groupid") + "." + getPLuginApplicationProperty("application.name");
         LOGGER.debug("Plugin will try to register as:{}", registerClassName);
         super.setPluginProperties(getPropertiesFromFile(PluginDataHolder.SETTINGS_PROPERTIES));
@@ -87,24 +88,22 @@ public class InmarsatPluginImpl extends PluginDataHolder implements  InmarsatPlu
 
         capabilityList = ServiceMapper.getCapabilitiesListTypeFromMap(super.getCapabilities());
         settingList = ServiceMapper.getSettingsListTypeFromMap(super.getSettings());
-        serviceType = ServiceMapper.getServiceType(getRegisterClassName(),"Thrane&Thrane","inmarsat plugin for the Thrane&Thrane API", PluginType.SATELLITE_RECEIVER,getPluginResponseSubscriptionName(),"INMARSAT_C");
+        serviceType = ServiceMapper.getServiceType(getRegisterClassName(), "Thrane&Thrane", "inmarsat plugin for the Thrane&Thrane API", PluginType.SATELLITE_RECEIVER, getPluginResponseSubscriptionName(), "INMARSAT_C");
 
         register();
 
-        if(LOGGER.isDebugEnabled()) {
+        if (LOGGER.isDebugEnabled()) {
             LOGGER.debug("Settings updated in plugin {}", registerClassName);
             for (Map.Entry<String, String> entry : super.getSettings().entrySet()) {
                 LOGGER.debug("Setting: KEY: {} , VALUE: {}", entry.getKey(), entry.getValue());
             }
         }
 
-        loadPendingPollResponse();
         LOGGER.info("PLUGIN STARTED");
     }
 
     @PreDestroy
     private void shutdown() {
-        writePendingPollResponse();
         unregister();
     }
 
@@ -120,41 +119,22 @@ public class InmarsatPluginImpl extends PluginDataHolder implements  InmarsatPlu
             LOGGER.info(getRegisterClassName() + " is registered. Cancelling timer.");
             timer.cancel();
         } else if (numberOfTriesExecuted >= MAX_NUMBER_OF_TRIES) {
-            LOGGER.info( getRegisterClassName() + " failed to register, maximum number of retries reached.");
+            LOGGER.info(getRegisterClassName() + " failed to register, maximum number of retries reached.");
         }
     }
 
     @Schedule(minute = "*/3", hour = "*", persistent = false)
     private void connectAndRetrieve() {
-        LOGGER.info("HEARTBEAT connectAndRetrieve running. IsEnabled=" + isEnabled  + " threadId=" + Thread.currentThread().toString());
+        LOGGER.info("HEARTBEAT connectAndRetrieve running. IsEnabled=" + isEnabled + " threadId=" + Thread.currentThread().toString());
 
         try {
             if (isIsEnabled()) {
                 List<String> dnids = getDownloadDnids();
-                Future<Map<String, String>> future = download(getCachePath(), dnids);
-
-                for (String dnid : dnids) {
-                    connectFutures.put(dnid, future);
-                }
+                downloadAndPutToQueue(dnids);
             }
-        }catch(Throwable t){
-            LOGGER.error(t.toString(), t );
+        } catch (Throwable t) {
+            LOGGER.error(t.toString(), t);
         }
-    }
-
-    @Schedule(minute = "*/5", hour = "*", persistent = false)
-    private void parseAndDeliver() {
-        LOGGER.info("HEARTBEAT parseAndDeliver running. IsEnabled=" + isEnabled + " deliveredFuture="+ deliverFuture  + " threadId=" + Thread.currentThread().toString());
-
-            if (isIsEnabled() && (deliverFuture == null || deliverFuture.isDone())) {
-            try {
-                deliverFuture = parseAndDeliver(getCachePath());
-            } catch (IOException e) {
-                LOGGER.error("Couldn't deliver ");
-            }
-            } else {
-                LOGGER.debug("deliverFuture is not null and busy");
-            }
     }
 
     private void register() {
@@ -164,7 +144,7 @@ public class InmarsatPluginImpl extends PluginDataHolder implements  InmarsatPlu
             String registerServiceRequest = ExchangeModuleRequestMapper.createRegisterServiceRequest(serviceType, capabilityList, settingList);
             messageProducer.sendEventBusMessage(registerServiceRequest, ExchangeModelConstants.EXCHANGE_REGISTER_SERVICE);
         } catch (JMSException | ExchangeModelMarshallException e) {
-            LOGGER.error("Failed to send registration message to {}",ExchangeModelConstants.EXCHANGE_REGISTER_SERVICE);
+            LOGGER.error("Failed to send registration message to {}", ExchangeModelConstants.EXCHANGE_REGISTER_SERVICE);
             setWaitingForResponse(false);
         }
     }
@@ -172,19 +152,15 @@ public class InmarsatPluginImpl extends PluginDataHolder implements  InmarsatPlu
     private void unregister() {
         LOGGER.info("Unregistering from Exchange Module");
         try {
-            String unregisterServiceRequest =ExchangeModuleRequestMapper.createUnregisterServiceRequest(serviceType);
+            String unregisterServiceRequest = ExchangeModuleRequestMapper.createUnregisterServiceRequest(serviceType);
             messageProducer.sendEventBusMessage(unregisterServiceRequest, ExchangeModelConstants.EXCHANGE_REGISTER_SERVICE);
         } catch (JMSException | ExchangeModelMarshallException e) {
-            LOGGER.error("Failed to send unregistration message to {}",ExchangeModelConstants.EXCHANGE_REGISTER_SERVICE);
+            LOGGER.error("Failed to send unregistration message to {}", ExchangeModelConstants.EXCHANGE_REGISTER_SERVICE);
         }
     }
 
     public String getPluginResponseSubscriptionName() {
-        return getRegisterClassName()+ "." + getPLuginApplicationProperty("application.responseTopicName");
-    }
-
-    private String getResponseTopicMessageName() {
-        return getPLuginApplicationProperty("application.groupid")+ "."+ getPLuginApplicationProperty("application.name");
+        return getRegisterClassName() + "." + getPLuginApplicationProperty("application.responseTopicName");
     }
 
     public String getRegisterClassName() {
@@ -243,31 +219,6 @@ public class InmarsatPluginImpl extends PluginDataHolder implements  InmarsatPlu
     }
 
 
-    private String getCachePath() {
-        return cachePath;
-    }
-
-    private String getPollPath() {
-        return pollPath;
-    }
-
-    @SuppressWarnings("ResultOfMethodCallIgnored")
-    private void createDirectories() {
-        File f = new File(getPLuginApplicationProperty("application.logfile"));
-        File dirCache = new File(f.getParentFile(), "cache");
-        File dirPoll = new File(f.getParentFile(), "poll");
-        if (!dirCache.exists()) {
-            dirCache.mkdir();
-        }
-        if (!dirPoll.exists()) {
-            dirPoll.mkdir();
-        }
-        cachePath = dirCache.getAbsolutePath() + File.separator;
-        pollPath = dirPoll.getAbsolutePath() + File.separator;
-    }
-
-
-
     /**
      * @return returns DNIDs available for download
      */
@@ -309,34 +260,9 @@ public class InmarsatPluginImpl extends PluginDataHolder implements  InmarsatPlu
         return props;
     }
 
-
-
-    @Asynchronous
-    private Future<Map<String, String>> download(String path, List<String> dnids) {
-        Map<String, String> responses = new HashMap<>();
-        for (String dnid : dnids) {
-            try {
-                String response = download(path, dnid);
-                LOGGER.debug("Download returned: {}", response);
-                responses.put(dnid, response);
-            } catch (TelnetException e) {
-                LOGGER.error("Exception while downloading: {}", e.getMessage());
-            }
-        }
-
-        return new AsyncResult<>(responses);
-    }
-
-    private String download(String path, String dnid) throws TelnetException {
-        LOGGER.debug("Download invoked with DNID = {}", dnid);
-        return connect.connect(null,path, getSetting("URL"),getSetting("PORT"),getSetting("USERNAME"),getSetting("PSW"),dnid);
-    }
-
-
-
-    private String sendPoll(PollType poll, String path, String url, String port, String username, String psw, String dnids) throws TelnetException {
+    private String sendPoll(PollType poll, String url, String port, String username, String psw, String dnids) throws TelnetException {
         LOGGER.info("sendPoll invoked");
-        String s = connect.connect(poll, path, url, port, username, psw, dnids);
+        String s = connect.poll(poll, url, port, username, psw, dnids);
         LOGGER.info("sendPoll returned:{} ", s);
         if (s != null) {
             s = parseResponse(s);
@@ -356,38 +282,8 @@ public class InmarsatPluginImpl extends PluginDataHolder implements  InmarsatPlu
         return s.replaceAll("[^0-9]", ""); // returns 123
     }
 
-
-
-
-    /**
-     * @param path the directory to parse inmarsat files
-     * @return future
-     * @throws IOException @see {@link InmarsatFileHandler#createMessages()}
-     */
-    @Asynchronous
-    private Future<String> parseAndDeliver(String path) throws IOException {
-
-        InmarsatFileHandler fileHandler = new InmarsatFileHandler(Paths.get(path));
-        Map<Path, InmarsatMessage[]> messagesFromPath = fileHandler.createMessages();
-        for (Map.Entry<Path, InmarsatMessage[]> entry : messagesFromPath.entrySet()) {
-            // Send message to Que
-            for (InmarsatMessage message : entry.getValue()) {
-                try {
-                    msgToQue(message);
-                } catch (InmarsatException e) {
-                    LOGGER.error("Could not send to msg que for message: {}", message, e);
-                }
-            }
-            // Send ok so move file
-            LOGGER.info("File: {} processed and moved to handled", entry.getKey());
-            fileHandler.moveFileToDir(entry.getKey(), Paths.get(entry.getKey().getParent().toString(), "handled"));
-        }
-        return new AsyncResult<>("Done");
-    }
-
     /**
      * @param msg inmarsat message to send
-     * @throws InmarsatException if stored date could be set.
      */
     private void msgToQue(InmarsatMessage msg) throws InmarsatException {
 
@@ -426,50 +322,19 @@ public class InmarsatPluginImpl extends PluginDataHolder implements  InmarsatPlu
 
         sendMovementReportToExchange(reportType);
 
-        // If there is a pending poll response, also generate a status update for that poll
-        InmarsatPendingResponse ipr = continsPollTo(dnidId.getValue(), membId.getValue());
-
-        if (ipr != null) {
-            LOGGER.info("PendingPollResponse found in list: {}", ipr.getReferenceNumber());
-            AcknowledgeType ackType = new AcknowledgeType();
-            ackType.setMessage("");
-            ackType.setMessageId(ipr.getMsgId());
-
-            PollStatusAcknowledgeType osat = new PollStatusAcknowledgeType();
-            osat.setPollId(ipr.getMsgId());
-            osat.setStatus(ExchangeLogStatusTypeType.SUCCESSFUL);
-
-            ackType.setPollStatus(osat);
-            ackType.setType(AcknowledgeTypeType.OK);
-
-            try {
-                String s = ExchangePluginResponseMapper.mapToSetPollStatusToSuccessfulResponse(getApplicaionName(), ackType, ipr.getMsgId());
-                messageProducer.sendModuleMessage(s, ModuleQueue.EXCHANGE);
-                boolean b = removePendingPollResponse(ipr);
-                LOGGER.debug("Pending poll response removed: {}", b);
-            } catch (ExchangeModelMarshallException ex) {
-                LOGGER.debug("ExchangeModelMarshallException", ex);
-            } catch (JMSException jex) {
-                LOGGER.debug("JMSException", jex);
-            }
-        }
-
-        LOGGER.debug("Sending momvement to Exchange");
+        LOGGER.debug("Sending movement to Exchange");
     }
-
 
 
     private void sendMovementReportToExchange(SetReportMovementType reportType) {
         try {
-            String text =ExchangeModuleRequestMapper.createSetMovementReportRequest(reportType, "TWOSTAGE", null, DateUtils.nowUTC().toDate(), null, PluginType.SATELLITE_RECEIVER, "TWOSTAGE", null);
+            String text = ExchangeModuleRequestMapper.createSetMovementReportRequest(reportType, "TWOSTAGE", null, DateUtils.nowUTC().toDate(), null, PluginType.SATELLITE_RECEIVER, "TWOSTAGE", null);
             String messageId = messageProducer.sendModuleMessage(text, ModuleQueue.EXCHANGE);
             LOGGER.debug("Sent to exchange - text:{}, id:{}", text, messageId);
-            getCachedMovement().put(messageId, reportType);
         } catch (ExchangeModelMarshallException e) {
             LOGGER.error("Couldn't map movement to setreportmovementtype");
         } catch (JMSException e) {
             LOGGER.error("couldn't send movement");
-            getCachedMovement().put(UUID.randomUUID().toString(), reportType);
         }
     }
 
@@ -477,7 +342,7 @@ public class InmarsatPluginImpl extends PluginDataHolder implements  InmarsatPlu
         return AcknowledgeTypeType.NOK;
     }
 
-    public  AcknowledgeTypeType setCommand(CommandType command) {
+    public AcknowledgeTypeType setCommand(CommandType command) {
         if (LOGGER.isInfoEnabled()) {
             LOGGER.info(
                     "{}.setCommand({})", getRegisterClassName(), command.getCommand().name());
@@ -488,12 +353,11 @@ public class InmarsatPluginImpl extends PluginDataHolder implements  InmarsatPlu
             String result;
             if (PollTypeType.POLL == poll.getPollTypeType()) {
                 try {
-                    result = sendPoll(poll, getPollPath(), getSetting("URL"), getSetting("PORT"), getSetting("USERNAME"), getSetting("PSW"), getSetting("DNIDS"));
+                    result = sendPoll(poll, getSetting("URL"), getSetting("PORT"), getSetting("USERNAME"), getSetting("PSW"), getSetting("DNIDS"));
                     LOGGER.debug("POLL returns: {}", result);
                     // Register Not acknowledge response
                     InmarsatPendingResponse ipr = getInmPendingResponse(poll, result);
 
-                    addPendingPollResponse(ipr);
 
                     // Send status update to exchange
                     sentStatusToExchange(ipr);
@@ -612,83 +476,124 @@ public class InmarsatPluginImpl extends PluginDataHolder implements  InmarsatPlu
         }
     }
 
-    private void loadPendingPollResponse() {
-        pending = new ArrayList<>();
-        File f = new File(pollPath, FILE_NAME);
-        try (FileInputStream fis = new FileInputStream(f);
-             ObjectInputStream ois = new ObjectInputStream(fis)) {
 
-            //noinspection unchecked
-            pending = (ArrayList<InmarsatPendingResponse>) ois.readObject();
-            if (pending != null) {
-                if (LOGGER.isDebugEnabled()) {
-                    LOGGER.debug("Read {} pending responses", pending.size());
-                    for (InmarsatPendingResponse element : pending) {
-                        LOGGER.debug("Refnr: {}", element.getReferenceNumber());
+    private void downloadAndPutToQueue(List<String> dnids) {
+
+        for (String dnid : dnids) {
+            try {
+                String allMessagesPerDnid = download(getSetting("URL"), getSetting("PORT"), getSetting("USERNAME"), getSetting("PSW"), dnid);
+
+                InmarsatMessage[] inmarsatMessages = fileHandler.byteToInmMessage(allMessagesPerDnid.getBytes());
+
+                if((inmarsatMessages != null)&& (inmarsatMessages.length > 0)){
+                    int n =  inmarsatMessages.length;
+                    for(int i = 0 ; i < n ; i++){
+                        try {
+                            msgToQue(inmarsatMessages[i]);
+                        } catch (InmarsatException e) {
+                            LOGGER.error("Positiondate not found in " +inmarsatMessages[i].toString() , e);
+                        }
                     }
                 }
-            } else {
-                pending = new ArrayList<>();
-            }
-        } catch (IOException ex) {
-            LOGGER.debug("IOExeption:", ex);
-        } catch (ClassNotFoundException ex) {
-            LOGGER.debug("ClassNotFoundException", ex);
-        }
-    }
-
-    private void addPendingPollResponse(InmarsatPendingResponse resp) {
-
-        if (pending != null) {
-            pending.add(resp);
-            LOGGER.debug("Pending response added");
-        }
-    }
-
-    private boolean removePendingPollResponse(InmarsatPendingResponse resp) {
-        if (pending != null) {
-            LOGGER.debug("Trying to remove pending poll response");
-            return pending.remove(resp);
-        }
-        return false;
-    }
-
-    private List<InmarsatPendingResponse> getPendingPollResponses() {
-        //noinspection unchecked
-        return (ArrayList<InmarsatPendingResponse>) pending.clone();
-    }
-
-    private boolean containsPendingPollResponse(InmarsatPendingResponse resp) {
-        return pending != null && pending.contains(resp);
-    }
-
-    private InmarsatPendingResponse continsPollTo(String dnid, String memberId) {
-        for (InmarsatPendingResponse element : pending) {
-            if (element.getDnId().equalsIgnoreCase(dnid)
-                    && element.getMembId().equalsIgnoreCase(memberId)) {
-                return element;
+            } catch (TelnetException e) {
+                LOGGER.error("Exception while downloading: {}", e.getMessage());
             }
         }
-        return null;
     }
 
 
-    private void writePendingPollResponse() {
-        File f = new File(pollPath, FILE_NAME);
+    public String download(String url, String port, String user, String pwd, String dnid) throws TelnetException {
 
-        try (FileOutputStream fos = new FileOutputStream(f, false);
-             ObjectOutputStream oos = new ObjectOutputStream(fos)) {
-            oos.writeObject(pending);
-            oos.flush();
-            LOGGER.debug("Wrote {} pending responses", pending.size());
+        String response = "";
+        TelnetClient telnet = null;
+        try {
+            LOGGER.info("Trying to download from :{}", dnid);
+            telnet = new TelnetClient();
+            telnet.connect(url, Integer.parseInt(port));
+
+            BufferedInputStream input = new BufferedInputStream(telnet.getInputStream());
+            PrintStream output = new PrintStream(telnet.getOutputStream());
+            readUntil("name:", input, url, port);
+            write(user, output);
+            readUntil("word:", input, url, port);
+            sendPwd(output, pwd);
+            readUntil(">", input, url, port);
+
+            for (InmarsatPoll.OceanRegion oceanRegion : InmarsatPoll.OceanRegion.values()) {
+                String cmd = "DNID " + dnid + " " + String.valueOf(oceanRegion.getValue());
+                write(cmd, output);
+                response = response + readUntil(">", input, url, port);
+            }
+            output.print("QUIT \r\n");
+            output.flush();
+
+        } catch (SocketException ex) {
+            LOGGER.error("Error when communicating with Telnet", ex);
         } catch (IOException ex) {
-            LOGGER.debug("IOExeption", ex);
+            LOGGER.error("Error when communicating with Telnet", ex);
+        } catch (NullPointerException ex) {
+            LOGGER.error(ex.toString(), ex);
+            throw new TelnetException(ex);
+        } finally {
+            if (telnet != null && telnet.isConnected()) {
+                try {
+                    telnet.disconnect();
+                } catch (IOException e) {
+                    // intentionally left blank
+                }
+            }
+        }
+        return response;
+    }
+
+    private String readUntil(String pattern, InputStream in, String url, String port) throws TelnetException, IOException {
+
+        StringBuilder sb = new StringBuilder();
+        byte[] contents = new byte[1024];
+        int bytesRead;
+
+        do {
+            bytesRead = in.read(contents);
+            if (bytesRead > 0) {
+                String s = new String(contents, 0, bytesRead);
+                LOGGER.debug("[ Inmarsat C READ: {}", s);
+                sb.append(s);
+                String currentString = sb.toString();
+                if (currentString.trim().endsWith(pattern)) {
+                    return currentString;
+                } else {
+                    containsFault(currentString, url, port);
+                }
+            }
+        } while (bytesRead >= 0);
+
+        throw new TelnetException("Unknown response from Inmarsat-C LES Telnet @ " + url + ":" + port + ": " + sb.toString());
+    }
+
+    private void containsFault(String currentString, String url, String port) throws TelnetException {
+
+        for (String faultPattern : faultPatterns) {
+            if (currentString.trim().contains(faultPattern)) {
+                LOGGER.error(
+                        "Error while reading from Inmarsat-C LES Telnet @ {}:{}: {}", url, port, currentString);
+                throw new TelnetException(
+                        "Error while reading from Inmarsat-C LES Telnet @ " + url + ":" + port + ": " + currentString);
+            }
         }
     }
 
+    private void sendPwd(PrintStream output, String pwd) {
 
+        output.print(pwd + "\r\n");
+        output.flush();
+    }
 
+    private void write(String value, PrintStream out) {
 
+        out.println(value);
+        out.flush();
+        LOGGER.debug("write:{}", value);
+    }
 
 
 }
