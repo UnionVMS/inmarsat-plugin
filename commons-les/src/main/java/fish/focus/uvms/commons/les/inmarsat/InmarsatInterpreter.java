@@ -6,10 +6,13 @@ import fish.focus.uvms.commons.les.inmarsat.header.HeaderStruct;
 import fish.focus.uvms.commons.les.inmarsat.header.HeaderType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import javax.ejb.LocalBean;
 import java.io.ByteArrayOutputStream;
 import java.nio.ByteBuffer;
 import java.util.*;
 
+@LocalBean
 public class InmarsatInterpreter {
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(InmarsatInterpreter.class);
