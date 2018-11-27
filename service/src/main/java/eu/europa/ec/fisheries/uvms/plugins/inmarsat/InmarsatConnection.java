@@ -49,14 +49,6 @@ public class InmarsatConnection {
             telnet = new TelnetClient();
             telnet.connect(url, Integer.parseInt(port));
 
-            boolean ok = telnet.isAvailable();
-            while(!ok){
-                LOGGER.error("InmarsatConnection.connect  : isAvailable returned FALSE");
-                telnet.connect(url, Integer.parseInt(port));
-                ok = telnet.isAvailable();
-                Thread.sleep(60 * 1000);
-            }
-
             BufferedInputStream input = new BufferedInputStream(telnet.getInputStream());
             PrintStream output = new PrintStream(telnet.getOutputStream());
             readUntil("name:", input, null, url, port);
@@ -68,11 +60,11 @@ public class InmarsatConnection {
 
         } catch (SocketException ex) {
             LOGGER.error("Error when communicating with Telnet", ex);
-//            throw new TelnetException(ex);
+            throw new TelnetException(ex);
         } catch (IOException ex) {
             LOGGER.error("Error when communicating with Telnet", ex);
-//            throw new TelnetException(ex);
-        } catch (NullPointerException | InterruptedException ex) {
+            throw new TelnetException(ex);
+        } catch (NullPointerException ex) {
             LOGGER.error(ex.toString(), ex);
             throw new TelnetException(ex);
         } finally {
