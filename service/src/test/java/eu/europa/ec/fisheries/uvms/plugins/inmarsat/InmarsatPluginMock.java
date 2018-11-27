@@ -19,6 +19,7 @@ import eu.europa.ec.fisheries.uvms.exchange.model.mapper.ExchangeModuleRequestMa
 import eu.europa.ec.fisheries.uvms.exchange.model.mapper.ExchangePluginResponseMapper;
 import eu.europa.ec.fisheries.uvms.plugins.inmarsat.message.PluginMessageProducer;
 import fish.focus.uvms.commons.les.inmarsat.InmarsatException;
+import fish.focus.uvms.commons.les.inmarsat.InmarsatInterpreter;
 import fish.focus.uvms.commons.les.inmarsat.InmarsatMessage;
 import fish.focus.uvms.commons.les.inmarsat.body.PositionReport;
 import org.apache.commons.lang3.StringUtils;
@@ -57,6 +58,13 @@ public class InmarsatPluginMock extends PluginDataHolder implements InmarsatPlug
 
     @Inject
     private InmarsatPollConnection connect ;
+
+
+    @Inject
+    private InmarsatInterpreter fileHandler;
+
+
+
 
     private CapabilityListType capabilityList;
     private SettingListType settingList;
