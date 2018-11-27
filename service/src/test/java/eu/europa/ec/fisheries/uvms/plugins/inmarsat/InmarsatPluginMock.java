@@ -7,7 +7,6 @@ import eu.europa.ec.fisheries.schema.exchange.movement.mobileterminal.v1.MobileT
 import eu.europa.ec.fisheries.schema.exchange.movement.v1.*;
 import eu.europa.ec.fisheries.schema.exchange.plugin.types.v1.PluginType;
 import eu.europa.ec.fisheries.schema.exchange.plugin.types.v1.PollType;
-import eu.europa.ec.fisheries.schema.exchange.plugin.types.v1.PollTypeType;
 import eu.europa.ec.fisheries.schema.exchange.service.v1.CapabilityListType;
 import eu.europa.ec.fisheries.schema.exchange.service.v1.ServiceType;
 import eu.europa.ec.fisheries.schema.exchange.service.v1.SettingListType;
@@ -20,7 +19,6 @@ import eu.europa.ec.fisheries.uvms.exchange.model.mapper.ExchangeModuleRequestMa
 import eu.europa.ec.fisheries.uvms.exchange.model.mapper.ExchangePluginResponseMapper;
 import eu.europa.ec.fisheries.uvms.plugins.inmarsat.message.PluginMessageProducer;
 import fish.focus.uvms.commons.les.inmarsat.InmarsatException;
-import fish.focus.uvms.commons.les.inmarsat.InmarsatFileHandler;
 import fish.focus.uvms.commons.les.inmarsat.InmarsatMessage;
 import fish.focus.uvms.commons.les.inmarsat.body.PositionReport;
 import org.apache.commons.lang3.StringUtils;
@@ -34,8 +32,6 @@ import javax.ejb.Timer;
 import javax.inject.Inject;
 import javax.jms.JMSException;
 import java.io.*;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.*;
 import java.util.concurrent.Future;
 
@@ -60,7 +56,7 @@ public class InmarsatPluginMock extends PluginDataHolder implements InmarsatPlug
     private PluginMessageProducer messageProducer;
 
     @Inject
-    private InmarsatConnection connect ;
+    private InmarsatPollConnection connect ;
 
     private CapabilityListType capabilityList;
     private SettingListType settingList;
@@ -145,23 +141,7 @@ public class InmarsatPluginMock extends PluginDataHolder implements InmarsatPlug
         LOGGER.info("connectAndRetrieve");
     }
 
-    @Schedule(second = "*/2", minute = "*", hour = "*", persistent = false)
-    private void parseAndDeliver() {
-        LOGGER.error("HEARTBEAT parseAndDeliver running. IsEnabled=" + isEnabled + " deliveredFuture="+ deliverFuture  + " threadId=" + Thread.currentThread().toString());
 
-        /*
-        if (isIsEnabled() && (deliverFuture == null || deliverFuture.isDone())) {
-            try {
-                deliverFuture = parseAndDeliver(getCachePath());
-            } catch (IOException e) {
-                LOGGER.error("Couldn't deliver ");
-            }
-        } else {
-            LOGGER.debug("deliverFuture is not null and busy");
-        }
-        */
-        LOGGER.info("parseAndDeliver");
-    }
 
     private void register() {
         LOGGER.info("Registering to Exchange Module");
@@ -318,41 +298,10 @@ public class InmarsatPluginMock extends PluginDataHolder implements InmarsatPlug
 
 
 
-    @Asynchronous
-    private Future<Map<String, String>> download(String path, List<String> dnids) {
-        Map<String, String> responses = new HashMap<>();
-        for (String dnid : dnids) {
-            try {
-                String response = download(path, dnid);
-                LOGGER.debug("Download returned: {}", response);
-                responses.put(dnid, response);
-            } catch (TelnetException e) {
-                LOGGER.error("Exception while downloading: {}", e.getMessage());
-            }
-        }
-
-        return new AsyncResult<>(responses);
-    }
-
-    private String download(String path, String dnid) throws TelnetException {
-        LOGGER.debug("Download invoked with DNID = {}", dnid);
-        return connect.connect(null,path, getSetting("URL"),getSetting("PORT"),getSetting("USERNAME"),getSetting("PSW"),dnid);
-    }
 
 
 
-    private String sendPoll(PollType poll, String path, String url, String port, String username, String psw, String dnids) throws TelnetException {
-        LOGGER.info("sendPoll invoked");
-        String s =
-                connect.connect(poll, path, url, port, username, psw, dnids);
-        LOGGER.info("sendPoll returned:{} ", s);
-        if (s != null) {
-            s = parseResponse(s);
-        } else {
-            throw new TelnetException("Connect returned null response");
-        }
-        return s;
-    }
+
 
     private String sendConfigurationPoll(PollType poll) throws TelnetException {
         throw new UnsupportedOperationException("Not supported yet.");
@@ -367,31 +316,6 @@ public class InmarsatPluginMock extends PluginDataHolder implements InmarsatPlug
 
 
 
-    /**
-     * @param path the directory to parse inmarsat files
-     * @return future
-     * @throws IOException @see {@link InmarsatFileHandler#createMessages()}
-     */
-    @Asynchronous
-    private Future<String> parseAndDeliver(String path) throws IOException {
-
-        InmarsatFileHandler fileHandler = new InmarsatFileHandler(Paths.get(path));
-        Map<Path, InmarsatMessage[]> messagesFromPath = fileHandler.createMessages();
-        for (Map.Entry<Path, InmarsatMessage[]> entry : messagesFromPath.entrySet()) {
-            // Send message to Que
-            for (InmarsatMessage message : entry.getValue()) {
-                try {
-                    msgToQue(message);
-                } catch (InmarsatException e) {
-                    LOGGER.error("Could not send to msg que for message: {}", message, e);
-                }
-            }
-            // Send ok so move file
-            LOGGER.info("File: {} processed and moved to handled", entry.getKey());
-            fileHandler.moveFileToDir(entry.getKey(), Paths.get(entry.getKey().getParent().toString(), "handled"));
-        }
-        return new AsyncResult<>("Done");
-    }
 
     /**
      * @param msg inmarsat message to send
@@ -472,12 +396,10 @@ public class InmarsatPluginMock extends PluginDataHolder implements InmarsatPlug
             String text =ExchangeModuleRequestMapper.createSetMovementReportRequest(reportType, "TWOSTAGE", null, DateUtils.nowUTC().toDate(), null, PluginType.SATELLITE_RECEIVER, "TWOSTAGE", null);
             String messageId = messageProducer.sendModuleMessage(text, ModuleQueue.EXCHANGE);
             LOGGER.debug("Sent to exchange - text:{}, id:{}", text, messageId);
-            getCachedMovement().put(messageId, reportType);
         } catch (ExchangeModelMarshallException e) {
             LOGGER.error("Couldn't map movement to setreportmovementtype");
         } catch (JMSException e) {
             LOGGER.error("couldn't send movement");
-            getCachedMovement().put(UUID.randomUUID().toString(), reportType);
         }
     }
 
@@ -486,33 +408,7 @@ public class InmarsatPluginMock extends PluginDataHolder implements InmarsatPlug
     }
 
     public  AcknowledgeTypeType setCommand(CommandType command) {
-        if (LOGGER.isInfoEnabled()) {
-            LOGGER.info(
-                    "{}.setCommand({})", getRegisterClassName(), command.getCommand().name());
-            LOGGER.debug("timestamp: {}", command.getTimestamp());
-        }
-        PollType poll = command.getPoll();
-        if (poll != null && CommandTypeType.POLL.equals(command.getCommand())) {
-            String result;
-            if (PollTypeType.POLL == poll.getPollTypeType()) {
-                try {
-                    result = sendPoll(poll, getPollPath(), getSetting("URL"), getSetting("PORT"), getSetting("USERNAME"), getSetting("PSW"), getSetting("DNIDS"));
-                    LOGGER.debug("POLL returns: {}", result);
-                    // Register Not acknowledge response
-                    InmarsatPendingResponse ipr = getInmPendingResponse(poll, result);
 
-                    addPendingPollResponse(ipr);
-
-                    // Send status update to exchange
-                    sentStatusToExchange(ipr);
-                } catch (TelnetException e) {
-                    LOGGER.error("Error while sending poll: {}", e.getMessage());
-                    return AcknowledgeTypeType.NOK;
-                }
-            } else if (PollTypeType.CONFIG == poll.getPollTypeType()) {
-                // TODO - Should this be removed?
-            }
-        }
         return AcknowledgeTypeType.NOK;
     }
 
