@@ -44,6 +44,9 @@ import java.util.concurrent.Future;
 @Singleton
 public class InmarsatPluginImpl extends PluginDataHolder implements InmarsatPlugin {
 
+    
+
+    /**/
 
     private static final String[] faultPatterns = {
             "????????", "[Connection to 41424344 aborted: error status 0]", "Illegal address parameter."
