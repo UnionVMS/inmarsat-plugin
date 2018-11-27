@@ -504,9 +504,9 @@ public class InmarsatPluginImpl extends PluginDataHolder implements InmarsatPlug
 
     public String download(String url, String port, String user, String pwd, String dnid) throws TelnetException {
 
+        String response = "";
         TelnetClient telnet = null;
         try {
-            String response = "";
             LOGGER.info("Trying to download from :{}", dnid);
             telnet = new TelnetClient();
             telnet.connect(url, Integer.parseInt(port));
@@ -526,17 +526,11 @@ public class InmarsatPluginImpl extends PluginDataHolder implements InmarsatPlug
             }
             output.print("QUIT \r\n");
             output.flush();
-            return response;
 
-        } catch (TelnetException ex) {
-            LOGGER.error("Error when communicating with Telnet", ex);
-            throw new TelnetException(ex);
         } catch (SocketException ex) {
             LOGGER.error("Error when communicating with Telnet", ex);
-            throw new TelnetException(ex);
         } catch (IOException ex) {
             LOGGER.error("Error when communicating with Telnet", ex);
-            throw new TelnetException(ex);
         } catch (NullPointerException ex) {
             LOGGER.error(ex.toString(), ex);
             throw new TelnetException(ex);
@@ -549,6 +543,7 @@ public class InmarsatPluginImpl extends PluginDataHolder implements InmarsatPlug
                 }
             }
         }
+        return response;
     }
 
     private String readUntil(String pattern, InputStream in, String url, String port) throws TelnetException, IOException {
