@@ -37,10 +37,7 @@ import javax.ejb.Startup;
 import javax.ejb.Timer;
 import javax.inject.Inject;
 import javax.jms.JMSException;
-import java.io.BufferedInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.PrintStream;
+import java.io.*;
 import java.net.SocketException;
 import java.util.*;
 
@@ -472,9 +469,9 @@ public class InmarsatPluginImpl extends PluginDataHolder implements InmarsatPlug
 
         for (String dnid : dnids) {
             try {
-                List<String> messages = download(getSetting("URL"), getSetting("PORT"), getSetting("USERNAME"), getSetting("PSW"), dnid);
-                for (String message : messages) {
-                    InmarsatMessage[] inmarsatMessages = fileHandler.byteToInmMessage(message.getBytes());
+                List<byte[]> messages = download(getSetting("URL"), getSetting("PORT"), getSetting("USERNAME"), getSetting("PSW"), dnid);
+                for (byte[] message : messages) {
+                    InmarsatMessage[] inmarsatMessages = fileHandler.byteToInmMessage(message);
                     if ((inmarsatMessages != null) && (inmarsatMessages.length > 0)) {
                         int n = inmarsatMessages.length;
                         for (int i = 0; i < n; i++) {
@@ -493,9 +490,9 @@ public class InmarsatPluginImpl extends PluginDataHolder implements InmarsatPlug
     }
 
 
-    public List<String> download(String url, String port, String user, String pwd, String dnid) throws TelnetException {
+    public List<byte[]> download(String url, String port, String user, String pwd, String dnid) throws TelnetException {
 
-        List<String> response = new ArrayList<>();
+        List<byte[]> response = new ArrayList<>();
         TelnetClient telnet = null;
         try {
             LOGGER.info("Trying to download from :{}", dnid);
@@ -513,8 +510,8 @@ public class InmarsatPluginImpl extends PluginDataHolder implements InmarsatPlug
             for (InmarsatPoll.OceanRegion oceanRegion : InmarsatPoll.OceanRegion.values()) {
                 String cmd = "DNID " + dnid + " " + String.valueOf(oceanRegion.getValue());
                 write(cmd, output);
-                String msg = readUntil(">", input, url, port);
-                response.add(msg);
+                byte[] bos = readUntil(">", input, url, port);
+                response.add(bos);
             }
             output.print("QUIT \r\n");
             output.flush();
@@ -538,21 +535,26 @@ public class InmarsatPluginImpl extends PluginDataHolder implements InmarsatPlug
         return response;
     }
 
-    private String readUntil(String pattern, InputStream in, String url, String port) throws TelnetException, IOException {
+    private byte[] readUntil(String pattern, InputStream in, String url, String port) throws TelnetException, IOException {
 
         StringBuilder sb = new StringBuilder();
         byte[] contents = new byte[1024];
         int bytesRead;
+        ByteArrayOutputStream bos = new ByteArrayOutputStream();
 
+        int offset = 0;
         do {
             bytesRead = in.read(contents);
             if (bytesRead > 0) {
+                bos.write(contents, offset, bytesRead);
+                offset += bytesRead;
+
                 String s = new String(contents, 0, bytesRead);
                 LOGGER.debug("[ Inmarsat C READ: {}", s);
                 sb.append(s);
                 String currentString = sb.toString();
                 if (currentString.trim().endsWith(pattern)) {
-                    return currentString;
+                    return bos.toByteArray();
                 } else {
                     containsFault(currentString, url, port);
                 }
