@@ -38,7 +38,7 @@ public class InmarsatInterpreter {
 				try {
 					message = new InmarsatMessage(messageBytes);
 				} catch (InmarsatException e) {
-					LOGGER.error("Error in file Inmarsat Message: {}", new String(fileBytes));
+					LOGGER.error("Error in Inmarsat Message: {} , Error: {}", new String(fileBytes), e);
 					continue;
 				}
 
