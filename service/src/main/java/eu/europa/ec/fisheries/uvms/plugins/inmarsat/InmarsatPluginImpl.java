@@ -38,7 +38,6 @@ import javax.jms.JMSException;
 import java.io.*;
 import java.net.SocketException;
 import java.util.*;
-import java.util.concurrent.Future;
 
 @Startup
 @Singleton
@@ -75,7 +74,6 @@ public class InmarsatPluginImpl extends PluginDataHolder implements InmarsatPlug
     private SettingListType settingList;
     private ServiceType serviceType;
 
-    private final Map<String, Future> connectFutures = new HashMap<>();
 
     @PostConstruct
     private void startup() {
@@ -132,7 +130,7 @@ public class InmarsatPluginImpl extends PluginDataHolder implements InmarsatPlug
 
         try {
             if (isIsEnabled()) {
-                List<String> dnids = getDownloadDnids();
+                List<String> dnids = getDnids();
                 downloadAndPutToQueue(dnids);
             }
         } catch (Throwable t) {
@@ -221,21 +219,6 @@ public class InmarsatPluginImpl extends PluginDataHolder implements InmarsatPlug
         }
     }
 
-
-    /**
-     * @return returns DNIDs available for download
-     */
-    private List<String> getDownloadDnids() {
-        List<String> downloadDnids = new ArrayList<>();
-        List<String> dnidList = getDnids();
-        for (String dnid : dnidList) {
-            Future existingFuture = connectFutures.get(dnid);
-            if (!downloadDnids.contains(dnid) && (existingFuture == null || existingFuture.isDone())) {
-                downloadDnids.add(dnid);
-            }
-        }
-        return downloadDnids;
-    }
 
     /**
      * @return list of DNIDs configured
