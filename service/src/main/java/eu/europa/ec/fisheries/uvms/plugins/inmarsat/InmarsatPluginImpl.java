@@ -31,11 +31,16 @@ import org.slf4j.LoggerFactory;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
-import javax.ejb.*;
+import javax.ejb.Schedule;
+import javax.ejb.Singleton;
+import javax.ejb.Startup;
 import javax.ejb.Timer;
 import javax.inject.Inject;
 import javax.jms.JMSException;
-import java.io.*;
+import java.io.BufferedInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.PrintStream;
 import java.net.SocketException;
 import java.util.*;
 
@@ -43,7 +48,7 @@ import java.util.*;
 @Singleton
 public class InmarsatPluginImpl extends PluginDataHolder implements InmarsatPlugin {
 
-    
+
 
     /**/
 
@@ -467,17 +472,17 @@ public class InmarsatPluginImpl extends PluginDataHolder implements InmarsatPlug
 
         for (String dnid : dnids) {
             try {
-                String allMessagesPerDnid = download(getSetting("URL"), getSetting("PORT"), getSetting("USERNAME"), getSetting("PSW"), dnid);
-
-                InmarsatMessage[] inmarsatMessages = fileHandler.byteToInmMessage(allMessagesPerDnid.getBytes());
-
-                if((inmarsatMessages != null)&& (inmarsatMessages.length > 0)){
-                    int n =  inmarsatMessages.length;
-                    for(int i = 0 ; i < n ; i++){
-                        try {
-                            msgToQue(inmarsatMessages[i]);
-                        } catch (InmarsatException e) {
-                            LOGGER.error("Positiondate not found in " +inmarsatMessages[i].toString() , e);
+                List<String> messages = download(getSetting("URL"), getSetting("PORT"), getSetting("USERNAME"), getSetting("PSW"), dnid);
+                for (String message : messages) {
+                    InmarsatMessage[] inmarsatMessages = fileHandler.byteToInmMessage(message.getBytes());
+                    if ((inmarsatMessages != null) && (inmarsatMessages.length > 0)) {
+                        int n = inmarsatMessages.length;
+                        for (int i = 0; i < n; i++) {
+                            try {
+                                msgToQue(inmarsatMessages[i]);
+                            } catch (InmarsatException e) {
+                                LOGGER.error("Positiondate not found in " + inmarsatMessages[i].toString(), e);
+                            }
                         }
                     }
                 }
@@ -488,9 +493,9 @@ public class InmarsatPluginImpl extends PluginDataHolder implements InmarsatPlug
     }
 
 
-    public String download(String url, String port, String user, String pwd, String dnid) throws TelnetException {
+    public List<String> download(String url, String port, String user, String pwd, String dnid) throws TelnetException {
 
-        String response = "";
+        List<String> response = new ArrayList<>();
         TelnetClient telnet = null;
         try {
             LOGGER.info("Trying to download from :{}", dnid);
@@ -508,7 +513,8 @@ public class InmarsatPluginImpl extends PluginDataHolder implements InmarsatPlug
             for (InmarsatPoll.OceanRegion oceanRegion : InmarsatPoll.OceanRegion.values()) {
                 String cmd = "DNID " + dnid + " " + String.valueOf(oceanRegion.getValue());
                 write(cmd, output);
-                response = response + readUntil(">", input, url, port);
+                String msg = readUntil(">", input, url, port);
+                response.add(msg);
             }
             output.print("QUIT \r\n");
             output.flush();
