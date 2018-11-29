@@ -1,5 +1,6 @@
 package eu.europa.ec.fisheries.uvms.plugins.inmarsat;
 
+import org.apache.commons.net.telnet.TelnetClient;
 import org.jboss.arquillian.container.test.api.OperateOnDeployment;
 import org.jboss.arquillian.junit.Arquillian;
 import org.junit.Assert;
@@ -7,6 +8,10 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import javax.inject.Inject;
+import java.io.BufferedInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.PrintStream;
 import java.util.concurrent.ConcurrentMap;
 
 
@@ -15,6 +20,64 @@ public class TestInmarsatPlugin extends _BuildTestDeployment {
 
     @Inject
     private InmarsatPlugin startupBean;
+
+
+    @Test
+    @OperateOnDeployment("normal")
+    public void keepItUp()  {
+
+
+        TelnetClient telnet = new TelnetClient();
+        try {
+            telnet.connect("localhost", 9090);
+
+            BufferedInputStream input = new BufferedInputStream(telnet.getInputStream());
+            PrintStream output = new PrintStream(telnet.getOutputStream());
+            readUntil("name:", input);
+            write("aUserId", output);
+            readUntil("word:", input);
+            sendPwd(output, "aPassword");
+            readUntil(">", input);
+            String response = sendPollCommand(output, input);
+
+            System.out.println(response);
+
+
+
+
+
+
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        } catch (TelnetException e) {
+            e.printStackTrace();
+        } finally{
+            try {
+                telnet.disconnect();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+
+
+    }
+
+
+    private String sendPollCommand(PrintStream out, InputStream in) throws TelnetException, IOException {
+
+        String prompt = ">";
+        String cmd = "DNID 12345 1";
+        String ret;
+        write(cmd, out);
+        ret = readUntil("Text:", in);
+        write(".S", out);
+        ret += readUntil(prompt, in);
+        return ret;
+    }
+
+
+
 
     @Test
     @OperateOnDeployment("normal")
@@ -111,6 +174,41 @@ public class TestInmarsatPlugin extends _BuildTestDeployment {
     }
     */
 
+
+    private String readUntil(String pattern, InputStream in) throws TelnetException, IOException {
+
+        StringBuilder sb = new StringBuilder();
+        byte[] contents = new byte[1024];
+        int bytesRead;
+
+        do {
+            bytesRead = in.read(contents);
+            if (bytesRead > 0) {
+                String s = new String(contents, 0, bytesRead);
+                sb.append(s);
+                String currentString = sb.toString();
+                if (currentString.trim().endsWith(pattern)) {
+                    return currentString;
+                } else {
+                    return "ERROR";
+                }
+            }
+        } while (bytesRead >= 0);
+
+        throw new TelnetException("Unknown response from Inmarsat-C LES Telnet @ "  + sb.toString());
+    }
+
+    private void write(String value, PrintStream out) {
+
+        out.println(value);
+        out.flush();
+    }
+
+    private void sendPwd(PrintStream output, String pwd) {
+
+        output.print(pwd + "\r\n");
+        output.flush();
+    }
 
 
 

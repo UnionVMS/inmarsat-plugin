@@ -1,6 +1,7 @@
 package eu.europa.ec.fisheries.uvms.plugins.inmarsat;
 
 
+import eu.europa.ec.fisheries.uvms.plugins.inmarsat.telnetserversimulator.SocketServer;
 import org.eu.ingwar.tools.arquillian.extension.suite.annotations.ArquillianSuiteDeployment;
 import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.shrinkwrap.api.Archive;
@@ -24,6 +25,9 @@ public class _BuildTestDeployment {
         File[] files = Maven.resolver().loadPomFromFile("pom.xml").importRuntimeAndTestDependencies().resolve()
                 .withTransitivity().asFile();
         testWar.addAsLibraries(files);
+
+        testWar.addPackages(true, "eu.europa.ec.fisheries.uvms.plugins.inmarsat.telnetserversimulator");
+
 
         testWar.addClass(SocketServer.class);
 

@@ -3,10 +3,6 @@ package eu.europa.ec.fisheries.uvms.plugins.inmarsat.telnetserversimulator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
 
 public class DNIDHandler {
 
@@ -52,24 +48,8 @@ public class DNIDHandler {
 
 	public Response execute() {
 
-		File folder = new File(dnidRoot);
+			return new Response("was in execute".getBytes());
 
-		File[] dnidFiles = folder.listFiles();
-
-		// for every file in the catalog
-
-		ByteArrayOutputStream bos = new ByteArrayOutputStream();
-		try {
-			for (File file : dnidFiles) {
-				byte[] data = Files.readAllBytes(file.toPath());
-				bos.write(data);
-			}
-			bos.close();
-			return new Response(bos.toByteArray());
-
-		} catch (IOException e) {
-			return new Response();
-		}
 
 	}
 }
