@@ -542,18 +542,16 @@ public class InmarsatPluginImpl extends PluginDataHolder implements InmarsatPlug
         int bytesRead;
         ByteArrayOutputStream bos = new ByteArrayOutputStream();
 
-        int offset = 0;
         do {
             bytesRead = in.read(contents);
             if (bytesRead > 0) {
-                bos.write(contents, offset, bytesRead);
-                offset += bytesRead;
-
+                bos.write(contents, 0, bytesRead);
                 String s = new String(contents, 0, bytesRead);
                 LOGGER.debug("[ Inmarsat C READ: {}", s);
                 sb.append(s);
                 String currentString = sb.toString();
                 if (currentString.trim().endsWith(pattern)) {
+                    bos.flush();
                     return bos.toByteArray();
                 } else {
                     containsFault(currentString, url, port);
