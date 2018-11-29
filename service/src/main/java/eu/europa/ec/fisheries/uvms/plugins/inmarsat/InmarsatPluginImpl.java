@@ -31,9 +31,7 @@ import org.slf4j.LoggerFactory;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
-import javax.ejb.Schedule;
-import javax.ejb.Singleton;
-import javax.ejb.Startup;
+import javax.ejb.*;
 import javax.ejb.Timer;
 import javax.inject.Inject;
 import javax.jms.JMSException;
@@ -75,6 +73,11 @@ public class InmarsatPluginImpl extends PluginDataHolder implements InmarsatPlug
     private CapabilityListType capabilityList;
     private SettingListType settingList;
     private ServiceType serviceType;
+
+
+    @Inject
+    private PluginPendingResponseList responseList;
+
 
 
     @PostConstruct
@@ -310,6 +313,33 @@ public class InmarsatPluginImpl extends PluginDataHolder implements InmarsatPlug
 
         sendMovementReportToExchange(reportType);
 
+
+        // If there is a pending poll response, also generate a status update for that poll
+        InmarsatPendingResponse ipr = responseList.containsPollTo(dnidId.getValue(), membId.getValue());
+        if (ipr != null) {
+            LOGGER.info("PendingPollResponse found in list: {}", ipr.getReferenceNumber());
+            AcknowledgeType ackType = new AcknowledgeType();
+            ackType.setMessage("");
+            ackType.setMessageId(ipr.getMsgId());
+
+            PollStatusAcknowledgeType osat = new PollStatusAcknowledgeType();
+            osat.setPollId(ipr.getMsgId());
+            osat.setStatus(ExchangeLogStatusTypeType.SUCCESSFUL);
+
+            ackType.setPollStatus(osat);
+            ackType.setType(AcknowledgeTypeType.OK);
+
+            try {
+                String s = ExchangePluginResponseMapper.mapToSetPollStatusToSuccessfulResponse(getApplicaionName(), ackType, ipr.getMsgId());
+                messageProducer.sendModuleMessage(s, ModuleQueue.EXCHANGE);
+                boolean b = responseList.removePendingPollResponse(ipr);
+                LOGGER.debug("Pending poll response removed: {}", b);
+            } catch (ExchangeModelMarshallException ex) {
+                LOGGER.debug("ExchangeModelMarshallException", ex);
+            } catch (JMSException jex) {
+                LOGGER.debug("JMSException", jex);
+            }
+        }
         LOGGER.debug("Sending movement to Exchange");
     }
 
@@ -338,15 +368,13 @@ public class InmarsatPluginImpl extends PluginDataHolder implements InmarsatPlug
         }
         PollType poll = command.getPoll();
         if (poll != null && CommandTypeType.POLL.equals(command.getCommand())) {
-            String result;
             if (PollTypeType.POLL == poll.getPollTypeType()) {
                 try {
-                    result = sendPoll(poll, getSetting("URL"), getSetting("PORT"), getSetting("USERNAME"), getSetting("PSW"), getSetting("DNIDS"));
-                    LOGGER.debug("POLL returns: {}", result);
+                    String reference = sendPoll(poll, getSetting("URL"), getSetting("PORT"), getSetting("USERNAME"), getSetting("PSW"), getSetting("DNIDS"));
+                    LOGGER.debug("POLL returns: {}", reference);
                     // Register Not acknowledge response
-                    InmarsatPendingResponse ipr = getInmPendingResponse(poll, result);
-
-
+                    InmarsatPendingResponse ipr = getInmPendingResponse(poll, reference);
+                    responseList.addPendingPollResponse(ipr);
                     // Send status update to exchange
                     sentStatusToExchange(ipr);
                 } catch (TelnetException e) {
@@ -508,6 +536,7 @@ public class InmarsatPluginImpl extends PluginDataHolder implements InmarsatPlug
             readUntil(">", input, url, port);
 
             for (InmarsatPoll.OceanRegion oceanRegion : InmarsatPoll.OceanRegion.values()) {
+                LOGGER.info("region : " + oceanRegion.name());
                 String cmd = "DNID " + dnid + " " + String.valueOf(oceanRegion.getValue());
                 write(cmd, output);
                 byte[] bos = readUntil(">", input, url, port);
@@ -532,6 +561,7 @@ public class InmarsatPluginImpl extends PluginDataHolder implements InmarsatPlug
                 }
             }
         }
+        LOGGER.info("Retrieved: " + response.size() + " files with dnid: " + dnid);
         return response;
     }
 
