@@ -508,6 +508,7 @@ public class InmarsatPluginImpl extends PluginDataHolder implements InmarsatPlug
             readUntil(">", input, url, port);
 
             for (InmarsatPoll.OceanRegion oceanRegion : InmarsatPoll.OceanRegion.values()) {
+                LOGGER.info("region : " + oceanRegion.name());
                 String cmd = "DNID " + dnid + " " + String.valueOf(oceanRegion.getValue());
                 write(cmd, output);
                 byte[] bos = readUntil(">", input, url, port);
@@ -532,6 +533,7 @@ public class InmarsatPluginImpl extends PluginDataHolder implements InmarsatPlug
                 }
             }
         }
+        LOGGER.info("Retrieved: " + response.size() + " files with dnid: " + dnid);
         return response;
     }
 
