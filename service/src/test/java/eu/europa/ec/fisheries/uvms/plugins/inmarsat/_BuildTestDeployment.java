@@ -22,15 +22,10 @@ public class _BuildTestDeployment {
         WebArchive testWar = ShrinkWrap.create(WebArchive.class, "telnet.war");
         testWar.addAsWebInfResource(EmptyAsset.INSTANCE, "beans.xml");
 
-        File[] files = Maven.resolver().loadPomFromFile("pom.xml").importRuntimeAndTestDependencies().resolve()
-                .withTransitivity().asFile();
+        File[] files = Maven.resolver().loadPomFromFile("pom.xml").importRuntimeAndTestDependencies().resolve().withTransitivity().asFile();
         testWar.addAsLibraries(files);
-
         testWar.addPackages(true, "eu.europa.ec.fisheries.uvms.plugins.inmarsat.telnetserversimulator");
-
-
         testWar.addClass(SocketServer.class);
-
         return testWar;
     }
 
