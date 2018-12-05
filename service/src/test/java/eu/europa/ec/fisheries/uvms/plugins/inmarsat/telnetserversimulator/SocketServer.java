@@ -38,6 +38,22 @@ public class SocketServer {
                 }
 
             });
+            server.registerCommand(new Command("TEST") {
+                @Override
+                public Response handle(String arguments) throws UnsupportedEncodingException {
+                    if (arguments.length() > 0) {
+                        TestHandler  handler = new TestHandler(arguments);
+                        if (handler.verify()) {
+                            return handler.execute();
+                        } else {
+                            return new Response("TEST request not OK".getBytes("UTF-8"));
+                        }
+                    } else {
+                        return new Response("No arguments passed in TEST command".getBytes("UTF-8"));
+                    }
+                }
+
+            });
 
             server.registerCommand(new Command("DECODE") {
                 @Override
