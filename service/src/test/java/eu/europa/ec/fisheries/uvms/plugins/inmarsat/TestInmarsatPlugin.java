@@ -64,6 +64,7 @@ public class TestInmarsatPlugin extends _BuildTestDeployment {
 
     @Test
     @OperateOnDeployment("normal")
+    @Ignore
     public void testAHandler() throws TelnetException, IOException {
 
         TelnetClient client = new TelnetClient();
@@ -90,6 +91,7 @@ public class TestInmarsatPlugin extends _BuildTestDeployment {
 
     @Test
     @OperateOnDeployment("normal")
+    @Ignore
     public void testAHandlerWillFail() throws TelnetException, IOException {
 
         TelnetClient client = new TelnetClient();
