@@ -1,20 +1,116 @@
 package eu.europa.ec.fisheries.uvms.plugins.inmarsat;
 
+import org.apache.commons.net.telnet.TelnetClient;
 import org.jboss.arquillian.container.test.api.OperateOnDeployment;
 import org.jboss.arquillian.junit.Arquillian;
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.inject.Inject;
+import java.io.*;
 import java.util.concurrent.ConcurrentMap;
 
 
 @RunWith(Arquillian.class)
 public class TestInmarsatPlugin extends _BuildTestDeployment {
 
+    Logger LOG = LoggerFactory.getLogger("LOGGER");
+    private static final String crlf = "\r\n";
+
+
     @Inject
     private InmarsatPlugin startupBean;
+
+
+    String host = "localhost";
+    int port = 9090;
+    String username = "Allan";
+    String password = "KVACK";
+
+
+    void waitFor(InputStream is, String mask)  {
+
+        try {
+            byte[] buffer = new byte[2048];
+            int bytesRead = 0;
+            ByteArrayOutputStream bos = new ByteArrayOutputStream();
+            while ((bytesRead = is.read(buffer)) > 0) {
+                bos.write(buffer, 0, bytesRead);
+                String str = new String(bos.toByteArray());
+                if(str.endsWith(mask)){
+                    return;
+                }
+            }
+        }catch(IOException e){
+            // NOP
+        }
+    }
+
+    void println( PrintStream out  , String s) {
+        out.print(s);
+        out.print(crlf);
+        out.flush();
+    }
+
+    public byte[] response(InputStream is) {
+
+        try {
+            byte[] buffer = new byte[2048];
+            int bytesRead = 0;
+            ByteArrayOutputStream bos = new ByteArrayOutputStream();
+            while ((bytesRead = is.read(buffer)) >= 0) {
+                bos.write(buffer, 0, bytesRead);
+            }
+            bos.flush();
+            return bos.toByteArray();
+        }catch(IOException e){
+            System.out.println(e.toString());
+            return new byte[0];
+        }
+    }
+
+
+
+
+    @Test
+    @OperateOnDeployment("normal")
+    @Ignore
+    public void testDNID() throws TelnetException, IOException {
+
+        TelnetClient client = new TelnetClient();
+        client.connect("localhost",  9090);
+        InputStream is = client.getInputStream();
+        OutputStream os = client.getOutputStream();
+        PrintStream out = new  PrintStream(os);
+
+        waitFor( is, "name:");
+        println(out, "nisse");
+        waitFor( is, "word:");
+        println(out, "tuta");
+        waitFor( is, ">");
+        println(out, "DNID 10745 1");
+        waitFor( is, ">");
+
+        String resp = new String(response(is));
+
+
+        System.out.println(resp);
+
+
+
+
+
+
+
+
+
+
+    }
+
 
     @Test
     @OperateOnDeployment("normal")
@@ -110,7 +206,6 @@ public class TestInmarsatPlugin extends _BuildTestDeployment {
 
     }
     */
-
 
 
 

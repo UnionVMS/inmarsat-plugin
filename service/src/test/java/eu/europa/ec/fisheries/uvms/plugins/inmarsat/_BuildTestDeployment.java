@@ -1,6 +1,7 @@
 package eu.europa.ec.fisheries.uvms.plugins.inmarsat;
 
 
+import eu.europa.ec.fisheries.uvms.plugins.inmarsat.telnetserversimulator.SocketServer;
 import org.eu.ingwar.tools.arquillian.extension.suite.annotations.ArquillianSuiteDeployment;
 import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.shrinkwrap.api.Archive;
@@ -15,8 +16,21 @@ import java.io.File;
 public class _BuildTestDeployment {
 
 
+    @Deployment(name = "telnet", order = 1)
+    public static Archive<?> telnet() {
 
-    @Deployment(name = "exchangesim", order = 1)
+        WebArchive testWar = ShrinkWrap.create(WebArchive.class, "telnet.war");
+        testWar.addAsWebInfResource(EmptyAsset.INSTANCE, "beans.xml");
+
+        File[] files = Maven.resolver().loadPomFromFile("pom.xml").importRuntimeAndTestDependencies().resolve().withTransitivity().asFile();
+        testWar.addAsLibraries(files);
+        testWar.addPackages(true, "eu.europa.ec.fisheries.uvms.plugins.inmarsat.telnetserversimulator");
+        testWar.addPackages(true, "eu.europa.ec.fisheries.uvms.plugins.inmarsat.telnetclient");
+        testWar.addClass(SocketServer.class);
+        return testWar;
+    }
+
+    @Deployment(name = "exchangesim", order = 2)
     public static Archive<?> createExchangeRegisterSimulation() {
 
         WebArchive testWar = ShrinkWrap.create(WebArchive.class, "exchange.war");
@@ -33,10 +47,7 @@ public class _BuildTestDeployment {
     }
 
 
-
-
-
-    @Deployment(name = "normal", order = 2)
+    @Deployment(name = "normal", order = 3)
     public static Archive<?> createDeployment() {
 
         WebArchive testWar = ShrinkWrap.create(WebArchive.class, "test.war");
@@ -45,7 +56,6 @@ public class _BuildTestDeployment {
         File[] files = Maven.resolver().loadPomFromFile("pom.xml").importRuntimeAndTestDependencies().resolve()
                 .withTransitivity().asFile();
         testWar.addAsLibraries(files);
-
 
 
         testWar.addPackages(true, "eu.europa.ec.fisheries.uvms.plugins.inmarsat");
@@ -62,5 +72,4 @@ public class _BuildTestDeployment {
 
         return testWar;
     }
-
 }
