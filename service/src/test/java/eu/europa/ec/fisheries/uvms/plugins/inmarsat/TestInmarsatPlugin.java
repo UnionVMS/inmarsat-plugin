@@ -32,7 +32,14 @@ public class TestInmarsatPlugin extends _BuildTestDeployment {
     String password = "KVACK";
 
 
-    void waitFor(InputStream is, String mask)  {
+
+    void println( PrintStream out  , String s) {
+        out.print(s);
+        out.print(crlf);
+        out.flush();
+    }
+
+    public byte[] waitFor(InputStream is, String mask ) {
 
         try {
             byte[] buffer = new byte[2048];
@@ -42,35 +49,14 @@ public class TestInmarsatPlugin extends _BuildTestDeployment {
                 bos.write(buffer, 0, bytesRead);
                 String str = new String(bos.toByteArray());
                 if(str.endsWith(mask)){
-                    return;
+                    bos.flush();
+                    return bos.toByteArray();
                 }
             }
         }catch(IOException e){
             // NOP
         }
-    }
-
-    void println( PrintStream out  , String s) {
-        out.print(s);
-        out.print(crlf);
-        out.flush();
-    }
-
-    public byte[] response(InputStream is) {
-
-        try {
-            byte[] buffer = new byte[2048];
-            int bytesRead = 0;
-            ByteArrayOutputStream bos = new ByteArrayOutputStream();
-            while ((bytesRead = is.read(buffer)) >= 0) {
-                bos.write(buffer, 0, bytesRead);
-            }
-            bos.flush();
-            return bos.toByteArray();
-        }catch(IOException e){
-            System.out.println(e.toString());
-            return new byte[0];
-        }
+        return new byte[0];
     }
 
 
@@ -78,8 +64,7 @@ public class TestInmarsatPlugin extends _BuildTestDeployment {
 
     @Test
     @OperateOnDeployment("normal")
-    @Ignore
-    public void testDNID() throws TelnetException, IOException {
+    public void testAHandler() throws TelnetException, IOException {
 
         TelnetClient client = new TelnetClient();
         client.connect("localhost",  9090);
@@ -87,28 +72,19 @@ public class TestInmarsatPlugin extends _BuildTestDeployment {
         OutputStream os = client.getOutputStream();
         PrintStream out = new  PrintStream(os);
 
+        // login is part of the protocol
         waitFor( is, "name:");
         println(out, "nisse");
         waitFor( is, "word:");
         println(out, "tuta");
         waitFor( is, ">");
-        println(out, "DNID 10745 1");
-        waitFor( is, ">");
 
-        String resp = new String(response(is));
+        // write a command
+        println(out, "TEST 10745 1");
+        // get response
+        String resp = new String(waitFor( is, ">"));
 
-
-        System.out.println(resp);
-
-
-
-
-
-
-
-
-
-
+        Assert.assertEquals("SUCCESS was in TestHandler >", resp);
     }
 
 
