@@ -85,7 +85,39 @@ public class TestInmarsatPlugin extends _BuildTestDeployment {
         String resp = new String(waitFor( is, ">"));
 
         Assert.assertEquals("SUCCESS was in TestHandler >", resp);
+        client.disconnect();
     }
+
+    @Test
+    @OperateOnDeployment("normal")
+    public void testAHandlerWillFail() throws TelnetException, IOException {
+
+        TelnetClient client = new TelnetClient();
+        client.connect("localhost",  9090);
+        InputStream is = client.getInputStream();
+        OutputStream os = client.getOutputStream();
+        PrintStream out = new  PrintStream(os);
+
+        // login is part of the protocol
+        waitFor( is, "name:");
+        println(out, "nisse");
+        waitFor( is, "word:");
+        println(out, "tuta");
+        waitFor( is, ">");
+
+        // write a command
+        println(out, "10745 1");
+        // get response
+        String resp = new String(waitFor( is, ">"));
+
+        Assert.assertTrue(resp.startsWith("Unknown command"));
+        client.disconnect();
+    }
+
+
+
+
+
 
 
     @Test

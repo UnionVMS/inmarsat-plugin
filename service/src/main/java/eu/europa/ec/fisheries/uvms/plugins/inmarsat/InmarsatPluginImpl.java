@@ -519,6 +519,10 @@ public class InmarsatPluginImpl extends PluginDataHolder implements InmarsatPlug
         try {
             LOGGER.info("Trying to download from :{}", dnid);
             telnet = createTelnetClient(url,  Integer.parseInt(port));
+            if(!telnet.isAvailable()){
+                // this will happen next time the timerthread fires off
+                return response;
+            }
 
             BufferedInputStream input = new BufferedInputStream(telnet.getInputStream());
             PrintStream output = new PrintStream(telnet.getOutputStream());
@@ -676,14 +680,16 @@ public class InmarsatPluginImpl extends PluginDataHolder implements InmarsatPlug
 
 
 
+    private static TelnetClient telnetClientSingleton = null;
     private TelnetClient createTelnetClient(String url, int port) throws SocketException,
             IOException {
-        TelnetClient telnetClient = new TelnetClient();
-        LOGGER.info("ConnectTimeout  default : " + telnetClient.getConnectTimeout());
-        telnetClient.setConnectTimeout(60 * 1000);
-        telnetClient.connect(url, port);
-        LOGGER.info("ConnectTimeout  actual  : " + telnetClient.getConnectTimeout());
-        return telnetClient;
+        if(telnetClientSingleton == null){
+            telnetClientSingleton = new TelnetClient();
+        }
+        if(!telnetClientSingleton.isConnected()){
+            telnetClientSingleton.connect(url, port);
+        }
+        return telnetClientSingleton;
     }
 
 
@@ -693,6 +699,9 @@ public class InmarsatPluginImpl extends PluginDataHolder implements InmarsatPlug
         TelnetClient telnet = null;
         try {
             telnet = createTelnetClient(url, Integer.parseInt(port));
+            if(!telnet.isAvailable()){
+                return "telnet not available";
+            }
 
             BufferedInputStream input = new BufferedInputStream(telnet.getInputStream());
             PrintStream output = new PrintStream(telnet.getOutputStream());
