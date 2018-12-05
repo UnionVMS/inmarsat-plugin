@@ -84,7 +84,7 @@ public class TestInmarsatPlugin extends _BuildTestDeployment {
         // get response
         String resp = new String(waitFor( is, ">"));
 
-        Assert.assertEquals("SUCCESS was in TestHandler >", resp);
+        Assert.assertTrue(resp.startsWith("SUCCESS"));
         client.disconnect();
     }
 
