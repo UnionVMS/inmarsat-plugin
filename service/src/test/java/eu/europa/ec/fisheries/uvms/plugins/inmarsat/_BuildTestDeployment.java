@@ -25,6 +25,7 @@ public class _BuildTestDeployment {
         File[] files = Maven.resolver().loadPomFromFile("pom.xml").importRuntimeAndTestDependencies().resolve().withTransitivity().asFile();
         testWar.addAsLibraries(files);
         testWar.addPackages(true, "eu.europa.ec.fisheries.uvms.plugins.inmarsat.telnetserversimulator");
+        testWar.addPackages(true, "eu.europa.ec.fisheries.uvms.plugins.inmarsat.telnetclient");
         testWar.addClass(SocketServer.class);
         return testWar;
     }

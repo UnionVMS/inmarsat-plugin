@@ -65,20 +65,14 @@ public class InmarsatPluginImpl extends PluginDataHolder implements InmarsatPlug
     private PluginMessageProducer messageProducer;
 
     @Inject
-    private InmarsatPollConnection connect;
-
-    @Inject
     private InmarsatInterpreter fileHandler;
 
     private CapabilityListType capabilityList;
     private SettingListType settingList;
     private ServiceType serviceType;
 
-
     @Inject
     private PluginPendingResponseList responseList;
-
-
 
     @PostConstruct
     private void startup() {
@@ -253,7 +247,7 @@ public class InmarsatPluginImpl extends PluginDataHolder implements InmarsatPlug
 
     private String sendPoll(PollType poll, String url, String port, String username, String psw, String dnids) throws TelnetException {
         LOGGER.info("sendPoll invoked");
-        String s = connect.poll(poll, url, port, username, psw, dnids);
+        String s = poll(poll, url, port, username, psw, dnids);
         LOGGER.info("sendPoll returned:{} ", s);
         if (s != null) {
             s = parseResponse(s);
@@ -524,22 +518,21 @@ public class InmarsatPluginImpl extends PluginDataHolder implements InmarsatPlug
         TelnetClient telnet = null;
         try {
             LOGGER.info("Trying to download from :{}", dnid);
-            telnet = new TelnetClient();
-            telnet.connect(url, Integer.parseInt(port));
+            telnet = createTelnetClient(url,  Integer.parseInt(port));
 
             BufferedInputStream input = new BufferedInputStream(telnet.getInputStream());
             PrintStream output = new PrintStream(telnet.getOutputStream());
-            readUntil("name:", input, url, port);
+            readUntil("name:", input);
             write(user, output);
-            readUntil("word:", input, url, port);
+            readUntil("word:", input);
             sendPwd(output, pwd);
-            readUntil(">", input, url, port);
+            readUntil(">", input);
 
             for (InmarsatPoll.OceanRegion oceanRegion : InmarsatPoll.OceanRegion.values()) {
                 LOGGER.info("region : " + oceanRegion.name());
                 String cmd = "DNID " + dnid + " " + String.valueOf(oceanRegion.getValue());
                 write(cmd, output);
-                byte[] bos = readUntil(">", input, url, port);
+                byte[] bos = readUntil(">", input);
                 response.add(bos);
             }
             output.print("QUIT \r\n");
@@ -565,7 +558,7 @@ public class InmarsatPluginImpl extends PluginDataHolder implements InmarsatPlug
         return response;
     }
 
-    private byte[] readUntil(String pattern, InputStream in, String url, String port) throws TelnetException, IOException {
+    private byte[] readUntil(String pattern, InputStream in) throws TelnetException, IOException {
 
         StringBuilder sb = new StringBuilder();
         byte[] contents = new byte[1024];
@@ -584,7 +577,30 @@ public class InmarsatPluginImpl extends PluginDataHolder implements InmarsatPlug
                     bos.flush();
                     return bos.toByteArray();
                 } else {
-                    containsFault(currentString, url, port);
+                    containsFault(currentString);
+                }
+            }
+        } while (bytesRead >= 0);
+
+        throw new TelnetException("Unknown response from Inmarsat-C LES Telnet @   : " + sb.toString());
+    }
+
+    private String readUntil(String pattern, InputStream in, String url, String port) throws TelnetException, IOException {
+
+        StringBuilder sb = new StringBuilder();
+        byte[] contents = new byte[1024];
+        int bytesRead;
+
+        do {
+            bytesRead = in.read(contents);
+            if (bytesRead > 0) {
+                String s = new String(contents, 0, bytesRead);
+                sb.append(s);
+                String currentString = sb.toString();
+                if (currentString.trim().endsWith(pattern)) {
+                    return currentString;
+                } else {
+                    containsFault(currentString);
                 }
             }
         } while (bytesRead >= 0);
@@ -592,14 +608,15 @@ public class InmarsatPluginImpl extends PluginDataHolder implements InmarsatPlug
         throw new TelnetException("Unknown response from Inmarsat-C LES Telnet @ " + url + ":" + port + ": " + sb.toString());
     }
 
-    private void containsFault(String currentString, String url, String port) throws TelnetException {
+
+    private void containsFault(String currentString) throws TelnetException {
 
         for (String faultPattern : faultPatterns) {
             if (currentString.trim().contains(faultPattern)) {
                 LOGGER.error(
-                        "Error while reading from Inmarsat-C LES Telnet @ {}:{}: {}", url, port, currentString);
+                        "Error while reading from Inmarsat-C LES Telnet @  {}", currentString);
                 throw new TelnetException(
-                        "Error while reading from Inmarsat-C LES Telnet @ " + url + ":" + port + ": " + currentString);
+                        "Error while reading from Inmarsat-C LES Telnet @ "  + ": " + currentString);
             }
         }
     }
@@ -616,6 +633,98 @@ public class InmarsatPluginImpl extends PluginDataHolder implements InmarsatPlug
         out.flush();
         LOGGER.debug("write:{}", value);
     }
+
+    private String buildPollCommand(PollType poll, InmarsatPoll.OceanRegion oceanRegion) {
+
+        InmarsatPoll inmPoll = new InmarsatPoll();
+        inmPoll.setPollType(poll);
+        inmPoll.setOceanRegion(oceanRegion);
+        if (poll.getPollTypeType() == PollTypeType.CONFIG) inmPoll.setAck(InmarsatPoll.AckType.TRUE);
+        return inmPoll.asCommand();
+    }
+
+
+
+    /**
+     * Sends one or more poll commands, one for each ocean region, until a reference number is
+     * received.
+     *
+     * @return result of first successful poll command, or null if poll failed on every ocean region
+     */
+    private String sendPollCommand(PollType poll, PrintStream out, InputStream in, String url, String port) throws TelnetException, IOException {
+
+        for (InmarsatPoll.OceanRegion oceanRegion : InmarsatPoll.OceanRegion.values()) {
+            String result = sendPollCommand(poll, out, in, oceanRegion, url, port);
+            if (result.contains("Reference number")) {
+                return result;
+            }
+        }
+        return null;
+    }
+
+    private String sendPollCommand(PollType poll, PrintStream out, InputStream in, InmarsatPoll.OceanRegion oceanRegion, String url, String port) throws TelnetException, IOException {
+
+        String prompt = ">";
+        String cmd = buildPollCommand(poll, oceanRegion);
+        String ret;
+        write(cmd, out);
+        ret = readUntil("Text:", in, url, port);
+        write(".S", out);
+        ret += readUntil(prompt, in, url, port);
+        return ret;
+    }
+
+
+
+    private TelnetClient createTelnetClient(String url, int port) throws SocketException,
+            IOException {
+        TelnetClient telnetClient = new TelnetClient();
+        LOGGER.info("ConnectTimeout  default : " + telnetClient.getConnectTimeout());
+        telnetClient.setConnectTimeout(60 * 1000);
+        telnetClient.connect(url, port);
+        LOGGER.info("ConnectTimeout  actual  : " + telnetClient.getConnectTimeout());
+        return telnetClient;
+    }
+
+
+    private String poll(PollType poll, String url, String port, String user, String pwd, String dnids) throws TelnetException {
+
+        String response = null;
+        TelnetClient telnet = null;
+        try {
+            telnet = createTelnetClient(url, Integer.parseInt(port));
+
+            BufferedInputStream input = new BufferedInputStream(telnet.getInputStream());
+            PrintStream output = new PrintStream(telnet.getOutputStream());
+            readUntil("name:", input,  url, port);
+            write(user, output);
+            readUntil("word:", input,  url, port);
+            sendPwd(output, pwd);
+            readUntil(">", input,  url, port);
+            response = sendPollCommand(poll, output, input,   url, port);
+
+        } catch (SocketException ex) {
+            LOGGER.error("Error when communicating with Telnet", ex);
+            throw new TelnetException(ex);
+        } catch (IOException ex) {
+            LOGGER.error("Error when communicating with Telnet", ex);
+            throw new TelnetException(ex);
+        } catch (NullPointerException ex) {
+            LOGGER.error(ex.toString(), ex);
+            throw new TelnetException(ex);
+        } finally {
+            if (telnet != null && telnet.isConnected()) {
+                try {
+                    telnet.disconnect();
+                } catch (IOException e) {
+                    // intentionally left blank
+                }
+            }
+        }
+        return response;
+    }
+
+
 
 
 }

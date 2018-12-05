@@ -6,6 +6,7 @@ import javax.ejb.Singleton;
 import javax.ejb.Startup;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.net.InetAddress;
 
 @Startup
 @Singleton
@@ -18,6 +19,8 @@ public class SocketServer {
     private void startup() {
 
         try {
+
+
             server = new Server(9090);
             server.registerCommand(new Command("DNID") {
                 @Override

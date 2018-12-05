@@ -1,13 +1,14 @@
 package eu.europa.ec.fisheries.uvms.plugins.inmarsat;
 
-import eu.europa.ec.fisheries.uvms.plugins.inmarsat.telnetserversimulator.CommandDownLoad;
-import eu.europa.ec.fisheries.uvms.plugins.inmarsat.telnetserversimulator.TelnetSession;
 import org.apache.commons.net.telnet.TelnetClient;
 import org.jboss.arquillian.container.test.api.OperateOnDeployment;
 import org.jboss.arquillian.junit.Arquillian;
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.inject.Inject;
 import java.io.*;
@@ -16,6 +17,10 @@ import java.util.concurrent.ConcurrentMap;
 
 @RunWith(Arquillian.class)
 public class TestInmarsatPlugin extends _BuildTestDeployment {
+
+    Logger LOG = LoggerFactory.getLogger("LOGGER");
+    private static final String crlf = "\r\n";
+
 
     @Inject
     private InmarsatPlugin startupBean;
@@ -27,58 +32,84 @@ public class TestInmarsatPlugin extends _BuildTestDeployment {
     String password = "KVACK";
 
 
+    void waitFor(InputStream is, String mask)  {
 
-    @Test
-    @OperateOnDeployment("normal")
-    public void testDNID() throws TelnetException {
-        try (TelnetSession c = new TelnetSession(host, port).connect()) {
-
-
-
-            c.waitFor("name:");
-            c.println(username);
-            c.waitFor("word");
-            c.println(password);
-            String response = c.response();
-            if (!response.equals(">")) {
-                System.out.println(response);
+        try {
+            byte[] buffer = new byte[2048];
+            int bytesRead = 0;
+            ByteArrayOutputStream bos = new ByteArrayOutputStream();
+            while ((bytesRead = is.read(buffer)) > 0) {
+                bos.write(buffer, 0, bytesRead);
+                String str = new String(bos.toByteArray());
+                if(str.endsWith(mask)){
+                    return;
+                }
             }
+        }catch(IOException e){
+            // NOP
+        }
+    }
 
-            CommandDownLoad commandDownload = new CommandDownLoad();
+    void println( PrintStream out  , String s) {
+        out.print(s);
+        out.print(crlf);
+        out.flush();
+    }
 
-            String queryFor = "10745";
+    public byte[] response(InputStream is) {
 
-            InputStream in = c.getInputStream();
-            OutputStream out = c.getOutputStream();
-            long s = System.currentTimeMillis();
-
-            byte[] reponse = commandDownload.sendDownloadCommand(out, in,  queryFor);
-
-            System.out.println(new String(response));
-
-            c.println("quit");
-            //c.waitFor("bye");
-        } catch (IOException e) {
-            throw new RuntimeException(e);
+        try {
+            byte[] buffer = new byte[2048];
+            int bytesRead = 0;
+            ByteArrayOutputStream bos = new ByteArrayOutputStream();
+            while ((bytesRead = is.read(buffer)) >= 0) {
+                bos.write(buffer, 0, bytesRead);
+            }
+            bos.flush();
+            return bos.toByteArray();
+        }catch(IOException e){
+            System.out.println(e.toString());
+            return new byte[0];
         }
     }
 
 
 
 
+    @Test
+    @OperateOnDeployment("normal")
+    @Ignore
+    public void testDNID() throws TelnetException, IOException {
+
+        TelnetClient client = new TelnetClient();
+        client.connect("localhost",  9090);
+        InputStream is = client.getInputStream();
+        OutputStream os = client.getOutputStream();
+        PrintStream out = new  PrintStream(os);
+
+        waitFor( is, "name:");
+        println(out, "nisse");
+        waitFor( is, "word:");
+        println(out, "tuta");
+        waitFor( is, ">");
+        println(out, "DNID 10745 1");
+        waitFor( is, ">");
+
+        String resp = new String(response(is));
+
+
+        System.out.println(resp);
 
 
 
-    private String sendPollCommand(PrintStream out, InputStream in) throws TelnetException, IOException {
 
-        String prompt = ">";
-        String cmd = "DNID 12345 1";
-        write(cmd, out);
-        String ret = readUntil(prompt, in);
-        return ret;
+
+
+
+
+
+
     }
-
-
 
 
     @Test
@@ -175,42 +206,6 @@ public class TestInmarsatPlugin extends _BuildTestDeployment {
 
     }
     */
-
-
-    private String readUntil(String pattern, InputStream in) throws TelnetException, IOException {
-
-        StringBuilder sb = new StringBuilder();
-        byte[] contents = new byte[1024];
-        int bytesRead;
-
-        do {
-            bytesRead = in.read(contents);
-            if (bytesRead > 0) {
-                String s = new String(contents, 0, bytesRead);
-                sb.append(s);
-                String currentString = sb.toString();
-                if (currentString.trim().endsWith(pattern)) {
-                    return currentString;
-                } else {
-                    return "ERROR";
-                }
-            }
-        } while (bytesRead >= 0);
-
-        throw new TelnetException("Unknown response from Inmarsat-C LES Telnet @ "  + sb.toString());
-    }
-
-    private void write(String value, PrintStream out) {
-
-        out.println(value);
-        out.flush();
-    }
-
-    private void sendPwd(PrintStream output, String pwd) {
-
-        output.print(pwd + "\r\n");
-        output.flush();
-    }
 
 
 

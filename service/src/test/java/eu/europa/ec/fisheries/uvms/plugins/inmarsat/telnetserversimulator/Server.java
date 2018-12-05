@@ -83,6 +83,17 @@ public class Server implements Runnable {
 			} finally {
 			}
 		}
+
+		if(socket != null){
+			try {
+				socket.close();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
+
+
+
 	}
 
 	public void start() {
@@ -94,4 +105,8 @@ public class Server implements Runnable {
 		loop = false;
 	}
 
+
 }
+
+
+
