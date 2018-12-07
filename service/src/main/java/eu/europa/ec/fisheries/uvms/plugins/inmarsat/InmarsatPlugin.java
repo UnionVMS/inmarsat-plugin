@@ -22,7 +22,6 @@ public interface InmarsatPlugin {
 
 
     String getPluginResponseSubscriptionName();
-    void setWaitingForResponse(boolean waitingForResponse);
     void setIsRegistered(boolean isRegistered);
     void updateSettings(List<SettingType> settings);
     String getSetting(String setting);
@@ -30,7 +29,6 @@ public interface InmarsatPlugin {
     void setIsEnabled(boolean isEnabled);
     boolean isIsEnabled();
     boolean isIsRegistered();
-    boolean isWaitingForResponse();
     String getRegisterClassName();
 
 
