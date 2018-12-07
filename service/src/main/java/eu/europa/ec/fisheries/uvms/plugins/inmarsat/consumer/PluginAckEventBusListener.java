@@ -103,7 +103,6 @@ public class PluginAckEventBusListener implements MessageListener {
                 switch (request.getMethod()) {
                     case REGISTER_SERVICE:
                         RegisterServiceResponse registerResponse = JAXBMarshaller.unmarshallTextMessage(textMessage, RegisterServiceResponse.class);
-                        startupService.setWaitingForResponse(Boolean.FALSE);
                         switch (registerResponse.getAck().getType()) {
                             case OK:
                                 LOGGER.info("Register OK");

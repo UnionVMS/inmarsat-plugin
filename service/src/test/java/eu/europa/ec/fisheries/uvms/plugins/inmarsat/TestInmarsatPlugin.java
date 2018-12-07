@@ -163,13 +163,6 @@ public class TestInmarsatPlugin extends _BuildTestDeployment {
         isRegistered = startupBean.isIsRegistered();
         Assert.assertTrue(isRegistered);
 
-        startupBean.setWaitingForResponse(false);
-        boolean waiting = startupBean.isWaitingForResponse();
-        Assert.assertFalse(waiting);
-        startupBean.setWaitingForResponse(true);
-        waiting = startupBean.isWaitingForResponse();
-        Assert.assertTrue(waiting);
-
         String registerClassName = startupBean.getRegisterClassName();
         Assert.assertNotNull(registerClassName);
 

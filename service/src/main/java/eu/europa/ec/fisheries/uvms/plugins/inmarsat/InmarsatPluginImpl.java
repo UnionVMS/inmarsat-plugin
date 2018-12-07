@@ -61,7 +61,6 @@ public class InmarsatPluginImpl extends PluginDataHolder implements InmarsatPlug
     private static final int MAX_NUMBER_OF_TRIES = 20;
     private boolean isRegistered = false;
     private boolean isEnabled = false;
-    private boolean waitingForResponse = false;
     private int numberOfTriesExecuted = 0;
     private String registerClassName;
 
@@ -143,13 +142,11 @@ public class InmarsatPluginImpl extends PluginDataHolder implements InmarsatPlug
 
     private void register() {
         LOGGER.info("Registering to Exchange Module");
-        setWaitingForResponse(true);
         try {
             String registerServiceRequest = ExchangeModuleRequestMapper.createRegisterServiceRequest(serviceType, capabilityList, settingList);
             messageProducer.sendEventBusMessage(registerServiceRequest, ExchangeModelConstants.EXCHANGE_REGISTER_SERVICE);
         } catch (JMSException | ExchangeModelMarshallException e) {
             LOGGER.error("Failed to send registration message to {}", ExchangeModelConstants.EXCHANGE_REGISTER_SERVICE);
-            setWaitingForResponse(false);
         }
     }
 
@@ -189,14 +186,6 @@ public class InmarsatPluginImpl extends PluginDataHolder implements InmarsatPlug
         String settingValue = super.getSettings().get(registerClassName + "." + setting);
         LOGGER.debug("Got setting value for {}.{};{}", registerClassName, setting, settingValue);
         return settingValue;
-    }
-
-    public boolean isWaitingForResponse() {
-        return waitingForResponse;
-    }
-
-    public void setWaitingForResponse(boolean waitingForResponse) {
-        this.waitingForResponse = waitingForResponse;
     }
 
     public boolean isIsRegistered() {
@@ -254,14 +243,13 @@ public class InmarsatPluginImpl extends PluginDataHolder implements InmarsatPlug
             if (result != null) {
                 if (result.contains("Reference number")) {
                     result = parseResponse(result);
+                    return result;
                 }
             } else {
                 throw new TelnetException("Connect returned null response");
             }
         }
-        output.print("QUIT \r\n");
-        output.flush();
-        return result;
+        return null;
     }
 
     private String sendConfigurationPoll(PollType poll) throws TelnetException {
@@ -372,8 +360,7 @@ public class InmarsatPluginImpl extends PluginDataHolder implements InmarsatPlug
             synchronized (lock) {
                 if (PollTypeType.POLL == poll.getPollTypeType()) {
                     collectedPollRequests.add(poll);
-                } else if (PollTypeType.CONFIG == poll.getPollTypeType()) {
-                    // TODO - Should this be removed?
+                    return AcknowledgeTypeType.OK;
                 }
             }
         }
@@ -426,6 +413,7 @@ public class InmarsatPluginImpl extends PluginDataHolder implements InmarsatPlug
                         try {
 
                             String reference = sendPoll(poll, input, output);
+                            if(!isNumeric(reference)) continue;
                             LOGGER.debug("POLL returns: {}", reference);
                             // Register Not acknowledge response
                             InmarsatPendingResponse ipr = getInmPendingResponse(poll, reference);
@@ -437,9 +425,24 @@ public class InmarsatPluginImpl extends PluginDataHolder implements InmarsatPlug
                         }
                     }
                 }
+                output.print("QUIT \r\n");
+                output.flush();
             } catch (TelnetException | IOException e) {
                 LOGGER.error(e.toString(), e);
             }
+        }
+    }
+
+    private boolean isNumeric(String str){
+        if(str == null) return false;
+
+        try {
+            Integer.parseInt(str);
+            return true;
+        }
+        catch(NumberFormatException e){
+            LOGGER.warn(e.toString(), e);
+            return false;
         }
     }
 
