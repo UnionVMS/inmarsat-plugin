@@ -39,6 +39,7 @@ import javax.inject.Inject;
 import javax.jms.JMSException;
 import java.io.*;
 import java.net.SocketException;
+import java.net.UnknownHostException;
 import java.util.*;
 
 @Startup
@@ -252,12 +253,14 @@ public class InmarsatPluginImpl extends PluginDataHolder implements InmarsatPlug
             result = sendPollCommand(poll, output, input, oceanRegion);
             if (result != null) {
                 if (result.contains("Reference number")) {
-                    result  = parseResponse(result);
+                    result = parseResponse(result);
                 }
             } else {
                 throw new TelnetException("Connect returned null response");
             }
         }
+        output.print("QUIT \r\n");
+        output.flush();
         return result;
     }
 
@@ -378,7 +381,7 @@ public class InmarsatPluginImpl extends PluginDataHolder implements InmarsatPlug
     }
 
 
-    public AcknowledgeTypeType executePollCommands() {
+    public void executePollCommands() {
 
         List<PollType> wrkRequests = new ArrayList<>();
 
@@ -399,9 +402,15 @@ public class InmarsatPluginImpl extends PluginDataHolder implements InmarsatPlug
 
             TelnetClient telnet = null;
             try {
+
                 telnet = createTelnetClient(url, Integer.parseInt(port));
+                if(telnet == null){
+                    LOGGER.warn("telnet not available cannot send poll command");
+                    return;
+                }
                 if (!telnet.isAvailable()) {
-                    return AcknowledgeTypeType.NOK;
+                    LOGGER.warn("telnet not available cannot send poll command");
+                    return;
                 }
 
                 // log on
@@ -423,22 +432,15 @@ public class InmarsatPluginImpl extends PluginDataHolder implements InmarsatPlug
                             responseList.addPendingPollResponse(ipr);
                             // Send status update to exchange
                             sentStatusToExchange(ipr);
-                        } catch (TelnetException e) {
-                            LOGGER.error("Error while sending poll: {}", e.getMessage());
-                            return AcknowledgeTypeType.NOK;
+                        } catch (IOException | TelnetException e) {
+                            LOGGER.warn("Error while sending poll: {}", e.getMessage());
                         }
-                    } else if (PollTypeType.CONFIG == poll.getPollTypeType()) {
-                        // TODO - Should this be removed?
                     }
                 }
-            } catch (IOException | TelnetException e) {
-                e.printStackTrace();
-            }finally{
+            } catch (TelnetException | IOException e) {
+                LOGGER.error(e.toString(), e);
             }
         }
-
-
-        return AcknowledgeTypeType.NOK;
     }
 
 
@@ -579,6 +581,10 @@ public class InmarsatPluginImpl extends PluginDataHolder implements InmarsatPlug
         try {
             LOGGER.info("Trying to download from :{}", dnid);
             telnet = createTelnetClient(url, Integer.parseInt(port));
+            if(telnet == null){
+                LOGGER.warn("telnet not available cannot send poll command");
+                return response;
+            }
             if (!telnet.isAvailable()) {
                 // this will happen next time the timerthread fires off
                 return response;
@@ -602,14 +608,8 @@ public class InmarsatPluginImpl extends PluginDataHolder implements InmarsatPlug
             output.print("QUIT \r\n");
             output.flush();
 
-        } catch (SocketException ex) {
+        } catch (NullPointerException | IOException ex) {
             LOGGER.error("Error when communicating with Telnet", ex);
-        } catch (IOException ex) {
-            LOGGER.error("Error when communicating with Telnet", ex);
-        } catch (NullPointerException ex) {
-            LOGGER.error(ex.toString(), ex);
-            throw new TelnetException(ex);
-        } finally {
         }
         LOGGER.info("Retrieved: " + response.size() + " files with dnid: " + dnid);
         return response;
@@ -720,18 +720,44 @@ public class InmarsatPluginImpl extends PluginDataHolder implements InmarsatPlug
     }
 
 
+    private TelnetClient createTelnetClient(String url, int port)  {
 
-    private TelnetClient createTelnetClient(String url, int port) throws SocketException,
-            IOException {
-        if (telnetClientSingleton == null) {
-            telnetClientSingleton = new TelnetClient();
+        boolean errorDetected = false;
+        try {
+            if (telnetClientSingleton == null) {
+                telnetClientSingleton = new TelnetClient();
+            }
+            if (!telnetClientSingleton.isConnected()) {
+                telnetClientSingleton.connect(url, port);
+            }
+            if (!telnetClientSingleton.sendAYT(10 * 1000)) {
+                errorDetected = true;
+            }
+        } catch (InterruptedException | IOException e) {
+            LOGGER.error(e.toString(), e);
+            errorDetected = true;
+        } finally {
+            if (errorDetected) {
+                if(telnetClientSingleton != null){
+
+                    if(telnetClientSingleton.isConnected()){
+                        try {
+                            telnetClientSingleton.disconnect();
+                        } catch (IOException e) {
+                            // dont care
+                        }
+                    }
+                    telnetClientSingleton = null;
+                }
+                return null;
+            } else {
+                return telnetClientSingleton;
+            }
+
         }
-        if (!telnetClientSingleton.isConnected()) {
-            telnetClientSingleton.connect(url, port);
-        }
-        return telnetClientSingleton;
+
+
     }
-
 
 
 }
