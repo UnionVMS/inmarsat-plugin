@@ -49,7 +49,6 @@ public class InmarsatPluginImpl extends PluginDataHolder implements InmarsatPlug
 
     private List<PollType> collectedPollRequests = new ArrayList<>();
     private Object lock = new Object();
-    private static TelnetClient telnetClientSingleton = null;
 
 
     private static final String[] faultPatterns = {
@@ -388,21 +387,14 @@ public class InmarsatPluginImpl extends PluginDataHolder implements InmarsatPlug
             String pwd = getSetting("PSW");
 
             TelnetClient telnet = null;
+            PrintStream output = null;
             try {
 
                 telnet = createTelnetClient(url, Integer.parseInt(port));
-                if(telnet == null){
-                    LOGGER.warn("telnet not available cannot send poll command");
-                    return;
-                }
-                if (!telnet.isAvailable()) {
-                    LOGGER.warn("telnet not available cannot send poll command");
-                    return;
-                }
 
                 // log on
                 BufferedInputStream input = new BufferedInputStream(telnet.getInputStream());
-                PrintStream output = new PrintStream(telnet.getOutputStream());
+                output = new PrintStream(telnet.getOutputStream());
                 readUntil("name:", input);
                 write(user, output);
                 readUntil("word:", input);
@@ -425,10 +417,19 @@ public class InmarsatPluginImpl extends PluginDataHolder implements InmarsatPlug
                         }
                     }
                 }
-                output.print("QUIT \r\n");
-                output.flush();
             } catch (TelnetException | IOException e) {
                 LOGGER.error(e.toString(), e);
+            }
+            finally{
+                output.print("QUIT \r\n");
+                output.flush();
+                if(telnet.isConnected()){
+                    try {
+                        telnet.disconnect();
+                    } catch (IOException e) {
+                        // OK
+                    }
+                }
             }
         }
     }
@@ -581,20 +582,13 @@ public class InmarsatPluginImpl extends PluginDataHolder implements InmarsatPlug
 
         List<byte[]> response = new ArrayList<>();
         TelnetClient telnet = null;
+        PrintStream output = null;
         try {
             LOGGER.info("Trying to download from :{}", dnid);
             telnet = createTelnetClient(url, Integer.parseInt(port));
-            if(telnet == null){
-                LOGGER.warn("telnet not available cannot send poll command");
-                return response;
-            }
-            if (!telnet.isAvailable()) {
-                // this will happen next time the timerthread fires off
-                return response;
-            }
 
             BufferedInputStream input = new BufferedInputStream(telnet.getInputStream());
-            PrintStream output = new PrintStream(telnet.getOutputStream());
+            output = new PrintStream(telnet.getOutputStream());
             readUntilDownload("name:", input);
             write(user, output);
             readUntilDownload("word:", input);
@@ -608,11 +602,20 @@ public class InmarsatPluginImpl extends PluginDataHolder implements InmarsatPlug
                 byte[] bos = readUntilDownload(">", input);
                 response.add(bos);
             }
-            output.print("QUIT \r\n");
-            output.flush();
 
         } catch (NullPointerException | IOException ex) {
             LOGGER.error("Error when communicating with Telnet", ex);
+        }
+        finally{
+            output.print("QUIT \r\n");
+            output.flush();
+            if(telnet.isConnected()){
+                try {
+                    telnet.disconnect();
+                } catch (IOException e) {
+                    // OK
+                }
+            }
         }
         LOGGER.info("Retrieved: " + response.size() + " files with dnid: " + dnid);
         return response;
@@ -723,43 +726,10 @@ public class InmarsatPluginImpl extends PluginDataHolder implements InmarsatPlug
     }
 
 
-    private TelnetClient createTelnetClient(String url, int port)  {
-
-        boolean errorDetected = false;
-        try {
-            if (telnetClientSingleton == null) {
-                telnetClientSingleton = new TelnetClient();
-            }
-            if (!telnetClientSingleton.isConnected()) {
-                telnetClientSingleton.connect(url, port);
-            }
-            if (!telnetClientSingleton.sendAYT(10 * 1000)) {
-                errorDetected = true;
-            }
-        } catch (InterruptedException | IOException e) {
-            LOGGER.error(e.toString(), e);
-            errorDetected = true;
-        } finally {
-            if (errorDetected) {
-                if(telnetClientSingleton != null){
-
-                    if(telnetClientSingleton.isConnected()){
-                        try {
-                            telnetClientSingleton.disconnect();
-                        } catch (IOException e) {
-                            // dont care
-                        }
-                    }
-                    telnetClientSingleton = null;
-                }
-                return null;
-            } else {
-                return telnetClientSingleton;
-            }
-
-        }
-
-
+    private TelnetClient createTelnetClient(String url, int port) throws IOException {
+        TelnetClient telnet =   new TelnetClient();
+        telnet.connect(url, port);
+        return telnet;
     }
 
 
