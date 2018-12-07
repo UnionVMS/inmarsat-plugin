@@ -421,8 +421,10 @@ public class InmarsatPluginImpl extends PluginDataHolder implements InmarsatPlug
                 LOGGER.error(e.toString(), e);
             }
             finally{
-                output.print("QUIT \r\n");
-                output.flush();
+                if(output != null) {
+                    output.print("QUIT \r\n");
+                    output.flush();
+                }
                 if(telnet.isConnected()){
                     try {
                         telnet.disconnect();
@@ -607,8 +609,10 @@ public class InmarsatPluginImpl extends PluginDataHolder implements InmarsatPlug
             LOGGER.error("Error when communicating with Telnet", ex);
         }
         finally{
-            output.print("QUIT \r\n");
-            output.flush();
+            if(output != null) {
+                output.print("QUIT \r\n");
+                output.flush();
+            }
             if(telnet.isConnected()){
                 try {
                     telnet.disconnect();
