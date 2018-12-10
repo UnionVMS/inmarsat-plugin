@@ -266,7 +266,7 @@ public class InmarsatPluginImpl extends PluginDataHolder implements InmarsatPlug
         LOGGER.info("sendPoll invoked");
         String result = "";
         for (InmarsatPoll.OceanRegion oceanRegion : InmarsatPoll.OceanRegion.values()) {
-            result = sendPollCommand(poll, output, input, oceanRegion);
+            result = sendPollCommand(poll,  input,output, oceanRegion);
             if (result != null) {
                 if (result.contains("Reference number")) {
                     result = parseResponse(result);
@@ -681,7 +681,7 @@ public class InmarsatPluginImpl extends PluginDataHolder implements InmarsatPlug
      * @return result of first successful poll command, or null if poll failed on every ocean region
      */
 
-    private String sendPollCommand(PollType poll, PrintStream out, InputStream in, InmarsatPoll.OceanRegion oceanRegion) throws TelnetException, IOException {
+    private String sendPollCommand(PollType poll, InputStream in , PrintStream out,  InmarsatPoll.OceanRegion oceanRegion) throws TelnetException, IOException {
         String prompt = ">";
         String cmd = buildPollCommand(poll, oceanRegion);
         String ret;
