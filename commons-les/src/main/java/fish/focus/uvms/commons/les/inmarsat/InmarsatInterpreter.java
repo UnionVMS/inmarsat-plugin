@@ -26,7 +26,7 @@ public class InmarsatInterpreter {
 
 		ArrayList<InmarsatMessage> messages = new ArrayList<>();
 		if (bytes == null || bytes.length <= PATTERN_LENGTH) {
-			LOGGER.error("File is not a valid Inmarsat Message: {}", new String(fileBytes));
+			LOGGER.error("Not a valid Inmarsat Message: {}", Arrays.toString(bytes));
 			return new InmarsatMessage[] {};
 		}
 		// Parse bytes for messages
@@ -38,14 +38,14 @@ public class InmarsatInterpreter {
 				try {
 					message = new InmarsatMessage(messageBytes);
 				} catch (InmarsatException e) {
-					LOGGER.error("Error in Inmarsat Message: {} , Error: {}", new String(fileBytes), e);
+					LOGGER.error("Error in Inmarsat Message: {} , Error: {}", Arrays.toString(bytes), e);
 					continue;
 				}
 
 				if (message.validate()) {
 					messages.add(message);
 				} else {
-					LOGGER.info("Message rejected: {}", new String(fileBytes));
+					LOGGER.info("Message rejected: {}", Arrays.toString(bytes));
 				}
 			}
 		}
