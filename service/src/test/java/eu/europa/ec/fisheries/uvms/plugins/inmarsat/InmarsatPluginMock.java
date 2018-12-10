@@ -1,5 +1,7 @@
 package eu.europa.ec.fisheries.uvms.plugins.inmarsat;
 
+
+
 import eu.europa.ec.fisheries.schema.exchange.common.v1.*;
 import eu.europa.ec.fisheries.schema.exchange.movement.mobileterminal.v1.IdList;
 import eu.europa.ec.fisheries.schema.exchange.movement.mobileterminal.v1.IdType;
@@ -30,33 +32,29 @@ import org.slf4j.LoggerFactory;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
-import javax.ejb.*;
+import javax.ejb.Schedule;
+import javax.ejb.Singleton;
+import javax.ejb.Startup;
 import javax.ejb.Timer;
 import javax.inject.Inject;
 import javax.jms.JMSException;
 import java.io.*;
 import java.util.*;
-import java.util.concurrent.Future;
 
 @Startup
 @Singleton
-public class InmarsatPluginMock extends PluginDataHolder implements InmarsatPlugin {
-
-
-    private static final Logger LOGGER = LoggerFactory.getLogger(InmarsatPluginMock.class);
-    private String URL_TEST = "localhost";
-    private String PORT_TEST = "9090";
+public class InmarsatPluginMock  extends PluginDataHolder implements InmarsatPlugin {
 
 
     private List<PollType> collectedPollRequests = new ArrayList<>();
     private Object lock = new Object();
-    private static TelnetClient telnetClientSingleton = null;
 
 
     private static final String[] faultPatterns = {
             "????????", "[Connection to 41424344 aborted: error status 0]", "Illegal address parameter."
     };
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(InmarsatPluginMock.class);
 
     private static final int MAX_NUMBER_OF_TRIES = 20;
     private boolean isRegistered = false;
@@ -83,7 +81,7 @@ public class InmarsatPluginMock extends PluginDataHolder implements InmarsatPlug
         Properties pluginProperties = getPropertiesFromFile(PluginDataHolder.PLUGIN_PROPERTIES);
         super.setPluginApplicaitonProperties(pluginProperties);
         registerClassName = getPLuginApplicationProperty("application.groupid") + "." + getPLuginApplicationProperty("application.name");
-        LOGGER.info("Plugin will try to register as:{}", registerClassName);
+        LOGGER.debug("Plugin will try to register as:{}", registerClassName);
         super.setPluginProperties(getPropertiesFromFile(PluginDataHolder.SETTINGS_PROPERTIES));
         super.setPluginCapabilities(getPropertiesFromFile(PluginDataHolder.CAPABILITIES_PROPERTIES));
         ServiceMapper.mapToMapFromProperties(super.getSettings(), super.getPluginProperties(), getRegisterClassName());
@@ -96,9 +94,9 @@ public class InmarsatPluginMock extends PluginDataHolder implements InmarsatPlug
         register();
 
         if (LOGGER.isDebugEnabled()) {
-            LOGGER.info("Settings updated in plugin {}", registerClassName);
+            LOGGER.debug("Settings updated in plugin {}", registerClassName);
             for (Map.Entry<String, String> entry : super.getSettings().entrySet()) {
-                LOGGER.info("Setting: KEY: {} , VALUE: {}", entry.getKey(), entry.getValue());
+                LOGGER.debug("Setting: KEY: {} , VALUE: {}", entry.getKey(), entry.getValue());
             }
         }
 
@@ -126,17 +124,47 @@ public class InmarsatPluginMock extends PluginDataHolder implements InmarsatPlug
         }
     }
 
-    @Schedule(minute = "*/3", hour = "*", persistent = false)
+    @Schedule(second = "*/20", minute = "*", hour = "*", persistent = false)
     private void connectAndRetrieve() {
         LOGGER.info("HEARTBEAT connectAndRetrieve running. IsEnabled=" + isEnabled + " threadId=" + Thread.currentThread().toString());
+        TelnetClient telnet = null;
+        PrintStream output = null;
         try {
             if (isIsEnabled()) {
                 List<String> dnids = getDnids();
-                downloadAndPutToQueue(dnids);
-                executePollCommands();
+                String url = "localhost";
+                String port = "9090";
+                String user = getSetting("USERNAME");
+                String pwd = getSetting("PSW");
+
+                telnet = createTelnetClient(url, Integer.parseInt(port));
+
+                // logon
+                BufferedInputStream input = new BufferedInputStream(telnet.getInputStream());
+                output = new PrintStream(telnet.getOutputStream());
+                readUntil("name:", input);
+                write(user, output);
+                readUntil("word:", input);
+                sendPwd(output, pwd);
+                readUntil(">", input);
+
+                downloadAndPutToQueue(input, output, dnids);
+                executePollCommands(input,output);
             }
         } catch (Throwable t) {
             LOGGER.error(t.toString(), t);
+        } finally {
+            if (output != null) {
+                output.print("QUIT \r\n");
+                output.flush();
+            }
+            if ((telnet != null) && (telnet.isConnected())) {
+                try {
+                    telnet.disconnect();
+                } catch (IOException e) {
+                    // OK
+                }
+            }
         }
     }
 
@@ -145,6 +173,7 @@ public class InmarsatPluginMock extends PluginDataHolder implements InmarsatPlug
         try {
             String registerServiceRequest = ExchangeModuleRequestMapper.createRegisterServiceRequest(serviceType, capabilityList, settingList);
             messageProducer.sendEventBusMessage(registerServiceRequest, ExchangeModelConstants.EXCHANGE_REGISTER_SERVICE);
+            setIsEnabled(true);
         } catch (JMSException | ExchangeModelMarshallException e) {
             LOGGER.error("Failed to send registration message to {}", ExchangeModelConstants.EXCHANGE_REGISTER_SERVICE);
         }
@@ -182,9 +211,9 @@ public class InmarsatPluginMock extends PluginDataHolder implements InmarsatPlug
     }
 
     public String getSetting(String setting) {
-        LOGGER.info("Trying to get setting {}.{}", registerClassName, setting);
+        LOGGER.debug("Trying to get setting {}.{}", registerClassName, setting);
         String settingValue = super.getSettings().get(registerClassName + "." + setting);
-        LOGGER.info("Got setting value for {}.{};{}", registerClassName, setting, settingValue);
+        LOGGER.debug("Got setting value for {}.{};{}", registerClassName, setting, settingValue);
         return settingValue;
     }
 
@@ -230,7 +259,7 @@ public class InmarsatPluginMock extends PluginDataHolder implements InmarsatPlug
                     InmarsatPluginMock.class.getClassLoader().getResourceAsStream(fileName);
             props.load(inputStream);
         } catch (IOException e) {
-            LOGGER.info("Properties file failed to load");
+            LOGGER.debug("Properties file failed to load");
         }
         return props;
     }
@@ -243,12 +272,11 @@ public class InmarsatPluginMock extends PluginDataHolder implements InmarsatPlug
             if (result != null) {
                 if (result.contains("Reference number")) {
                     result = parseResponse(result);
+                    return result;
                 }
-            } else {
-                throw new TelnetException("Connect returned null response");
             }
         }
-        return result;
+        return null;
     }
 
     private String sendConfigurationPoll(PollType poll) throws TelnetException {
@@ -321,21 +349,21 @@ public class InmarsatPluginMock extends PluginDataHolder implements InmarsatPlug
                 String s = ExchangePluginResponseMapper.mapToSetPollStatusToSuccessfulResponse(getApplicaionName(), ackType, ipr.getMsgId());
                 messageProducer.sendModuleMessage(s, ModuleQueue.EXCHANGE);
                 boolean b = responseList.removePendingPollResponse(ipr);
-                LOGGER.info("Pending poll response removed: {}", b);
+                LOGGER.debug("Pending poll response removed: {}", b);
             } catch (ExchangeModelMarshallException ex) {
-                LOGGER.info("ExchangeModelMarshallException", ex);
+                LOGGER.debug("ExchangeModelMarshallException", ex);
             } catch (JMSException jex) {
-                LOGGER.info("JMSException", jex);
+                LOGGER.debug("JMSException", jex);
             }
         }
-        LOGGER.info("Sending movement to Exchange");
+        LOGGER.debug("Sending movement to Exchange");
     }
 
     private void sendMovementReportToExchange(SetReportMovementType reportType) {
         try {
             String text = ExchangeModuleRequestMapper.createSetMovementReportRequest(reportType, "TWOSTAGE", null, DateUtils.nowUTC().toDate(), null, PluginType.SATELLITE_RECEIVER, "TWOSTAGE", null);
             String messageId = messageProducer.sendModuleMessage(text, ModuleQueue.EXCHANGE);
-            LOGGER.info("Sent to exchange - text:{}, id:{}", text, messageId);
+            LOGGER.debug("Sent to exchange - text:{}, id:{}", text, messageId);
         } catch (ExchangeModelMarshallException e) {
             LOGGER.error("Couldn't map movement to setreportmovementtype");
         } catch (JMSException e) {
@@ -352,15 +380,14 @@ public class InmarsatPluginMock extends PluginDataHolder implements InmarsatPlug
 
         if (LOGGER.isInfoEnabled()) {
             LOGGER.info("{}.setCommand({})", getRegisterClassName(), command.getCommand().name());
-            LOGGER.info("timestamp: {}", command.getTimestamp());
+            LOGGER.debug("timestamp: {}", command.getTimestamp());
         }
         PollType poll = command.getPoll();
         if (poll != null && CommandTypeType.POLL.equals(command.getCommand())) {
             synchronized (lock) {
                 if (PollTypeType.POLL == poll.getPollTypeType()) {
                     collectedPollRequests.add(poll);
-                } else if (PollTypeType.CONFIG == poll.getPollTypeType()) {
-                    // TODO - Should this be removed?
+                    return AcknowledgeTypeType.OK;
                 }
             }
         }
@@ -368,7 +395,7 @@ public class InmarsatPluginMock extends PluginDataHolder implements InmarsatPlug
     }
 
 
-    public void executePollCommands() {
+    public void executePollCommands(BufferedInputStream input, PrintStream output) {
 
         List<PollType> wrkRequests = new ArrayList<>();
 
@@ -379,74 +406,39 @@ public class InmarsatPluginMock extends PluginDataHolder implements InmarsatPlug
                 collectedPollRequests.clear();
             }
         }
-
         if (wrkRequests.size() > 0) {
 
-            // logon
-            String url = URL_TEST;
-            String port = PORT_TEST;
-            String user = getSetting("USERNAME");
-            String pwd = getSetting("PSW");
+            for (PollType poll : wrkRequests) {
+                if (PollTypeType.POLL == poll.getPollTypeType()) {
+                    try {
 
-            TelnetClient telnet = null;
-            try {
-
-                telnet = createTelnetClient(url, Integer.parseInt(port));
-                if(telnet == null){
-                    LOGGER.warn("telnet not available cannot send poll command");
-                    return;
-                }
-                if (!telnet.isAvailable()) {
-                    LOGGER.warn("telnet not available cannot send poll command");
-                    return;
-                }
-
-                // log on
-                BufferedInputStream input = new BufferedInputStream(telnet.getInputStream());
-                PrintStream output = new PrintStream(telnet.getOutputStream());
-                readUntil("name:", input);
-                write(user, output);
-                readUntil("word:", input);
-                sendPwd(output, pwd);
-
-                for (PollType poll : wrkRequests) {
-                    if (PollTypeType.POLL == poll.getPollTypeType()) {
-                        try {
-
-                            String reference = sendPoll(poll, input, output);
-                            if(!isNumeric(reference)) continue;
-
-                            LOGGER.info("POLL returns: {}", reference);
-                            // Register Not acknowledge response
-                            InmarsatPendingResponse ipr = getInmPendingResponse(poll, reference);
-                            responseList.addPendingPollResponse(ipr);
-                            // Send status update to exchange
-                            sentStatusToExchange(ipr);
-                        } catch (IOException | TelnetException e) {
-                            LOGGER.warn("Error while sending poll: {}", e.getMessage());
-                        }
+                        String reference = sendPoll(poll, input, output);
+                        if (!isNumeric(reference)) continue;
+                        LOGGER.debug("POLL returns: {}", reference);
+                        // Register Not acknowledge response
+                        InmarsatPendingResponse ipr = getInmPendingResponse(poll, reference);
+                        responseList.addPendingPollResponse(ipr);
+                        // Send status update to exchange
+                        sentStatusToExchange(ipr);
+                    } catch (IOException | TelnetException e) {
+                        LOGGER.warn("Error while sending poll: {}", e.getMessage());
                     }
                 }
-                output.print("QUIT \r\n");
-                output.flush();
-            } catch (TelnetException | IOException e) {
-                LOGGER.error(e.toString(), e);
             }
         }
     }
 
-    private boolean isNumeric(String str){
-        if(str == null) return false;
+    private boolean isNumeric(String str) {
+        if (str == null) return false;
+
         try {
             Integer.parseInt(str);
             return true;
-        }
-        catch(NumberFormatException e){
+        } catch (NumberFormatException e) {
             LOGGER.warn(e.toString(), e);
             return false;
         }
     }
-
 
 
     private InmarsatPendingResponse getInmPendingResponse(PollType poll, String result) {
@@ -487,15 +479,15 @@ public class InmarsatPluginMock extends PluginDataHolder implements InmarsatPlug
                     ExchangePluginResponseMapper.mapToSetPollStatusToSuccessfulResponse(
                             getApplicaionName(), ackType, ipr.getMsgId());
             messageProducer.sendModuleMessage(s, ModuleQueue.EXCHANGE);
-            LOGGER.info(
+            LOGGER.debug(
                     "Poll response {} sent to exchange with status: {}",
                     ipr.getMsgId(),
                     ExchangeLogStatusTypeType.PENDING);
 
         } catch (ExchangeModelMarshallException ex) {
-            LOGGER.info("ExchangeModelMarshallException", ex);
+            LOGGER.debug("ExchangeModelMarshallException", ex);
         } catch (JMSException jex) {
-            LOGGER.info("JMSException", jex);
+            LOGGER.debug("JMSException", jex);
         }
     }
 
@@ -509,7 +501,7 @@ public class InmarsatPluginMock extends PluginDataHolder implements InmarsatPlug
         LOGGER.info(getRegisterClassName() + ".setConfig()");
         try {
             for (KeyValueType values : settings.getSetting()) {
-                LOGGER.info("Setting [ " + values.getKey() + " : " + values.getValue() + " ]");
+                LOGGER.debug("Setting [ " + values.getKey() + " : " + values.getValue() + " ]");
                 getSettings().put(values.getKey(), values.getValue());
             }
             return AcknowledgeTypeType.OK;
@@ -554,11 +546,11 @@ public class InmarsatPluginMock extends PluginDataHolder implements InmarsatPlug
     }
 
 
-    private void downloadAndPutToQueue(List<String> dnids) {
+    private void downloadAndPutToQueue(BufferedInputStream input, PrintStream output, List<String> dnids) {
 
         for (String dnid : dnids) {
             try {
-                List<byte[]> messages = download(URL_TEST, PORT_TEST, getSetting("USERNAME"), getSetting("PSW"), dnid);
+                List<byte[]> messages = download(input, output, dnid);
                 for (byte[] message : messages) {
                     InmarsatMessage[] inmarsatMessages = fileHandler.byteToInmMessage(message);
                     if ((inmarsatMessages != null) && (inmarsatMessages.length > 0)) {
@@ -579,39 +571,17 @@ public class InmarsatPluginMock extends PluginDataHolder implements InmarsatPlug
     }
 
 
-    public List<byte[]> download(String url, String port, String user, String pwd, String dnid) throws TelnetException {
+    public List<byte[]> download(BufferedInputStream input, PrintStream output, String dnid) throws TelnetException {
 
         List<byte[]> response = new ArrayList<>();
-        TelnetClient telnet = null;
         try {
             LOGGER.info("Trying to download from :{}", dnid);
-            telnet = createTelnetClient(url, Integer.parseInt(port));
-            if(telnet == null){
-                LOGGER.warn("telnet not available cannot send poll command");
-                return response;
-            }
-            if (!telnet.isAvailable()) {
-                // this will happen next time the timerthread fires off
-                return response;
-            }
 
-            BufferedInputStream input = new BufferedInputStream(telnet.getInputStream());
-            PrintStream output = new PrintStream(telnet.getOutputStream());
-            readUntilDownload("name:", input);
-            write(user, output);
-            readUntilDownload("word:", input);
-            sendPwd(output, pwd);
-            readUntilDownload(">", input);
-
-            for (InmarsatPoll.OceanRegion oceanRegion : InmarsatPoll.OceanRegion.values()) {
-                LOGGER.info("region : " + oceanRegion.name());
-                String cmd = "DNID " + dnid + " " + String.valueOf(oceanRegion.getValue());
-                write(cmd, output);
-                byte[] bos = readUntilDownload(">", input);
-                response.add(bos);
-            }
-            output.print("QUIT \r\n");
-            output.flush();
+            // according to manual 9 == all regions  -> only one call
+            String cmd = "DNID " + dnid + " 9";
+            write(cmd, output);
+            byte[] bos = readUntilDownload(">", input);
+            response.add(bos);
 
         } catch (NullPointerException | IOException ex) {
             LOGGER.error("Error when communicating with Telnet", ex);
@@ -632,7 +602,7 @@ public class InmarsatPluginMock extends PluginDataHolder implements InmarsatPlug
             if (bytesRead > 0) {
                 bos.write(contents, 0, bytesRead);
                 String s = new String(contents, 0, bytesRead);
-                LOGGER.info("[ Inmarsat C READ: {}", s);
+                LOGGER.debug("[ Inmarsat C READ: {}", s);
                 sb.append(s);
                 String currentString = sb.toString();
                 if (currentString.trim().endsWith(pattern)) {
@@ -675,10 +645,8 @@ public class InmarsatPluginMock extends PluginDataHolder implements InmarsatPlug
 
         for (String faultPattern : faultPatterns) {
             if (currentString.trim().contains(faultPattern)) {
-                LOGGER.error(
-                        "Error while reading from Inmarsat-C LES Telnet @  {}", currentString);
-                throw new TelnetException(
-                        "Error while reading from Inmarsat-C LES Telnet @ " + ": " + currentString);
+                LOGGER.error("Error while reading from Inmarsat-C LES Telnet @  {}", currentString);
+                throw new TelnetException("Error while reading from Inmarsat-C LES Telnet @ " + ": " + currentString);
             }
         }
     }
@@ -693,7 +661,7 @@ public class InmarsatPluginMock extends PluginDataHolder implements InmarsatPlug
 
         out.println(value);
         out.flush();
-        LOGGER.info("write:{}", value);
+        LOGGER.debug("write:{}", value);
     }
 
     private String buildPollCommand(PollType poll, InmarsatPoll.OceanRegion oceanRegion) {
@@ -725,48 +693,11 @@ public class InmarsatPluginMock extends PluginDataHolder implements InmarsatPlug
     }
 
 
-    private TelnetClient createTelnetClient(String url, int port)  {
-
-        boolean errorDetected = false;
-        try {
-            if (telnetClientSingleton == null) {
-                telnetClientSingleton = new TelnetClient();
-            }
-            if (!telnetClientSingleton.isConnected()) {
-                telnetClientSingleton.connect(url, port);
-            }
-            if (!telnetClientSingleton.sendAYT(10 * 1000)) {
-                errorDetected = true;
-            }
-        } catch (InterruptedException | IOException e) {
-            LOGGER.error(e.toString(), e);
-            errorDetected = true;
-        } finally {
-            if (errorDetected) {
-                if(telnetClientSingleton != null){
-
-                    if(telnetClientSingleton.isConnected()){
-                        try {
-                            telnetClientSingleton.disconnect();
-                        } catch (IOException e) {
-                            // dont care
-                        }
-                    }
-                    telnetClientSingleton = null;
-                }
-                return null;
-            } else {
-                return telnetClientSingleton;
-            }
-
-        }
-
-
+    private TelnetClient createTelnetClient(String url, int port) throws IOException {
+        TelnetClient telnet = new TelnetClient();
+        telnet.connect(url, port);
+        return telnet;
     }
-
-
-
-
 
 
 }

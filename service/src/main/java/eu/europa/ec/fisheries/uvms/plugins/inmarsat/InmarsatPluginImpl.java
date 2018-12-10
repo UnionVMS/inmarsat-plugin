@@ -38,8 +38,6 @@ import javax.ejb.Timer;
 import javax.inject.Inject;
 import javax.jms.JMSException;
 import java.io.*;
-import java.net.SocketException;
-import java.net.UnknownHostException;
 import java.util.*;
 
 @Startup
@@ -128,14 +126,44 @@ public class InmarsatPluginImpl extends PluginDataHolder implements InmarsatPlug
     @Schedule(minute = "*/3", hour = "*", persistent = false)
     private void connectAndRetrieve() {
         LOGGER.info("HEARTBEAT connectAndRetrieve running. IsEnabled=" + isEnabled + " threadId=" + Thread.currentThread().toString());
+        TelnetClient telnet = null;
+        PrintStream output = null;
         try {
             if (isIsEnabled()) {
                 List<String> dnids = getDnids();
-                downloadAndPutToQueue(dnids);
-                executePollCommands();
+                String url = getSetting("URL");
+                String port = getSetting("PORT");
+                String user = getSetting("USERNAME");
+                String pwd = getSetting("PSW");
+
+                telnet = createTelnetClient(url, Integer.parseInt(port));
+
+                // logon
+                BufferedInputStream input = new BufferedInputStream(telnet.getInputStream());
+                output = new PrintStream(telnet.getOutputStream());
+                readUntil("name:", input);
+                write(user, output);
+                readUntil("word:", input);
+                sendPwd(output, pwd);
+                readUntil(">", input);
+
+                downloadAndPutToQueue(input, output, dnids);
+                executePollCommands(input,output);
             }
         } catch (Throwable t) {
             LOGGER.error(t.toString(), t);
+        } finally {
+            if (output != null) {
+                output.print("QUIT \r\n");
+                output.flush();
+            }
+            if ((telnet != null) && (telnet.isConnected())) {
+                try {
+                    telnet.disconnect();
+                } catch (IOException e) {
+                    // OK
+                }
+            }
         }
     }
 
@@ -244,8 +272,6 @@ public class InmarsatPluginImpl extends PluginDataHolder implements InmarsatPlug
                     result = parseResponse(result);
                     return result;
                 }
-            } else {
-                throw new TelnetException("Connect returned null response");
             }
         }
         return null;
@@ -367,7 +393,7 @@ public class InmarsatPluginImpl extends PluginDataHolder implements InmarsatPlug
     }
 
 
-    public void executePollCommands() {
+    public void executePollCommands(BufferedInputStream input, PrintStream output) {
 
         List<PollType> wrkRequests = new ArrayList<>();
 
@@ -380,70 +406,33 @@ public class InmarsatPluginImpl extends PluginDataHolder implements InmarsatPlug
         }
         if (wrkRequests.size() > 0) {
 
-            // logon
-            String url = getSetting("URL");
-            String port = getSetting("PORT");
-            String user = getSetting("USERNAME");
-            String pwd = getSetting("PSW");
-
-            TelnetClient telnet = null;
-            PrintStream output = null;
-            try {
-
-                telnet = createTelnetClient(url, Integer.parseInt(port));
-
-                // log on
-                BufferedInputStream input = new BufferedInputStream(telnet.getInputStream());
-                output = new PrintStream(telnet.getOutputStream());
-                readUntil("name:", input);
-                write(user, output);
-                readUntil("word:", input);
-                sendPwd(output, pwd);
-
-                for (PollType poll : wrkRequests) {
-                    if (PollTypeType.POLL == poll.getPollTypeType()) {
-                        try {
-
-                            String reference = sendPoll(poll, input, output);
-                            if(!isNumeric(reference)) continue;
-                            LOGGER.debug("POLL returns: {}", reference);
-                            // Register Not acknowledge response
-                            InmarsatPendingResponse ipr = getInmPendingResponse(poll, reference);
-                            responseList.addPendingPollResponse(ipr);
-                            // Send status update to exchange
-                            sentStatusToExchange(ipr);
-                        } catch (IOException | TelnetException e) {
-                            LOGGER.warn("Error while sending poll: {}", e.getMessage());
-                        }
-                    }
-                }
-            } catch (TelnetException | IOException e) {
-                LOGGER.error(e.toString(), e);
-            }
-            finally{
-                if(output != null) {
-                    output.print("QUIT \r\n");
-                    output.flush();
-                }
-                if(telnet.isConnected()){
+            for (PollType poll : wrkRequests) {
+                if (PollTypeType.POLL == poll.getPollTypeType()) {
                     try {
-                        telnet.disconnect();
-                    } catch (IOException e) {
-                        // OK
+
+                        String reference = sendPoll(poll, input, output);
+                        if (!isNumeric(reference)) continue;
+                        LOGGER.debug("POLL returns: {}", reference);
+                        // Register Not acknowledge response
+                        InmarsatPendingResponse ipr = getInmPendingResponse(poll, reference);
+                        responseList.addPendingPollResponse(ipr);
+                        // Send status update to exchange
+                        sentStatusToExchange(ipr);
+                    } catch (IOException | TelnetException e) {
+                        LOGGER.warn("Error while sending poll: {}", e.getMessage());
                     }
                 }
             }
         }
     }
 
-    private boolean isNumeric(String str){
-        if(str == null) return false;
+    private boolean isNumeric(String str) {
+        if (str == null) return false;
 
         try {
             Integer.parseInt(str);
             return true;
-        }
-        catch(NumberFormatException e){
+        } catch (NumberFormatException e) {
             LOGGER.warn(e.toString(), e);
             return false;
         }
@@ -555,11 +544,11 @@ public class InmarsatPluginImpl extends PluginDataHolder implements InmarsatPlug
     }
 
 
-    private void downloadAndPutToQueue(List<String> dnids) {
+    private void downloadAndPutToQueue(BufferedInputStream input, PrintStream output, List<String> dnids) {
 
         for (String dnid : dnids) {
             try {
-                List<byte[]> messages = download(getSetting("URL"), getSetting("PORT"), getSetting("USERNAME"), getSetting("PSW"), dnid);
+                List<byte[]> messages = download(input, output, dnid);
                 for (byte[] message : messages) {
                     InmarsatMessage[] inmarsatMessages = fileHandler.byteToInmMessage(message);
                     if ((inmarsatMessages != null) && (inmarsatMessages.length > 0)) {
@@ -580,46 +569,20 @@ public class InmarsatPluginImpl extends PluginDataHolder implements InmarsatPlug
     }
 
 
-    public List<byte[]> download(String url, String port, String user, String pwd, String dnid) throws TelnetException {
+    public List<byte[]> download(BufferedInputStream input, PrintStream output, String dnid) throws TelnetException {
 
         List<byte[]> response = new ArrayList<>();
-        TelnetClient telnet = null;
-        PrintStream output = null;
         try {
             LOGGER.info("Trying to download from :{}", dnid);
-            telnet = createTelnetClient(url, Integer.parseInt(port));
 
-            BufferedInputStream input = new BufferedInputStream(telnet.getInputStream());
-            output = new PrintStream(telnet.getOutputStream());
-            readUntilDownload("name:", input);
-            write(user, output);
-            readUntilDownload("word:", input);
-            sendPwd(output, pwd);
-            readUntilDownload(">", input);
-
-            for (InmarsatPoll.OceanRegion oceanRegion : InmarsatPoll.OceanRegion.values()) {
-                LOGGER.info("region : " + oceanRegion.name());
-                String cmd = "DNID " + dnid + " " + String.valueOf(oceanRegion.getValue());
-                write(cmd, output);
-                byte[] bos = readUntilDownload(">", input);
-                response.add(bos);
-            }
+            // according to manual 9 == all regions  -> only one call
+            String cmd = "DNID " + dnid + " 9";
+            write(cmd, output);
+            byte[] bos = readUntilDownload(">", input);
+            response.add(bos);
 
         } catch (NullPointerException | IOException ex) {
             LOGGER.error("Error when communicating with Telnet", ex);
-        }
-        finally{
-            if(output != null) {
-                output.print("QUIT \r\n");
-                output.flush();
-            }
-            if(telnet.isConnected()){
-                try {
-                    telnet.disconnect();
-                } catch (IOException e) {
-                    // OK
-                }
-            }
         }
         LOGGER.info("Retrieved: " + response.size() + " files with dnid: " + dnid);
         return response;
@@ -680,10 +643,8 @@ public class InmarsatPluginImpl extends PluginDataHolder implements InmarsatPlug
 
         for (String faultPattern : faultPatterns) {
             if (currentString.trim().contains(faultPattern)) {
-                LOGGER.error(
-                        "Error while reading from Inmarsat-C LES Telnet @  {}", currentString);
-                throw new TelnetException(
-                        "Error while reading from Inmarsat-C LES Telnet @ " + ": " + currentString);
+                LOGGER.error("Error while reading from Inmarsat-C LES Telnet @  {}", currentString);
+                throw new TelnetException("Error while reading from Inmarsat-C LES Telnet @ " + ": " + currentString);
             }
         }
     }
@@ -731,7 +692,7 @@ public class InmarsatPluginImpl extends PluginDataHolder implements InmarsatPlug
 
 
     private TelnetClient createTelnetClient(String url, int port) throws IOException {
-        TelnetClient telnet =   new TelnetClient();
+        TelnetClient telnet = new TelnetClient();
         telnet.connect(url, port);
         return telnet;
     }
