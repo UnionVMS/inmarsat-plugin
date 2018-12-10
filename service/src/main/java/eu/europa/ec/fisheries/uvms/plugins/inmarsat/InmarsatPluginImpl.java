@@ -613,7 +613,8 @@ public class InmarsatPluginImpl extends PluginDataHolder implements InmarsatPlug
             }
         } while (bytesRead >= 0);
 
-        throw new TelnetException("Unknown response from Inmarsat-C LES Telnet @  (readUntilDownload) : " + sb.toString());
+        bos.flush();
+        throw new TelnetException("Unknown download response from Inmarsat-C LES Telnet @  : " + Arrays.toString(bos.toByteArray()));
     }
 
     private String readUntil(String pattern, InputStream in) throws TelnetException, IOException {
