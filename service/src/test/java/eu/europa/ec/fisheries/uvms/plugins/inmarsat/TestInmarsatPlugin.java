@@ -124,6 +124,7 @@ public class TestInmarsatPlugin extends _BuildTestDeployment {
 
     @Test
     @OperateOnDeployment("normal")
+    @Ignore
     public void testRegisterAndUnregister() {
 
         boolean NO_EXCEPTION_MEANS_THAT_REGISTER_AND_UNREGISTER_ARE_REACHED_AND_MARSHALL_UNMARSHALL_WORKS = true;
