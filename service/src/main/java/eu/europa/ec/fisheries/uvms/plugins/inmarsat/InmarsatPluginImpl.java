@@ -270,6 +270,7 @@ public class InmarsatPluginImpl extends PluginDataHolder implements InmarsatPlug
             if (result != null) {
                 if (result.contains("Reference number")) {
                     result = parseResponse(result);
+                    LOGGER.info("Reference number :  " + result);
                     return result;
                 }
             }
@@ -612,7 +613,7 @@ public class InmarsatPluginImpl extends PluginDataHolder implements InmarsatPlug
             }
         } while (bytesRead >= 0);
 
-        throw new TelnetException("Unknown response from Inmarsat-C LES Telnet @   : " + sb.toString());
+        throw new TelnetException("Unknown response from Inmarsat-C LES Telnet @  (readUntilDownload) : " + sb.toString());
     }
 
     private String readUntil(String pattern, InputStream in) throws TelnetException, IOException {
@@ -635,7 +636,7 @@ public class InmarsatPluginImpl extends PluginDataHolder implements InmarsatPlug
             }
         } while (bytesRead >= 0);
 
-        throw new TelnetException("Unknown response from Inmarsat-C LES Telnet @   : " + sb.toString());
+        throw new TelnetException("Unknown response from Inmarsat-C LES Telnet @   (readUntil) : " + sb.toString());
     }
 
 

@@ -272,6 +272,7 @@ public class InmarsatPluginMock  extends PluginDataHolder implements InmarsatPlu
             if (result != null) {
                 if (result.contains("Reference number")) {
                     result = parseResponse(result);
+                    LOGGER.info("Reference number :  " + result);
                     return result;
                 }
             }
