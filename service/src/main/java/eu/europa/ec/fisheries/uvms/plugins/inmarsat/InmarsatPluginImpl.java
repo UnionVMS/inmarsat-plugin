@@ -263,18 +263,30 @@ public class InmarsatPluginImpl extends PluginDataHolder implements InmarsatPlug
     }
 
     private String sendPoll(PollType poll, BufferedInputStream input, PrintStream output) throws TelnetException, IOException {
-        LOGGER.info("sendPoll invoked");
-        String result = "";
-        for (InmarsatPoll.OceanRegion oceanRegion : InmarsatPoll.OceanRegion.values()) {
-            result = sendPollCommand(poll,  input,output, oceanRegion);
-            if (result != null) {
-                if (result.contains("Reference number")) {
-                    result = parseResponse(result);
-                    LOGGER.info("Reference number :  " + result);
-                    return result;
+
+        try {
+
+            LOGGER.info("sendPoll invoked");
+            String result = "";
+            for (InmarsatPoll.OceanRegion oceanRegion : InmarsatPoll.OceanRegion.values()) {
+                result = sendPollCommand(poll, input, output, oceanRegion);
+                if (result != null) {
+                    if (result.contains("Reference number")) {
+                        result = parseResponse(result);
+                        LOGGER.info("Reference number :  " + result);
+                        return result;
+                    }
                 }
             }
+
         }
+        catch(Throwable t){
+            LOGGER.error("************************************************************************** SENDPOLL **************************************************************************");
+            LOGGER.error(t.toString(), t);
+        }
+
+
+
         return null;
     }
 
