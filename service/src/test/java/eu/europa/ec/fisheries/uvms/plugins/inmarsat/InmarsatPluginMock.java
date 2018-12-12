@@ -1,7 +1,6 @@
 package eu.europa.ec.fisheries.uvms.plugins.inmarsat;
 
 
-
 import eu.europa.ec.fisheries.schema.exchange.common.v1.*;
 import eu.europa.ec.fisheries.schema.exchange.movement.mobileterminal.v1.IdList;
 import eu.europa.ec.fisheries.schema.exchange.movement.mobileterminal.v1.IdType;
@@ -43,7 +42,7 @@ import java.util.*;
 
 @Startup
 @Singleton
-public class InmarsatPluginMock  extends PluginDataHolder implements InmarsatPlugin {
+public class InmarsatPluginMock extends PluginDataHolder implements InmarsatPlugin {
 
 
     private List<PollType> collectedPollRequests = new ArrayList<>();
@@ -124,7 +123,7 @@ public class InmarsatPluginMock  extends PluginDataHolder implements InmarsatPlu
         }
     }
 
-    @Schedule(second = "*/20", minute = "*", hour = "*", persistent = false)
+    @Schedule(minute = "*/3", hour = "*", persistent = false)
     private void connectAndRetrieve() {
         LOGGER.info("HEARTBEAT connectAndRetrieve running. IsEnabled=" + isEnabled + " threadId=" + Thread.currentThread().toString());
         TelnetClient telnet = null;
@@ -132,8 +131,8 @@ public class InmarsatPluginMock  extends PluginDataHolder implements InmarsatPlu
         try {
             if (isIsEnabled()) {
                 List<String> dnids = getDnids();
-                String url = "localhost";
-                String port = "9090";
+                String url = getSetting("URL");
+                String port = getSetting("PORT");
                 String user = getSetting("USERNAME");
                 String pwd = getSetting("PSW");
 
@@ -173,7 +172,6 @@ public class InmarsatPluginMock  extends PluginDataHolder implements InmarsatPlu
         try {
             String registerServiceRequest = ExchangeModuleRequestMapper.createRegisterServiceRequest(serviceType, capabilityList, settingList);
             messageProducer.sendEventBusMessage(registerServiceRequest, ExchangeModelConstants.EXCHANGE_REGISTER_SERVICE);
-            setIsEnabled(true);
         } catch (JMSException | ExchangeModelMarshallException e) {
             LOGGER.error("Failed to send registration message to {}", ExchangeModelConstants.EXCHANGE_REGISTER_SERVICE);
         }
@@ -265,18 +263,32 @@ public class InmarsatPluginMock  extends PluginDataHolder implements InmarsatPlu
     }
 
     private String sendPoll(PollType poll, BufferedInputStream input, PrintStream output) throws TelnetException, IOException {
-        LOGGER.info("sendPoll invoked");
-        String result = "";
-        for (InmarsatPoll.OceanRegion oceanRegion : InmarsatPoll.OceanRegion.values()) {
-            result = sendPollCommand(poll, output, input, oceanRegion);
-            if (result != null) {
-                if (result.contains("Reference number")) {
-                    result = parseResponse(result);
-                    LOGGER.info("Reference number :  " + result);
-                    return result;
+
+        try {
+
+            LOGGER.info("sendPoll invoked");
+            String result = "";
+            for (InmarsatPoll.OceanRegion oceanRegion : InmarsatPoll.OceanRegion.values()) {
+                result = sendPollCommand(poll, input, output, oceanRegion);
+                if (result != null) {
+                    if (result.contains("Reference number")) {
+                        result = parseResponse(result);
+                        LOGGER.info("Reference number :  " + result);
+                        LOGGER.info("PollType         :  " + poll.toString());
+                        LOGGER.info("Oceanregion      :  " + oceanRegion.name());
+                        return result;
+                    }
                 }
             }
+
         }
+        catch(Throwable t){
+            LOGGER.error("SENDPOLL ERROR");
+            LOGGER.error(t.toString(), t);
+        }
+
+
+
         return null;
     }
 
@@ -406,6 +418,9 @@ public class InmarsatPluginMock  extends PluginDataHolder implements InmarsatPlu
                 wrkRequests.addAll(collectedPollRequests);
                 collectedPollRequests.clear();
             }
+            else{
+                return;
+            }
         }
         if (wrkRequests.size() > 0) {
 
@@ -417,7 +432,7 @@ public class InmarsatPluginMock  extends PluginDataHolder implements InmarsatPlu
                         if (!isNumeric(reference)) continue;
                         LOGGER.debug("POLL returns: {}", reference);
                         // Register Not acknowledge response
-                        InmarsatPendingResponse ipr = getInmPendingResponse(poll, reference);
+                        InmarsatPendingResponse ipr = createAnInmarsatPendingResponseObject(poll, reference);
                         responseList.addPendingPollResponse(ipr);
                         // Send status update to exchange
                         sentStatusToExchange(ipr);
@@ -442,7 +457,7 @@ public class InmarsatPluginMock  extends PluginDataHolder implements InmarsatPlu
     }
 
 
-    private InmarsatPendingResponse getInmPendingResponse(PollType poll, String result) {
+    private InmarsatPendingResponse createAnInmarsatPendingResponseObject(PollType poll, String result) {
         // Register response as pending
         InmarsatPendingResponse ipr = new InmarsatPendingResponse();
         ipr.setPollType(poll);
@@ -615,7 +630,8 @@ public class InmarsatPluginMock  extends PluginDataHolder implements InmarsatPlu
             }
         } while (bytesRead >= 0);
 
-        throw new TelnetException("Unknown response from Inmarsat-C LES Telnet @   : " + sb.toString());
+        bos.flush();
+        throw new TelnetException("Unknown download response from Inmarsat-C LES Telnet @  : " + Arrays.toString(bos.toByteArray()));
     }
 
     private String readUntil(String pattern, InputStream in) throws TelnetException, IOException {
@@ -638,7 +654,7 @@ public class InmarsatPluginMock  extends PluginDataHolder implements InmarsatPlu
             }
         } while (bytesRead >= 0);
 
-        throw new TelnetException("Unknown response from Inmarsat-C LES Telnet @   : " + sb.toString());
+        throw new TelnetException("Unknown response from Inmarsat-C LES Telnet @   (readUntil) : " + sb.toString());
     }
 
 
@@ -682,7 +698,7 @@ public class InmarsatPluginMock  extends PluginDataHolder implements InmarsatPlu
      * @return result of first successful poll command, or null if poll failed on every ocean region
      */
 
-    private String sendPollCommand(PollType poll, PrintStream out, InputStream in, InmarsatPoll.OceanRegion oceanRegion) throws TelnetException, IOException {
+    private String sendPollCommand(PollType poll, InputStream in , PrintStream out,  InmarsatPoll.OceanRegion oceanRegion) throws TelnetException, IOException {
         String prompt = ">";
         String cmd = buildPollCommand(poll, oceanRegion);
         String ret;
