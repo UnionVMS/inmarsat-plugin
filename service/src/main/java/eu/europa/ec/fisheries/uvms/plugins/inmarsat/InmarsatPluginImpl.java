@@ -274,6 +274,8 @@ public class InmarsatPluginImpl extends PluginDataHolder implements InmarsatPlug
                     if (result.contains("Reference number")) {
                         result = parseResponse(result);
                         LOGGER.info("Reference number :  " + result);
+                        LOGGER.info("PollType         :  " + poll.toString());
+                        LOGGER.info("Oceanregion      :  " + oceanRegion.name());
                         return result;
                     }
                 }
@@ -281,7 +283,7 @@ public class InmarsatPluginImpl extends PluginDataHolder implements InmarsatPlug
 
         }
         catch(Throwable t){
-            LOGGER.error("************************************************************************** SENDPOLL **************************************************************************");
+            LOGGER.error("SENDPOLL ERROR");
             LOGGER.error(t.toString(), t);
         }
 
@@ -416,6 +418,9 @@ public class InmarsatPluginImpl extends PluginDataHolder implements InmarsatPlug
                 wrkRequests.addAll(collectedPollRequests);
                 collectedPollRequests.clear();
             }
+            else{
+                return;
+            }
         }
         if (wrkRequests.size() > 0) {
 
@@ -427,7 +432,7 @@ public class InmarsatPluginImpl extends PluginDataHolder implements InmarsatPlug
                         if (!isNumeric(reference)) continue;
                         LOGGER.debug("POLL returns: {}", reference);
                         // Register Not acknowledge response
-                        InmarsatPendingResponse ipr = getInmPendingResponse(poll, reference);
+                        InmarsatPendingResponse ipr = createAnInmarsatPendingResponseObject(poll, reference);
                         responseList.addPendingPollResponse(ipr);
                         // Send status update to exchange
                         sentStatusToExchange(ipr);
@@ -452,7 +457,7 @@ public class InmarsatPluginImpl extends PluginDataHolder implements InmarsatPlug
     }
 
 
-    private InmarsatPendingResponse getInmPendingResponse(PollType poll, String result) {
+    private InmarsatPendingResponse createAnInmarsatPendingResponseObject(PollType poll, String result) {
         // Register response as pending
         InmarsatPendingResponse ipr = new InmarsatPendingResponse();
         ipr.setPollType(poll);
