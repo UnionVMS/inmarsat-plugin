@@ -16,7 +16,6 @@ import java.util.concurrent.ConcurrentMap;
 
 
 @RunWith(Arquillian.class)
-@Ignore
 public class TestInmarsatPlugin extends _BuildTestDeployment {
 
     Logger LOG = LoggerFactory.getLogger("LOGGER");
@@ -132,17 +131,6 @@ public class TestInmarsatPlugin extends _BuildTestDeployment {
         Assert.assertTrue(NO_EXCEPTION_MEANS_THAT_REGISTER_AND_UNREGISTER_ARE_REACHED_AND_MARSHALL_UNMARSHALL_WORKS);
     }
 
-    @Test
-    @OperateOnDeployment("normal")
-    public void testRegisterAndUnregisterWaitToSeeIfTimerStarts() throws InterruptedException {
-
-        boolean NO_EXCEPTION_MEANS_THAT_REGISTER_AND_UNREGISTER_ARE_REACHED_AND_MARSHALL_UNMARSHALL_WORKS = true;
-        Assert.assertTrue(NO_EXCEPTION_MEANS_THAT_REGISTER_AND_UNREGISTER_ARE_REACHED_AND_MARSHALL_UNMARSHALL_WORKS);
-
-
-        Thread.sleep( 5 * 60 * 1000);
-
-    }
 
 
 
@@ -229,6 +217,15 @@ public class TestInmarsatPlugin extends _BuildTestDeployment {
     */
 
 
+    @Test
+    @OperateOnDeployment("normal")
+    public void testRegisterAndUnregisterWaitToSeeIfTimerStarts() throws InterruptedException {
+
+        boolean NO_EXCEPTION_MEANS_THAT_REGISTER_AND_UNREGISTER_ARE_REACHED_AND_MARSHALL_UNMARSHALL_WORKS = true;
+        Assert.assertTrue(NO_EXCEPTION_MEANS_THAT_REGISTER_AND_UNREGISTER_ARE_REACHED_AND_MARSHALL_UNMARSHALL_WORKS);
+        //Thread.sleep( 5 * 1000);
+        Thread.sleep( 5 * 60 * 1000);
+    }
 
 
 }

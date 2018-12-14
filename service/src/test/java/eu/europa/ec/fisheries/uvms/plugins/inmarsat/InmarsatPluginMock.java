@@ -123,7 +123,7 @@ public class InmarsatPluginMock extends PluginDataHolder implements InmarsatPlug
         }
     }
 
-    @Schedule(minute = "*/3", hour = "*", persistent = false)
+    @Schedule(second = "*/30",  minute = "*", hour = "*", persistent = false)
     private void connectAndRetrieve() {
         LOGGER.info("HEARTBEAT connectAndRetrieve running. IsEnabled=" + isEnabled + " threadId=" + Thread.currentThread().toString());
         TelnetClient telnet = null;

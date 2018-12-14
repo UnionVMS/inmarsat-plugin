@@ -1,7 +1,9 @@
 package eu.europa.ec.fisheries.uvms.plugins.inmarsat;
 
 
+import eu.europa.ec.fisheries.schema.exchange.common.v1.CommandTypeType;
 import eu.europa.ec.fisheries.schema.exchange.plugin.types.v1.PluginType;
+import eu.europa.ec.fisheries.schema.exchange.plugin.v1.PluginBaseRequest;
 import eu.europa.ec.fisheries.schema.exchange.registry.v1.ExchangeRegistryBaseRequest;
 import eu.europa.ec.fisheries.schema.exchange.registry.v1.RegisterServiceRequest;
 import eu.europa.ec.fisheries.schema.exchange.registry.v1.UnregisterServiceRequest;
@@ -14,14 +16,18 @@ import eu.europa.ec.fisheries.uvms.exchange.model.constant.ExchangeModelConstant
 import eu.europa.ec.fisheries.uvms.exchange.model.constant.FaultCode;
 import eu.europa.ec.fisheries.uvms.exchange.model.exception.ExchangeModelMapperException;
 import eu.europa.ec.fisheries.uvms.exchange.model.exception.ExchangeModelMarshallException;
+import eu.europa.ec.fisheries.uvms.exchange.model.mapper.ExchangePluginRequestMapper;
 import eu.europa.ec.fisheries.uvms.exchange.model.mapper.ExchangePluginResponseMapper;
 import eu.europa.ec.fisheries.uvms.exchange.model.mapper.JAXBMarshaller;
+import eu.europa.ec.fisheries.uvms.plugins.inmarsat.message.PluginMessageProducer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.ejb.ActivationConfigProperty;
+import javax.ejb.EJB;
 import javax.ejb.MessageDriven;
 import javax.enterprise.event.Observes;
+import javax.inject.Inject;
 import javax.jms.JMSException;
 import javax.jms.Message;
 import javax.jms.MessageListener;
@@ -46,6 +52,9 @@ public class ExchangePluginRegistrationSimulatorListener implements MessageListe
     final static Logger LOG = LoggerFactory.getLogger(ExchangePluginRegistrationSimulatorListener.class);
 
 
+    PluginMessageProducerForTest producer = new PluginMessageProducerForTest();
+
+
 
     @Override
     public void onMessage(Message message) {
@@ -56,9 +65,16 @@ public class ExchangePluginRegistrationSimulatorListener implements MessageListe
             ExchangeRegistryBaseRequest request = JAXBMarshaller.unmarshallTextMessage(textMessage, ExchangeRegistryBaseRequest.class);
             switch (request.getMethod()) {
                 case REGISTER_SERVICE:
+
                     RegisterServiceRequest regReq = JAXBMarshaller.unmarshallTextMessage(textMessage, RegisterServiceRequest.class);
                     settings = regReq.getService();
-                    registerService(textMessage);
+                    String serviceResponseMessageName = settings.getServiceResponseMessageName();
+                    String text = ExchangePluginRequestMapper.createStartRequest();
+
+                    //ExchangeRegistryBaseRequest
+                    String x = ExchangePluginResponseMapper.mapToSetCommandResponse(null,null);
+
+                    producer.sendEventBusMessage(text, serviceResponseMessageName);
                     break;
                 case UNREGISTER_SERVICE:
                     UnregisterServiceRequest unRegReq = JAXBMarshaller.unmarshallTextMessage(textMessage, UnregisterServiceRequest.class);
@@ -84,15 +100,6 @@ public class ExchangePluginRegistrationSimulatorListener implements MessageListe
     }
 
 
-    public void registerService(TextMessage textMessage) {
-        RegisterServiceRequest register = null;
-        try {
-            register = JAXBMarshaller.unmarshallTextMessage(textMessage, RegisterServiceRequest.class);
-            String messageId = textMessage.getJMSMessageID();
-            boolean sendMessage;
-        } catch (Exception  e) {
-        }
-    }
 
 
 
