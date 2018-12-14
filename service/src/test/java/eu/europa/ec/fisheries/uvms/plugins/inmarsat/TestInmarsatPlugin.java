@@ -16,6 +16,7 @@ import java.util.concurrent.ConcurrentMap;
 
 
 @RunWith(Arquillian.class)
+@Ignore
 public class TestInmarsatPlugin extends _BuildTestDeployment {
 
     Logger LOG = LoggerFactory.getLogger("LOGGER");
