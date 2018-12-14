@@ -271,9 +271,9 @@ public class InmarsatPluginImpl extends PluginDataHolder implements InmarsatPlug
                 result = sendPollCommand(poll, input, output, oceanRegion);
                 if (result != null) {
                     if (result.contains("Reference number")) {
-                        LOGGER.info("sendPoll invoked. {}", result);
-                        result = parseResponse(result);
-                        return result;
+                        String referenceNumber =  parseResponse(result);
+                        LOGGER.info("sendPoll invoked. Reference number : {} {}", referenceNumber , result);
+                        return referenceNumber;
                     }
                 }
             }
