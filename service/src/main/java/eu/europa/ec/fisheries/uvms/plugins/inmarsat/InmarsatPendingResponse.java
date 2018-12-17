@@ -111,4 +111,18 @@ public class InmarsatPendingResponse implements Serializable {
             return value;
         }
     }
+
+
+    @Override
+    public String toString() {
+        return "InmarsatPendingResponse{" +
+                "poll=" + poll +
+                ", msgId='" + msgId + '\'' +
+                ", referenceNumber=" + referenceNumber +
+                ", status=" + status +
+                ", mobTermId='" + mobTermId + '\'' +
+                ", dnId='" + dnId + '\'' +
+                ", membId='" + membId + '\'' +
+                '}';
+    }
 }
