@@ -1,7 +1,6 @@
 package eu.europa.ec.fisheries.uvms.plugins.inmarsat;
 
 
-import eu.europa.ec.fisheries.uvms.plugins.inmarsat.message.PluginMessageProducer;
 import eu.europa.ec.fisheries.uvms.plugins.inmarsat.telnetserversimulator.SocketServer;
 import org.eu.ingwar.tools.arquillian.extension.suite.annotations.ArquillianSuiteDeployment;
 import org.jboss.arquillian.container.test.api.Deployment;
@@ -43,7 +42,7 @@ public class _BuildTestDeployment {
 
         testWar.addClass(ExchangePluginRegistrationSimulatorListener.class);
         testWar.addClass(ExchangePluginRegistrationSimulatorProducer.class);
-        testWar.addClass(PluginMessageProducerForTest.class);
+        testWar.addClass(PluginMessageProducerForSimulator.class);
 
 
         return testWar;

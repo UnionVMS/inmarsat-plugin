@@ -16,20 +16,18 @@ import eu.europa.ec.fisheries.uvms.exchange.model.constant.ExchangeModelConstant
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.annotation.PostConstruct;
-import javax.ejb.LocalBean;
 import javax.jms.*;
 
 import static eu.europa.ec.fisheries.uvms.plugins.inmarsat.ModuleQueue.EXCHANGE;
 
-public class PluginMessageProducerForTest {
+public class PluginMessageProducerForSimulator {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(PluginMessageProducerForTest.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(PluginMessageProducerForSimulator.class);
     private Queue exchangeQueue;
     private Topic eventBus;
     private ConnectionFactory connectionFactory;
 
-    public PluginMessageProducerForTest() {
+    public PluginMessageProducerForSimulator() {
         connectionFactory = JMSUtils.lookupConnectionFactory();
         exchangeQueue = JMSUtils.lookupQueue(ExchangeModelConstants.EXCHANGE_MESSAGE_IN_QUEUE);
         eventBus = JMSUtils.lookupTopic(ExchangeModelConstants.PLUGIN_EVENTBUS);
