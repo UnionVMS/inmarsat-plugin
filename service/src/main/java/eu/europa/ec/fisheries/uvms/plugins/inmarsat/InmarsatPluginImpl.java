@@ -267,8 +267,9 @@ public class InmarsatPluginImpl extends PluginDataHolder implements InmarsatPlug
         try {
 
             String result = "";
-            for (InmarsatPoll.OceanRegion oceanRegion : InmarsatPoll.OceanRegion.values()) {
-                result = sendPollCommand(poll, input, output, oceanRegion);
+            //for (InmarsatPoll.OceanRegion oceanRegion : InmarsatPoll.OceanRegion.values()) {
+            //result = sendPollCommand(poll, input, output, oceanRegion);
+            result = sendPollCommand(poll, input, output);
                 if (result != null) {
                     if (result.contains("Reference number")) {
                         String referenceNumber =  parseResponse(result);
@@ -276,7 +277,7 @@ public class InmarsatPluginImpl extends PluginDataHolder implements InmarsatPlug
                         return referenceNumber;
                     }
                 }
-            }
+            //}
 
         }
         catch(Throwable t){
@@ -687,6 +688,14 @@ public class InmarsatPluginImpl extends PluginDataHolder implements InmarsatPlug
         return inmPoll.asCommand();
     }
 
+    private String buildPollCommand(PollType poll) {
+
+        InmarsatPoll inmPoll = new InmarsatPoll();
+        inmPoll.setPollType(poll);
+        if (poll.getPollTypeType() == PollTypeType.CONFIG) inmPoll.setAck(InmarsatPoll.AckType.TRUE);
+        return inmPoll.asCommand();
+    }
+
 
     /**
      * Sends one or more poll commands, one for each ocean region, until a reference number is
@@ -705,6 +714,18 @@ public class InmarsatPluginImpl extends PluginDataHolder implements InmarsatPlug
         ret += readUntil(prompt, in);
         return ret;
     }
+
+    private String sendPollCommand(PollType poll, InputStream in , PrintStream out) throws TelnetException, IOException {
+        String prompt = ">";
+        String cmd = buildPollCommand(poll);
+        String ret;
+        write(cmd, out);
+        ret = readUntil("Text:", in);
+        write(".S", out);
+        ret += readUntil(prompt, in);
+        return ret;
+    }
+
 
 
     private TelnetClient createTelnetClient(String url, int port) throws IOException {

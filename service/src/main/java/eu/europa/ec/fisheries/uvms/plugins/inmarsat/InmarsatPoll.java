@@ -19,7 +19,7 @@ import java.util.Iterator;
 /** */
 public class InmarsatPoll {
 
-    private OceanRegion oceanRegion;
+    private OceanRegion oceanRegion = null;
     private Poll_Type pollType;
     private int dnind;
     private ResponseType responseType;
@@ -157,7 +157,14 @@ public class InmarsatPoll {
 
     public String asCommand() {
         String cmd = "POLL ";
-        cmd += Integer.toString(getOceanRegion().getValue());
+
+        if(oceanRegion == null){
+            // 9 is all OceanRegions
+            cmd += "9";
+        }
+        else {
+            cmd += Integer.toString(getOceanRegion().getValue());
+        }
         cmd += "," + getPollType().getValue();
         cmd += "," + getDnind();
         cmd += "," + getResponseType().getValue();
