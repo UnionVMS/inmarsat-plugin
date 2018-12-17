@@ -53,9 +53,8 @@ public class PluginPendingResponseList {
     public String dump() {
         String ret = "";
         for (InmarsatPendingResponse element : pending) {
-
             ret += element.toString();
-            ret += "\n";
+            ret += System.lineSeparator();
         }
         return ret;
     }
