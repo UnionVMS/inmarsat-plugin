@@ -342,8 +342,18 @@ public class InmarsatPluginImpl extends PluginDataHolder implements InmarsatPlug
 
         // If there is a pending poll response, also generate a status update for that poll
         InmarsatPendingResponse ipr = responseList.containsPollTo(dnidId.getValue(), membId.getValue());
+
+        LOGGER.info("-> checkpoint status update poll response if exists");
+        LOGGER.info(dnidId.getValue());
+        LOGGER.info(membId.getValue());
+        if(ipr == null) {
+            LOGGER.info("Not found with that dnid && membId");
+            responseList.dump();
+        }
+
         if (ipr != null) {
             LOGGER.info("PendingPollResponse found in list: {}", ipr.getReferenceNumber());
+            LOGGER.info("{}", ipr.toString());
             AcknowledgeType ackType = new AcknowledgeType();
             ackType.setMessage("");
             ackType.setMessageId(ipr.getMsgId());

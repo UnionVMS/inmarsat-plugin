@@ -43,13 +43,23 @@ public class PluginPendingResponseList {
 
     public InmarsatPendingResponse containsPollTo(String dnid, String memberId) {
         for (InmarsatPendingResponse element : pending) {
-            if (element.getDnId().equalsIgnoreCase(dnid)
-                    && element.getMembId().equalsIgnoreCase(memberId)) {
+            if (element.getDnId().equalsIgnoreCase(dnid) && element.getMembId().equalsIgnoreCase(memberId)) {
                 return element;
             }
         }
         return null;
     }
+
+    public String dump() {
+        String ret = "";
+        for (InmarsatPendingResponse element : pending) {
+
+            ret += element.toString();
+            ret += "\n";
+        }
+        return ret;
+    }
+
 
 
 }
