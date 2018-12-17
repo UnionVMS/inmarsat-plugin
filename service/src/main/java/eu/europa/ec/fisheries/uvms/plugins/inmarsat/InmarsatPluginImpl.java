@@ -44,6 +44,8 @@ import java.util.*;
 @Singleton
 public class InmarsatPluginImpl extends PluginDataHolder implements InmarsatPlugin {
 
+    boolean checkpointIsActive = true;
+
 
     private List<PollType> collectedPollRequests = new ArrayList<>();
     private Object lock = new Object();
@@ -65,7 +67,7 @@ public class InmarsatPluginImpl extends PluginDataHolder implements InmarsatPlug
     private PluginMessageProducer messageProducer;
 
     @Inject
-    private InmarsatInterpreter fileHandler;
+    private InmarsatInterpreter inmarsatInterpreter;
 
     private CapabilityListType capabilityList;
     private SettingListType settingList;
@@ -343,12 +345,14 @@ public class InmarsatPluginImpl extends PluginDataHolder implements InmarsatPlug
         // If there is a pending poll response, also generate a status update for that poll
         InmarsatPendingResponse ipr = responseList.containsPollTo(dnidId.getValue(), membId.getValue());
 
-        LOGGER.info("-> checkpoint status update poll response if exists");
-        LOGGER.info(dnidId.getValue());
-        LOGGER.info(membId.getValue());
-        if(ipr == null) {
-            LOGGER.info("Not found with that dnid && membId");
-            responseList.dump();
+        if(checkpointIsActive) {
+            LOGGER.info("-> checkpoint status update poll response if exists");
+            LOGGER.info("DNID   : " + dnidId.getValue());
+            LOGGER.info("MembId : " + membId.getValue());
+            if (ipr == null) {
+                LOGGER.info("Not found with that dnid && membId. Dumping  the list for inspection");
+                LOGGER.info(responseList.dump());
+            }
         }
 
         if (ipr != null) {
@@ -575,7 +579,7 @@ public class InmarsatPluginImpl extends PluginDataHolder implements InmarsatPlug
             try {
                 List<byte[]> messages = download(input, output, dnid);
                 for (byte[] message : messages) {
-                    InmarsatMessage[] inmarsatMessages = fileHandler.byteToInmMessage(message);
+                    InmarsatMessage[] inmarsatMessages = inmarsatInterpreter.byteToInmMessage(message);
                     if ((inmarsatMessages != null) && (inmarsatMessages.length > 0)) {
                         int n = inmarsatMessages.length;
                         for (int i = 0; i < n; i++) {
