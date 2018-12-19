@@ -130,6 +130,7 @@ public class InmarsatPluginImpl extends PluginDataHolder implements InmarsatPlug
         LOGGER.info("HEARTBEAT connectAndRetrieve running. IsEnabled=" + isEnabled + " threadId=" + Thread.currentThread().toString());
         TelnetClient telnet = null;
         PrintStream output = null;
+        ByteArrayOutputStream spyStream = new ByteArrayOutputStream();
         try {
             if (isIsEnabled()) {
                 List<String> dnids = getDnids();
@@ -139,6 +140,8 @@ public class InmarsatPluginImpl extends PluginDataHolder implements InmarsatPlug
                 String pwd = getSetting("PSW");
 
                 telnet = createTelnetClient(url, Integer.parseInt(port));
+
+                telnet.registerSpyStream(spyStream);
 
                 // logon
                 BufferedInputStream input = new BufferedInputStream(telnet.getInputStream());
@@ -155,6 +158,15 @@ public class InmarsatPluginImpl extends PluginDataHolder implements InmarsatPlug
         } catch (Throwable t) {
             LOGGER.error(t.toString(), t);
         } finally {
+
+            byte[] spyResult = spyStream.toByteArray();
+            if(spyResult != null){
+                String wrkSpy = new String(spyResult);
+                LOGGER.info(wrkSpy);
+            }
+
+            telnet.stopSpyStream();
+
             if (output != null) {
                 output.print("QUIT \r\n");
                 output.flush();
