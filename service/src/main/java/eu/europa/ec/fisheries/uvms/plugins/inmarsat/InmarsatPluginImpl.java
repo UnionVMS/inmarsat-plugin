@@ -44,7 +44,7 @@ import java.util.*;
 @Singleton
 public class InmarsatPluginImpl extends PluginDataHolder implements InmarsatPlugin {
 
-    boolean checkpointIsActive = true;
+    boolean extraLogInfoEnabled = true;
 
 
     private List<PollType> collectedPollRequests = new ArrayList<>();
@@ -130,7 +130,7 @@ public class InmarsatPluginImpl extends PluginDataHolder implements InmarsatPlug
         LOGGER.info("HEARTBEAT connectAndRetrieve running. IsEnabled=" + isEnabled + " threadId=" + Thread.currentThread().toString());
         TelnetClient telnet = null;
         PrintStream output = null;
-        ByteArrayOutputStream spyStream = new ByteArrayOutputStream();
+        ByteArrayOutputStream spyStream = null;
         try {
             if (isIsEnabled()) {
                 List<String> dnids = getDnids();
@@ -141,7 +141,10 @@ public class InmarsatPluginImpl extends PluginDataHolder implements InmarsatPlug
 
                 telnet = createTelnetClient(url, Integer.parseInt(port));
 
-                telnet.registerSpyStream(spyStream);
+                if(extraLogInfoEnabled) {
+                    spyStream = new ByteArrayOutputStream();
+                    telnet.registerSpyStream(spyStream);
+                }
 
                 // logon
                 BufferedInputStream input = new BufferedInputStream(telnet.getInputStream());
@@ -159,13 +162,19 @@ public class InmarsatPluginImpl extends PluginDataHolder implements InmarsatPlug
             LOGGER.error(t.toString(), t);
         } finally {
 
-            byte[] spyResult = spyStream.toByteArray();
-            if(spyResult != null){
-                String wrkSpy = new String(spyResult);
-                LOGGER.info(wrkSpy);
+            if(extraLogInfoEnabled) {
+                try {
+                    spyStream.flush();
+                } catch (IOException e) {
+                    LOGGER.error(e.toString(),e);
+                }
+                byte[] spyResult = spyStream.toByteArray();
+                if (spyResult != null) {
+                    String wrkSpy = new String(spyResult);
+                    LOGGER.info(wrkSpy);
+                }
+                telnet.stopSpyStream();
             }
-
-            telnet.stopSpyStream();
 
             if (output != null) {
                 output.print("QUIT \r\n");
@@ -355,18 +364,8 @@ public class InmarsatPluginImpl extends PluginDataHolder implements InmarsatPlug
 
 
         // If there is a pending poll response, also generate a status update for that poll
+        /*
         InmarsatPendingResponse ipr = responseList.containsPollTo(dnidId.getValue(), membId.getValue());
-
-        if(checkpointIsActive) {
-            LOGGER.info("-> checkpoint status update poll response if exists");
-            LOGGER.info("DNID   : " + dnidId.getValue());
-            LOGGER.info("MembId : " + membId.getValue());
-            if (ipr == null) {
-                LOGGER.info("Not found with that dnid && membId. Dumping  the list for inspection");
-                LOGGER.info(responseList.dump());
-            }
-        }
-
         if (ipr != null) {
             LOGGER.info("PendingPollResponse found in list: {}", ipr.getReferenceNumber());
             LOGGER.info("{}", ipr.toString());
@@ -392,6 +391,33 @@ public class InmarsatPluginImpl extends PluginDataHolder implements InmarsatPlug
                 LOGGER.debug("JMSException", jex);
             }
         }
+        */
+        // try to senPollForRemainingEntriesInList
+        for(InmarsatPendingResponse pendingResponse : responseList.getPendingPollResponses()){
+            AcknowledgeType ackType = new AcknowledgeType();
+            ackType.setMessage("");
+            ackType.setMessageId(pendingResponse.getMsgId());
+
+            PollStatusAcknowledgeType osat = new PollStatusAcknowledgeType();
+            osat.setPollId(pendingResponse.getMsgId());
+            osat.setStatus(ExchangeLogStatusTypeType.SUCCESSFUL);
+
+            ackType.setPollStatus(osat);
+            ackType.setType(AcknowledgeTypeType.OK);
+
+            try {
+                String s = ExchangePluginResponseMapper.mapToSetPollStatusToSuccessfulResponse(getApplicaionName(), ackType, pendingResponse.getMsgId());
+                messageProducer.sendModuleMessage(s, ModuleQueue.EXCHANGE);
+                boolean b = responseList.removePendingPollResponse(pendingResponse);
+                LOGGER.debug("Pending poll response removed: {}", b);
+            } catch (ExchangeModelMarshallException ex) {
+                LOGGER.debug("ExchangeModelMarshallException", ex);
+            } catch (JMSException jex) {
+                LOGGER.debug("JMSException", jex);
+            }
+
+        }
+
         LOGGER.debug("Sending movement to Exchange");
     }
 
@@ -679,6 +705,18 @@ public class InmarsatPluginImpl extends PluginDataHolder implements InmarsatPlug
 
         throw new TelnetException("Unknown response from Inmarsat-C LES Telnet @   (readUntil) : " + sb.toString());
     }
+
+
+    private byte[] readStream(InputStream in) throws TelnetException, IOException {
+        byte[] buffer = new byte[1024];
+        ByteArrayOutputStream bos = new ByteArrayOutputStream();
+        int bytesRead = 0;
+        while ((bytesRead = in.read(buffer)) > 0) {
+            bos.write(buffer, 0, bytesRead);
+        }
+        return bos.toByteArray();
+    }
+
 
 
     private void containsFault(String currentString) throws TelnetException {

@@ -30,12 +30,14 @@ public class PluginPendingResponseList {
         return false;
     }
 
-    /* NOT USED REMOVE
     public List<InmarsatPendingResponse> getPendingPollResponses() {
-        //noinspection unchecked
-        return (ArrayList<InmarsatPendingResponse>) pending.clone();
+
+        List<InmarsatPendingResponse> ret = new ArrayList<>();
+        ret.addAll(pending);
+        return ret;
     }
 
+    /* NOT USED REMOVE
     public boolean containsPendingPollResponse(InmarsatPendingResponse resp) {
         return pending != null && pending.contains(resp);
     }
