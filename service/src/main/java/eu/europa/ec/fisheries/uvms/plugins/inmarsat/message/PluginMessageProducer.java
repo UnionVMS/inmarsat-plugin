@@ -26,16 +26,21 @@ import static eu.europa.ec.fisheries.uvms.plugins.inmarsat.ModuleQueue.EXCHANGE;
 @LocalBean
 public class PluginMessageProducer {
 
+    public static final String INMARSAT_FAILED_REPORT_QUEUE = "jms/queue/UVMSInmarsatCFailedReport";
+
+
     private static final Logger LOGGER = LoggerFactory.getLogger(PluginMessageProducer.class);
     private Queue exchangeQueue;
     private Topic eventBus;
     private ConnectionFactory connectionFactory;
+    private Queue inmarsatFailedReportQueue;
 
     @PostConstruct
     public void resourceLookup() {
         connectionFactory = JMSUtils.lookupConnectionFactory();
         exchangeQueue = JMSUtils.lookupQueue(ExchangeModelConstants.EXCHANGE_MESSAGE_IN_QUEUE);
         eventBus = JMSUtils.lookupTopic(ExchangeModelConstants.PLUGIN_EVENTBUS);
+        inmarsatFailedReportQueue = JMSUtils.lookupQueue(INMARSAT_FAILED_REPORT_QUEUE);
     }
 
     public void sendResponseMessage(String text, TextMessage requestMessage) throws JMSException {
@@ -95,15 +100,38 @@ public class PluginMessageProducer {
         }
     }
 
+    public String  sendFailedReportMessage(byte[] inmarsatReport) throws JMSException {
 
-    // TODO NON_PERSISTENT is NOT OK
+        try (Connection connection = connectionFactory.createConnection();
+             Session session = JMSUtils.connectToQueue(connection)) {
+
+            BytesMessage message = session.createBytesMessage();
+            message.writeBytes(inmarsatReport);
+
+            sendMessage(session, inmarsatFailedReportQueue, message);
+
+            return message.getJMSMessageID();
+        } catch (JMSException e) {
+            throw e;
+        }
+
+    }
+
+
     private void sendMessage(Session session, Destination destination, TextMessage message)
             throws JMSException {
         try (MessageProducer messageProducer = session.createProducer(destination)) {
             messageProducer.setDeliveryMode(DeliveryMode.PERSISTENT);
-            //messageProducer.setDeliveryMode(DeliveryMode.NON_PERSISTENT);
-            //messageProducer.setTimeToLive(60000L);
             messageProducer.send(message);
         }
     }
+
+    private void sendMessage(Session session, Destination destination, BytesMessage message)
+            throws JMSException {
+        try (MessageProducer messageProducer = session.createProducer(destination)) {
+            messageProducer.setDeliveryMode(DeliveryMode.PERSISTENT);
+            messageProducer.send(message);
+        }
+    }
+
 }
