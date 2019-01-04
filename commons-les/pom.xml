@@ -9,5 +9,16 @@
 
     <artifactId>commons-les</artifactId>
 
+    <dependencies>
+
+        <dependency>
+            <groupId>eu.europa.ec.fisheries.uvms.commons</groupId>
+            <artifactId>uvms-commons-message</artifactId>
+            <version>${uvms.common.version}</version>
+        </dependency>
+
+
+    </dependencies>
+
 
 </project>

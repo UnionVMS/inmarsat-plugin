@@ -1,13 +1,17 @@
 package fish.focus.uvms.commons.les.inmarsat;
 
 
+import eu.europa.ec.fisheries.uvms.commons.message.impl.JMSUtils;
 import fish.focus.uvms.commons.les.inmarsat.header.HeaderDataPresentation;
 import fish.focus.uvms.commons.les.inmarsat.header.HeaderStruct;
 import fish.focus.uvms.commons.les.inmarsat.header.HeaderType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.annotation.PostConstruct;
 import javax.ejb.Stateless;
+import javax.jms.*;
+import javax.jms.Queue;
 import java.io.ByteArrayOutputStream;
 import java.nio.ByteBuffer;
 import java.util.*;
@@ -15,11 +19,25 @@ import java.util.*;
 @Stateless
 public class InmarsatInterpreter {
 
+	private static final String INMARSAT_FAILED_REPORT_QUEUE = "jms/queue/UVMSInmarsatCFailedReport";
+	private Queue inmarsatFailedReportQueue;
+	private ConnectionFactory connectionFactory;
+
+
+
+
 	private static final Logger LOGGER = LoggerFactory.getLogger(InmarsatInterpreter.class);
 	private static final byte[] HEADER_PATTERN = ByteBuffer.allocate(4).put((byte) InmarsatDefinition.API_SOH)
 			.put(InmarsatDefinition.API_LEAD_TEXT.getBytes()).array();
 	private static final int PATTERN_LENGTH = HEADER_PATTERN.length;
 
+
+	@PostConstruct
+	public void resourceLookup() {
+		connectionFactory = JMSUtils.lookupConnectionFactory();
+		inmarsatFailedReportQueue = JMSUtils.lookupQueue(INMARSAT_FAILED_REPORT_QUEUE);
+
+	}
 
 	public InmarsatMessage[] byteToInmMessage(final byte[] fileBytes) {
 		byte[] bytes = insertMissingData(fileBytes);
@@ -45,13 +63,51 @@ public class InmarsatInterpreter {
 				if (message.validate()) {
 					messages.add(message);
 				} else {
-					LOGGER.info("Message rejected: {}", Arrays.toString(bytes));
+					try {
+						String msgId = sendFailedReportMessage(messageBytes);
+						LOGGER.info("Message with id {} rejected: ", msgId);
+					} catch (JMSException e) {
+						LOGGER.error("could not post rejected message to queue : ");
+						LOGGER.error(Arrays.toString(messageBytes));
+					}
 				}
 			}
 		}
 		return messages.toArray(new InmarsatMessage[0]); // "new InmarsatMessage[0]" is used instead of "new
 		// Inmarsat[messages.size()]" to get better performance
 	}
+
+	public String  sendFailedReportMessage(byte[] inmarsatReport) throws JMSException {
+
+		try (Connection connection = connectionFactory.createConnection();
+			 Session session = JMSUtils.connectToQueue(connection)) {
+
+			BytesMessage message = session.createBytesMessage();
+			message.writeBytes(inmarsatReport);
+
+			sendMessage(session, inmarsatFailedReportQueue, message);
+
+			return message.getJMSMessageID();
+		} catch (JMSException e) {
+			throw e;
+		}
+
+	}
+
+
+	private void sendMessage(Session session, Destination destination, BytesMessage message)
+			throws JMSException {
+		try (MessageProducer messageProducer = session.createProducer(destination)) {
+			messageProducer.setDeliveryMode(DeliveryMode.PERSISTENT);
+			messageProducer.send(message);
+		}
+	}
+
+
+
+
+
+
 
 	/**
 	 * Header sent doesn't always adhere to the byte contract.. This method tries to insert fix the missing parts..
