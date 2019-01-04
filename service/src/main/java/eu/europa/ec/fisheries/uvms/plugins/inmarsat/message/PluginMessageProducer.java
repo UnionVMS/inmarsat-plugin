@@ -26,6 +26,8 @@ import static eu.europa.ec.fisheries.uvms.plugins.inmarsat.ModuleQueue.EXCHANGE;
 @LocalBean
 public class PluginMessageProducer {
 
+
+
     private static final Logger LOGGER = LoggerFactory.getLogger(PluginMessageProducer.class);
     private Queue exchangeQueue;
     private Topic eventBus;
@@ -96,14 +98,13 @@ public class PluginMessageProducer {
     }
 
 
-    // TODO NON_PERSISTENT is NOT OK
+
     private void sendMessage(Session session, Destination destination, TextMessage message)
             throws JMSException {
         try (MessageProducer messageProducer = session.createProducer(destination)) {
             messageProducer.setDeliveryMode(DeliveryMode.PERSISTENT);
-            //messageProducer.setDeliveryMode(DeliveryMode.NON_PERSISTENT);
-            //messageProducer.setTimeToLive(60000L);
             messageProducer.send(message);
         }
     }
+
 }
