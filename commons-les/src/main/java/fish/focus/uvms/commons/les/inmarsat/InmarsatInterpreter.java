@@ -83,10 +83,9 @@ public class InmarsatInterpreter {
 			 Session session = JMSUtils.connectToQueue(connection)) {
 
 			BytesMessage message = session.createBytesMessage();
+			message.setStringProperty("source", "INMARSAT_C");
 			message.writeBytes(inmarsatReport);
-
 			sendMessage(session, inmarsatFailedReportQueue, message);
-
 			return message.getJMSMessageID();
 		} catch (JMSException e) {
 			throw e;
