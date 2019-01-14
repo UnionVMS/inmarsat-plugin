@@ -19,7 +19,7 @@ import java.util.*;
 @Stateless
 public class InmarsatInterpreter {
 
-	private static final String INMARSAT_FAILED_REPORT_QUEUE = "jms/queue/UVMSInmarsatCFailedReport";
+	private static final String INMARSAT_FAILED_REPORT_QUEUE = "jms/queue/UVMSPluginFailedReport";
 	private Queue inmarsatFailedReportQueue;
 	private ConnectionFactory connectionFactory;
 
