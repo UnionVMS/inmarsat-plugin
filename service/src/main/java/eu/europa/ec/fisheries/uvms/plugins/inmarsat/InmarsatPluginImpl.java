@@ -44,7 +44,7 @@ import java.util.*;
 @Singleton
 public class InmarsatPluginImpl extends PluginDataHolder implements InmarsatPlugin {
 
-    boolean extraLogInfoEnabled = true;
+    //boolean extraLogInfoEnabled = true;
 
 
     private List<PollType> collectedPollRequests = new ArrayList<>();
@@ -130,7 +130,6 @@ public class InmarsatPluginImpl extends PluginDataHolder implements InmarsatPlug
         LOGGER.info("HEARTBEAT connectAndRetrieve running. IsEnabled=" + isEnabled + " threadId=" + Thread.currentThread().toString());
         TelnetClient telnet = null;
         PrintStream output = null;
-        ByteArrayOutputStream spyStream = null;
         try {
             if (isIsEnabled()) {
                 List<String> dnids = getDnids();
@@ -140,11 +139,6 @@ public class InmarsatPluginImpl extends PluginDataHolder implements InmarsatPlug
                 String pwd = getSetting("PSW");
 
                 telnet = createTelnetClient(url, Integer.parseInt(port));
-
-                if(extraLogInfoEnabled) {
-                    spyStream = new ByteArrayOutputStream();
-                    telnet.registerSpyStream(spyStream);
-                }
 
                 // logon
                 BufferedInputStream input = new BufferedInputStream(telnet.getInputStream());
@@ -161,20 +155,6 @@ public class InmarsatPluginImpl extends PluginDataHolder implements InmarsatPlug
         } catch (Throwable t) {
             LOGGER.error(t.toString(), t);
         } finally {
-
-            if(extraLogInfoEnabled) {
-                try {
-                    spyStream.flush();
-                } catch (IOException e) {
-                    LOGGER.error(e.toString(),e);
-                }
-                byte[] spyResult = spyStream.toByteArray();
-                if (spyResult != null) {
-                    String wrkSpy = new String(spyResult);
-                    LOGGER.info(wrkSpy);
-                }
-                telnet.stopSpyStream();
-            }
 
             if (output != null) {
                 output.print("QUIT \r\n");
