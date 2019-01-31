@@ -280,10 +280,11 @@ public class InmarsatPluginImpl extends PluginDataHolder implements InmarsatPlug
                     }
                 }
             }
-
         }
         catch(Throwable t){
-            LOGGER.error("SENDPOLL ERROR");
+            if(poll != null) {
+                LOGGER.error("SENDPOLL ERROR pollid : {}", poll.getPollId());
+            }
             LOGGER.error(t.toString(), t);
         }
 
@@ -429,6 +430,7 @@ public class InmarsatPluginImpl extends PluginDataHolder implements InmarsatPlug
             synchronized (lock) {
                 if (PollTypeType.POLL == poll.getPollTypeType()) {
                     collectedPollRequests.add(poll);
+                    LOGGER.info("poll RECEIVED id: {} ",poll.getPollId() );
                     return AcknowledgeTypeType.OK;
                 }
             }
@@ -458,8 +460,8 @@ public class InmarsatPluginImpl extends PluginDataHolder implements InmarsatPlug
                     try {
 
                         String reference = sendPoll(poll, input, output);
-                        if (!isNumeric(reference)) continue;
-                        LOGGER.debug("POLL returns: {}", reference);
+                        LOGGER.info("poll SEND id: {}  reference: {} ",poll.getPollId(), reference );
+                        //if (!isNumeric(reference)) continue;
                         // Register Not acknowledge response
                         InmarsatPendingResponse ipr = createAnInmarsatPendingResponseObject(poll, reference);
                         responseList.addPendingPollResponse(ipr);
