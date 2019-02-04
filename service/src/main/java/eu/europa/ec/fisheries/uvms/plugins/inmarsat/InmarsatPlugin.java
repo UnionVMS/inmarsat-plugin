@@ -33,7 +33,7 @@ public interface InmarsatPlugin {
 
 
     AcknowledgeTypeType setReport(ReportType report);
-    AcknowledgeTypeType setCommand(CommandType command);
+    //AcknowledgeTypeType setCommand(CommandType command);
     AcknowledgeTypeType setConfig(SettingListType settings) ;
     AcknowledgeTypeType start() ;
     AcknowledgeTypeType stop() ;

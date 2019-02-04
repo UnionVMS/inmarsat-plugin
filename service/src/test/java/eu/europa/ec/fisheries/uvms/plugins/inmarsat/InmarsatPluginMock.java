@@ -389,23 +389,6 @@ public class InmarsatPluginMock extends PluginDataHolder implements InmarsatPlug
     }
 
 
-    public AcknowledgeTypeType setCommand(CommandType command) {
-
-        if (LOGGER.isInfoEnabled()) {
-            LOGGER.info("{}.setCommand({})", getRegisterClassName(), command.getCommand().name());
-            LOGGER.debug("timestamp: {}", command.getTimestamp());
-        }
-        PollType poll = command.getPoll();
-        if (poll != null && CommandTypeType.POLL.equals(command.getCommand())) {
-            synchronized (lock) {
-                if (PollTypeType.POLL == poll.getPollTypeType()) {
-                    collectedPollRequests.add(poll);
-                    return AcknowledgeTypeType.OK;
-                }
-            }
-        }
-        return AcknowledgeTypeType.NOK;
-    }
 
 
     public void executePollCommands(BufferedInputStream input, PrintStream output) {
