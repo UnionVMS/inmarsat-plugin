@@ -47,8 +47,29 @@ public class InmarsatPluginImpl extends PluginDataHolder implements InmarsatPlug
     //boolean extraLogInfoEnabled = true;
 
 
+    class ReceivedUnsentPoll{
+
+        private PollType poll;
+        private String  id;
+
+        ReceivedUnsentPoll(PollType poll, String  id){
+            this.poll = poll;
+            this.id = id;
+        }
+
+        public String getId (){
+            return id;
+        }
+        public PollType getPoll (){
+            return poll;
+        }
+
+    }
+
+
+
     private List<PollType> collectedPollRequests = new ArrayList<>();
-    private Object lock = new Object();
+    private static final Object lock = new Object();
 
 
     private static final String[] faultPatterns = {
@@ -124,6 +145,7 @@ public class InmarsatPluginImpl extends PluginDataHolder implements InmarsatPlug
             LOGGER.info(getRegisterClassName() + " failed to register, maximum number of retries reached.");
         }
     }
+
 
     @Schedule(minute = "*/3", hour = "*", persistent = false)
     private void connectAndRetrieve() {
@@ -271,7 +293,13 @@ public class InmarsatPluginImpl extends PluginDataHolder implements InmarsatPlug
 
             String result = "";
             for (InmarsatPoll.OceanRegion oceanRegion : InmarsatPoll.OceanRegion.values()) {
-                result = sendPollCommand(poll, input, output, oceanRegion);
+                try {
+                    result = sendPollCommand(poll, input, output, oceanRegion);
+                }
+                catch(TelnetException te){
+                    LOGGER.warn("could not send pollcommand for region " + oceanRegion.name(), te);
+                    continue;
+                }
                 if (result != null) {
                     if (result.contains("Reference number")) {
                         String referenceNumber =  parseResponse(result);
@@ -373,7 +401,7 @@ public class InmarsatPluginImpl extends PluginDataHolder implements InmarsatPlug
             }
         }
         */
-        // try to senPollForRemainingEntriesInList
+        // try to senPollForRemainingEntriesInList  collectedPollRequests
         for(InmarsatPendingResponse pendingResponse : responseList.getPendingPollResponses()){
             AcknowledgeType ackType = new AcknowledgeType();
             ackType.setMessage("");
@@ -385,6 +413,10 @@ public class InmarsatPluginImpl extends PluginDataHolder implements InmarsatPlug
 
             ackType.setPollStatus(osat);
             ackType.setType(AcknowledgeTypeType.OK);
+
+            // TODO set unsent mesage id
+            //ackType.setUnsentMessageGuid(pendingResponse.get);
+            ackType.setUnsentMessageGuid(pendingResponse.getMsgId());
 
             try {
                 String s = ExchangePluginResponseMapper.mapToSetPollStatusToSuccessfulResponse(getApplicaionName(), ackType, pendingResponse.getMsgId());
@@ -431,7 +463,8 @@ public class InmarsatPluginImpl extends PluginDataHolder implements InmarsatPlug
                 if (PollTypeType.POLL == poll.getPollTypeType()) {
                     collectedPollRequests.add(poll);
                     LOGGER.info("poll RECEIVED id: {} ",poll.getPollId() );
-                    return AcknowledgeTypeType.OK;
+                    AcknowledgeTypeType ok = AcknowledgeTypeType.OK;
+                    return ok;
                 }
             }
         }
@@ -460,8 +493,16 @@ public class InmarsatPluginImpl extends PluginDataHolder implements InmarsatPlug
                     try {
 
                         String reference = sendPoll(poll, input, output);
+
+                        // failed put it in collectedPollRequests again
+                        if(reference == null){
+                            synchronized (lock){
+                                collectedPollRequests.add(poll);
+                            }
+                            // try next time
+                            continue;
+                        }
                         LOGGER.info("poll SEND id: {}  reference: {} ",poll.getPollId(), reference );
-                        //if (!isNumeric(reference)) continue;
                         // Register Not acknowledge response
                         InmarsatPendingResponse ipr = createAnInmarsatPendingResponseObject(poll, reference);
                         responseList.addPendingPollResponse(ipr);
@@ -515,16 +556,16 @@ public class InmarsatPluginImpl extends PluginDataHolder implements InmarsatPlug
         ackType.setMessageId(ipr.getMsgId());
 
         PollStatusAcknowledgeType osat = new PollStatusAcknowledgeType();
-        osat.setPollId(ipr.getMsgId());
-        osat.setStatus(ExchangeLogStatusTypeType.PENDING);
+        osat.setPollId(ipr.getPollType().getPollId());
+        osat.setStatus(ExchangeLogStatusTypeType.SENT);
 
         ackType.setPollStatus(osat);
         ackType.setType(AcknowledgeTypeType.OK);
 
         try {
             String s =
-                    ExchangePluginResponseMapper.mapToSetPollStatusToSuccessfulResponse(
-                            getApplicaionName(), ackType, ipr.getMsgId());
+                    ExchangePluginResponseMapper.mapToSetCommandResponse(
+                            getApplicaionName(), ackType);
             messageProducer.sendModuleMessage(s, ModuleQueue.EXCHANGE);
             LOGGER.debug(
                     "Poll response {} sent to exchange with status: {}",
@@ -742,13 +783,13 @@ public class InmarsatPluginImpl extends PluginDataHolder implements InmarsatPlug
      */
 
     private String sendPollCommand(PollType poll, InputStream in , PrintStream out,  InmarsatPoll.OceanRegion oceanRegion) throws TelnetException, IOException {
-        String prompt = ">";
+
         String cmd = buildPollCommand(poll, oceanRegion);
         String ret;
         write(cmd, out);
         ret = readUntil("Text:", in);
         write(".S", out);
-        ret += readUntil(prompt, in);
+        ret += readUntil(">", in);
         return ret;
     }
 
