@@ -18,6 +18,7 @@ import eu.europa.ec.fisheries.schema.exchange.registry.v1.UnregisterServiceRespo
 import eu.europa.ec.fisheries.uvms.exchange.model.exception.ExchangeModelMarshallException;
 import eu.europa.ec.fisheries.uvms.exchange.model.mapper.JAXBMarshaller;
 import eu.europa.ec.fisheries.uvms.plugins.inmarsat.InmarsatPlugin;
+import eu.europa.ec.fisheries.uvms.plugins.inmarsat.InmarsatPollHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -86,6 +87,9 @@ public class PluginAckEventBusListener implements MessageListener {
     @Inject
     private InmarsatPlugin startupService;
 
+    @Inject
+    private InmarsatPollHandler inmarsatPollHandler;
+
     @Override
     public void onMessage(Message inMessage) {
 
@@ -108,6 +112,7 @@ public class PluginAckEventBusListener implements MessageListener {
                                 LOGGER.info("Register OK");
                                 startupService.setIsRegistered(Boolean.TRUE);
                                 startupService.updateSettings(registerResponse.getService().getSettingList().getSetting());
+                                inmarsatPollHandler.updateSettings(registerResponse.getService().getSettingList().getSetting());
                                 break;
                             case NOK:
                                 LOGGER.info("Register NOK: " + registerResponse.getAck().getMessage());

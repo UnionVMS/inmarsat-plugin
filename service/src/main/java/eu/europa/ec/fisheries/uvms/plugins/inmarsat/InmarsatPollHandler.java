@@ -3,14 +3,15 @@ package eu.europa.ec.fisheries.uvms.plugins.inmarsat;
 import eu.europa.ec.fisheries.schema.exchange.common.v1.*;
 import eu.europa.ec.fisheries.schema.exchange.plugin.types.v1.PollType;
 import eu.europa.ec.fisheries.schema.exchange.plugin.types.v1.PollTypeType;
+import eu.europa.ec.fisheries.schema.exchange.service.v1.SettingType;
 import eu.europa.ec.fisheries.schema.exchange.v1.ExchangeLogStatusTypeType;
 import eu.europa.ec.fisheries.uvms.exchange.model.exception.ExchangeModelMarshallException;
 import eu.europa.ec.fisheries.uvms.exchange.model.mapper.ExchangePluginResponseMapper;
-import eu.europa.ec.fisheries.uvms.plugins.inmarsat.consumer.PluginNameEventBusListener;
 import eu.europa.ec.fisheries.uvms.plugins.inmarsat.message.PluginMessageProducer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.annotation.PostConstruct;
 import javax.ejb.Stateless;
 import javax.inject.Inject;
 import javax.jms.JMSException;
@@ -19,11 +20,15 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintStream;
 import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 @Stateless
 public class InmarsatPollHandler {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(PluginNameEventBusListener.class);
+    private final ConcurrentMap<String, String> settings = new ConcurrentHashMap<>();
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(InmarsatPollHandler.class);
 
     @Inject
     private PluginPendingResponseList responseList;
@@ -33,6 +38,48 @@ public class InmarsatPollHandler {
 
     @Inject
     private HelperFunctions functions;
+
+
+    @PostConstruct
+    private void startup() {
+        /*
+
+        Properties pluginProperties = getPropertiesFromFile(PluginDataHolder.PLUGIN_PROPERTIES);
+        setPluginApplicaitonProperties(pluginProperties);
+
+        registerClassName = getPluginApplicationProperty("application.groupid") + "." + getPluginApplicationProperty("application.name");
+        LOGGER.debug("Plugin will try to register as:{}", registerClassName);
+        super.setPluginProperties(getPropertiesFromFile(PluginDataHolder.SETTINGS_PROPERTIES));
+        super.setPluginCapabilities(getPropertiesFromFile(PluginDataHolder.CAPABILITIES_PROPERTIES));
+
+        ServiceMapper.mapToMapFromProperties(super.getSettings(), super.getPluginProperties(), getRegisterClassName());
+        ServiceMapper.mapToMapFromProperties(super.getCapabilities(), super.getPluginCapabilities(), null);
+
+        capabilityList = ServiceMapper.getCapabilitiesListTypeFromMap(super.getCapabilities());
+        settingList = ServiceMapper.getSettingsListTypeFromMap(super.getSettings());
+        serviceType = ServiceMapper.getServiceType(getRegisterClassName(), "Thrane&Thrane", "inmarsat plugin for the Thrane&Thrane API", PluginType.SATELLITE_RECEIVER, getPluginResponseSubscriptionName(), "INMARSAT_C");
+
+        register();
+
+        if (LOGGER.isDebugEnabled()) {
+            LOGGER.debug("Settings updated in plugin {}", registerClassName);
+            for (Map.Entry<String, String> entry : super.getSettings().entrySet()) {
+                LOGGER.debug("Setting: KEY: {} , VALUE: {}", entry.getKey(), entry.getValue());
+            }
+        }
+
+        LOGGER.info("PLUGIN STARTED");
+        */
+    }
+
+    private ConcurrentMap<String, String> getSettings() {
+        return settings;
+    }
+
+    public String getSetting(String setting) {
+        String settingValue = getSettings().get(setting);
+        return settingValue;
+    }
 
 
     public AcknowledgeTypeType setCommand(CommandType command) {
@@ -180,5 +227,20 @@ public class InmarsatPollHandler {
     private String sendConfigurationPoll(PollType poll) throws TelnetException {
         throw new UnsupportedOperationException("Not supported yet.");
     }
+
+    // for inmarsat connect-logon
+    public void updateSettings(List<SettingType> settings) {
+        for (SettingType setting : settings) {
+            String key = setting.getKey();
+            int pos = key.lastIndexOf(".");
+            key = key.substring(pos + 1);
+            getSettings().put(key, setting.getValue());
+            LOGGER.info("Updating setting: {} = {}", key, setting.getValue());
+
+        }
+    }
+
+
+
 
 }

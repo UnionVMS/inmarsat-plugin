@@ -8,6 +8,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintStream;
+import java.util.Properties;
 
 @Stateless
 public class HelperFunctions {
@@ -22,6 +23,16 @@ public class HelperFunctions {
         return "inmarsat";
     }
 
+    public Properties getPropertiesFromFile(Class clazz, String fileName) {
+        Properties props = new Properties();
+        try {
+            InputStream inputStream =  clazz.getClassLoader().getResourceAsStream(fileName);
+            props.load(inputStream);
+        } catch (IOException e) {
+            LOGGER.debug("Properties file failed to load");
+        }
+        return props;
+    }
 
     public  byte[] readStream(InputStream in) throws  IOException {
         byte[] buffer = new byte[1024];
