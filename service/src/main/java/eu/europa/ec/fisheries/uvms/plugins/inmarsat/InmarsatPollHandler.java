@@ -84,7 +84,7 @@ public class InmarsatPollHandler {
                     // Send status update to exchange
                     sentStatusToExchange(ipr);
                     return AcknowledgeTypeType.OK;
-                } catch (Exception e) {
+                } catch (Throwable e) {
                     LOGGER.error("Error while sending poll: {}", e.getMessage(), e);
                 }
             }
@@ -118,7 +118,7 @@ public class InmarsatPollHandler {
             for (InmarsatPoll.OceanRegion oceanRegion : InmarsatPoll.OceanRegion.values()) {
                 try {
                     result = sendPollCommand(poll, input, output, oceanRegion);
-                } catch (Exception te) {
+                } catch (Throwable te) {
                     LOGGER.warn("could not send pollcommand for region " + oceanRegion.name(), te);
                     continue;
                 }

@@ -16,14 +16,18 @@ public class HelperFunctions {
     private static final Logger LOGGER = LoggerFactory.getLogger("InmarsatPlugin");
 
     private static final String[] faultPatterns = {
-            "????????", "[Connection to 41424344 aborted: error status 0]", "Illegal address parameter."
+            "Illegal poll type parameter",
+            "????????",
+            "[Connection to 41424344 aborted: error status 0]",
+            "Illegal address parameter.",
+            "Failed: Cannot reach the mobile",
     };
 
 
     public Properties getPropertiesFromFile(Class clazz, String fileName) {
         Properties props = new Properties();
         try {
-            InputStream inputStream =  clazz.getClassLoader().getResourceAsStream(fileName);
+            InputStream inputStream = clazz.getClassLoader().getResourceAsStream(fileName);
             props.load(inputStream);
         } catch (IOException e) {
             LOGGER.debug("Properties file failed to load");
@@ -31,7 +35,7 @@ public class HelperFunctions {
         return props;
     }
 
-    public  byte[] readStream(InputStream in) throws  IOException {
+    public byte[] readStream(InputStream in) throws IOException {
         byte[] buffer = new byte[1024];
         ByteArrayOutputStream bos = new ByteArrayOutputStream();
         int bytesRead = 0;
@@ -45,7 +49,6 @@ public class HelperFunctions {
         out.println(value);
         out.flush();
     }
-
 
 
     public String readUntil(String pattern, InputStream in) throws TelnetException, IOException {
@@ -75,12 +78,8 @@ public class HelperFunctions {
 
         for (String faultPattern : faultPatterns) {
             if (currentString.trim().contains(faultPattern)) {
-                LOGGER.error("Error while reading from Inmarsat-C LES Telnet @  {}", currentString);
                 throw new TelnetException("Error while reading from Inmarsat-C LES Telnet @ " + ": " + currentString);
             }
         }
     }
-
-
-
 }
