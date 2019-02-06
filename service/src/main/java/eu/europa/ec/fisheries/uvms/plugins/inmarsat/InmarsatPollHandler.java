@@ -8,11 +8,11 @@ import eu.europa.ec.fisheries.schema.exchange.v1.ExchangeLogStatusTypeType;
 import eu.europa.ec.fisheries.uvms.exchange.model.exception.ExchangeModelMarshallException;
 import eu.europa.ec.fisheries.uvms.exchange.model.mapper.ExchangePluginResponseMapper;
 import eu.europa.ec.fisheries.uvms.plugins.inmarsat.message.PluginMessageProducer;
+import org.apache.commons.net.telnet.TelnetClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.annotation.PostConstruct;
-import javax.ejb.Stateless;
+import javax.ejb.Singleton;
 import javax.inject.Inject;
 import javax.jms.JMSException;
 import java.io.BufferedInputStream;
@@ -23,10 +23,17 @@ import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
-@Stateless
+@Singleton
 public class InmarsatPollHandler {
 
-    private final ConcurrentMap<String, String> settings = new ConcurrentHashMap<>();
+    private static final String  PORT = "PORT";
+    private static final String  DNIDS = "DNIDS";
+    private static final String  URL = "URL";
+    private static final String  PSW = "PSW";
+    private static final String  USERNAME = "USERNAME";
+
+    private final ConcurrentMap<String, Object> connectSettings = new ConcurrentHashMap<>();
+
 
     private static final Logger LOGGER = LoggerFactory.getLogger(InmarsatPollHandler.class);
 
@@ -39,48 +46,21 @@ public class InmarsatPollHandler {
     @Inject
     private HelperFunctions functions;
 
+    @Inject
+    private InmarsatPlugin inmarsatPlugin;
 
-    @PostConstruct
-    private void startup() {
-        /*
-
-        Properties pluginProperties = getPropertiesFromFile(PluginDataHolder.PLUGIN_PROPERTIES);
-        setPluginApplicaitonProperties(pluginProperties);
-
-        registerClassName = getPluginApplicationProperty("application.groupid") + "." + getPluginApplicationProperty("application.name");
-        LOGGER.debug("Plugin will try to register as:{}", registerClassName);
-        super.setPluginProperties(getPropertiesFromFile(PluginDataHolder.SETTINGS_PROPERTIES));
-        super.setPluginCapabilities(getPropertiesFromFile(PluginDataHolder.CAPABILITIES_PROPERTIES));
-
-        ServiceMapper.mapToMapFromProperties(super.getSettings(), super.getPluginProperties(), getRegisterClassName());
-        ServiceMapper.mapToMapFromProperties(super.getCapabilities(), super.getPluginCapabilities(), null);
-
-        capabilityList = ServiceMapper.getCapabilitiesListTypeFromMap(super.getCapabilities());
-        settingList = ServiceMapper.getSettingsListTypeFromMap(super.getSettings());
-        serviceType = ServiceMapper.getServiceType(getRegisterClassName(), "Thrane&Thrane", "inmarsat plugin for the Thrane&Thrane API", PluginType.SATELLITE_RECEIVER, getPluginResponseSubscriptionName(), "INMARSAT_C");
-
-        register();
-
-        if (LOGGER.isDebugEnabled()) {
-            LOGGER.debug("Settings updated in plugin {}", registerClassName);
-            for (Map.Entry<String, String> entry : super.getSettings().entrySet()) {
-                LOGGER.debug("Setting: KEY: {} , VALUE: {}", entry.getKey(), entry.getValue());
-            }
-        }
-
-        LOGGER.info("PLUGIN STARTED");
-        */
+    public ConcurrentMap<String, Object> getSettings() {
+        return connectSettings;
     }
 
-    private ConcurrentMap<String, String> getSettings() {
-        return settings;
+    public Object getSetting(String setting) {
+        return  connectSettings.get(setting);
     }
 
-    public String getSetting(String setting) {
-        String settingValue = getSettings().get(setting);
-        return settingValue;
-    }
 
+    public PluginPendingResponseList getPluginPendingResponseList(){
+        return responseList;
+    }
 
     public AcknowledgeTypeType setCommand(CommandType command) {
 
@@ -88,17 +68,14 @@ public class InmarsatPollHandler {
         PollType poll = command.getPoll();
         if (poll != null && CommandTypeType.POLL.equals(command.getCommand())) {
             if (PollTypeType.POLL == poll.getPollTypeType()) {
-                LOGGER.info("poll RECEIVED id: {} ", poll.getPollId());
-
                 try {
-                    //String reference = sendPoll(poll, input, output);
-                    String reference = null;
-
+                    String reference = sendPoll(poll);
                     // FAILED ROLLBACK   DONT POP the Queue
                     if (reference == null) {
 
+                        LOGGER.error("Error no reference for poll with id: " + poll.getPollId());
                         //
-                        return null;
+                        return AcknowledgeTypeType.NOK;
                     }
                     LOGGER.info("poll SEND id: {}  reference: {} ", poll.getPollId(), reference);
                     // Register Not acknowledge response
@@ -106,24 +83,42 @@ public class InmarsatPollHandler {
                     responseList.addPendingPollResponse(ipr);
                     // Send status update to exchange
                     sentStatusToExchange(ipr);
+                    return AcknowledgeTypeType.OK;
                 } catch (Exception e) {
-                    LOGGER.warn("Error while sending poll: {}", e.getMessage());
+                    LOGGER.error("Error while sending poll: {}", e.getMessage(), e);
                 }
             }
         }
-
-        return null;
+        return AcknowledgeTypeType.NOK;
     }
 
-    private String sendPoll(PollType poll, BufferedInputStream input, PrintStream output) {
+    private String sendPoll(PollType poll) {
 
+        TelnetClient telnet = null;
+        PrintStream output = null;
         try {
+
+            String url = (String)connectSettings.get(URL);
+            Integer port = (Integer) connectSettings.get(PORT);
+            String user = (String)connectSettings.get(USERNAME);
+            String pwd = (String)connectSettings.get(PSW);
+
+            telnet = createTelnetClient(url, port);
+
+            // logon
+            BufferedInputStream input = new BufferedInputStream(telnet.getInputStream());
+            output = new PrintStream(telnet.getOutputStream());
+            functions.readUntil("name:", input);
+            functions.write(user, output);
+            functions.readUntil("word:", input);
+            sendPwd(output, pwd);
+            functions.readUntil(">", input);
 
             String result = "";
             for (InmarsatPoll.OceanRegion oceanRegion : InmarsatPoll.OceanRegion.values()) {
                 try {
                     result = sendPollCommand(poll, input, output, oceanRegion);
-                } catch (TelnetException te) {
+                } catch (Exception te) {
                     LOGGER.warn("could not send pollcommand for region " + oceanRegion.name(), te);
                     continue;
                 }
@@ -140,6 +135,23 @@ public class InmarsatPollHandler {
                 LOGGER.error("SENDPOLL ERROR pollid : {}", poll.getPollId());
             }
             LOGGER.error(t.toString(), t);
+        }
+        finally {
+
+            if (output != null) {
+                output.print("QUIT \r\n");
+                output.flush();
+            }
+            if ((telnet != null) && (telnet.isConnected())) {
+                try {
+                    telnet.disconnect();
+                } catch (IOException e) {
+                    // OK
+                }
+            }
+
+
+
         }
         return null;
     }
@@ -214,7 +226,7 @@ public class InmarsatPollHandler {
         ackType.setType(AcknowledgeTypeType.OK);
 
         try {
-            String s = ExchangePluginResponseMapper.mapToSetCommandResponse(functions.getApplicationName(), ackType);
+            String s = ExchangePluginResponseMapper.mapToSetCommandResponse(inmarsatPlugin.getApplicationName(), ackType);
             messageProducer.sendModuleMessage(s, ModuleQueue.EXCHANGE);
             LOGGER.debug("Poll response {} sent to exchange with status: {}",ipr.getMsgId(),ExchangeLogStatusTypeType.PENDING);
         } catch (ExchangeModelMarshallException ex) {
@@ -229,15 +241,38 @@ public class InmarsatPollHandler {
     }
 
     // for inmarsat connect-logon
-    public void updateSettings(List<SettingType> settings) {
-        for (SettingType setting : settings) {
+    public void updateSettings(List<SettingType> settingsType) {
+        for (SettingType setting : settingsType) {
             String key = setting.getKey();
             int pos = key.lastIndexOf(".");
             key = key.substring(pos + 1);
-            getSettings().put(key, setting.getValue());
-            LOGGER.info("Updating setting: {} = {}", key, setting.getValue());
+            String value = setting.getValue();
 
+            if(key.equals(PORT)){
+                try{
+                    Integer port = Integer.parseInt(value);
+                    connectSettings.put(key,port);
+                }
+                catch(NumberFormatException e){
+                    LOGGER.error("Port is not an integer");
+                    return;
+                }
+            }else{
+                connectSettings.put(key,setting.getValue());
+            }
         }
+    }
+
+
+    private TelnetClient createTelnetClient(String url, int port) throws IOException {
+        TelnetClient telnet = new TelnetClient();
+        telnet.connect(url, port);
+        return telnet;
+    }
+
+    private void sendPwd(PrintStream output, String pwd) {
+        output.print(pwd + "\r\n");
+        output.flush();
     }
 
 

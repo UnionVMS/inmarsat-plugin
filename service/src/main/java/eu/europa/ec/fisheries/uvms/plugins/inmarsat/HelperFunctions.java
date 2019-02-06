@@ -19,9 +19,6 @@ public class HelperFunctions {
             "????????", "[Connection to 41424344 aborted: error status 0]", "Illegal address parameter."
     };
 
-    public String getApplicationName(){
-        return "inmarsat";
-    }
 
     public Properties getPropertiesFromFile(Class clazz, String fileName) {
         Properties props = new Properties();
@@ -45,11 +42,10 @@ public class HelperFunctions {
     }
 
     public void write(String value, PrintStream out) {
-
         out.println(value);
         out.flush();
-        LOGGER.debug("write:{}", value);
     }
+
 
 
     public String readUntil(String pattern, InputStream in) throws TelnetException, IOException {

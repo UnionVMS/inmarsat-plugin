@@ -1,9 +1,7 @@
 package eu.europa.ec.fisheries.uvms.plugins.inmarsat;
 
 
-import eu.europa.ec.fisheries.schema.exchange.common.v1.AcknowledgeTypeType;
-import eu.europa.ec.fisheries.schema.exchange.common.v1.KeyValueType;
-import eu.europa.ec.fisheries.schema.exchange.common.v1.ReportType;
+import eu.europa.ec.fisheries.schema.exchange.common.v1.*;
 import eu.europa.ec.fisheries.schema.exchange.movement.mobileterminal.v1.IdList;
 import eu.europa.ec.fisheries.schema.exchange.movement.mobileterminal.v1.IdType;
 import eu.europa.ec.fisheries.schema.exchange.movement.mobileterminal.v1.MobileTerminalId;
@@ -13,10 +11,12 @@ import eu.europa.ec.fisheries.schema.exchange.service.v1.CapabilityListType;
 import eu.europa.ec.fisheries.schema.exchange.service.v1.ServiceType;
 import eu.europa.ec.fisheries.schema.exchange.service.v1.SettingListType;
 import eu.europa.ec.fisheries.schema.exchange.service.v1.SettingType;
+import eu.europa.ec.fisheries.schema.exchange.v1.ExchangeLogStatusTypeType;
 import eu.europa.ec.fisheries.uvms.commons.date.DateUtils;
 import eu.europa.ec.fisheries.uvms.exchange.model.constant.ExchangeModelConstants;
 import eu.europa.ec.fisheries.uvms.exchange.model.exception.ExchangeModelMarshallException;
 import eu.europa.ec.fisheries.uvms.exchange.model.mapper.ExchangeModuleRequestMapper;
+import eu.europa.ec.fisheries.uvms.exchange.model.mapper.ExchangePluginResponseMapper;
 import eu.europa.ec.fisheries.uvms.plugins.inmarsat.message.PluginMessageProducer;
 import fish.focus.uvms.commons.les.inmarsat.InmarsatException;
 import fish.focus.uvms.commons.les.inmarsat.InmarsatInterpreter;
@@ -60,6 +60,9 @@ public class InmarsatPlugin extends PluginDataHolder  {
 
     @Inject
     private InmarsatInterpreter inmarsatInterpreter;
+
+    @Inject
+    private InmarsatPollHandler inmarsatPollHandler;
 
     @Inject
     private HelperFunctions functions;
@@ -152,7 +155,6 @@ public class InmarsatPlugin extends PluginDataHolder  {
         } catch (Throwable t) {
             LOGGER.error(t.toString(), t);
         } finally {
-
             if (output != null) {
                 output.print("QUIT \r\n");
                 output.flush();
@@ -295,7 +297,8 @@ public class InmarsatPlugin extends PluginDataHolder  {
 
 
         // try to senPollForRemainingEntriesInList  collectedPollRequests
-        /*
+        PluginPendingResponseList responseList = inmarsatPollHandler.getPluginPendingResponseList();
+
         for(InmarsatPendingResponse pendingResponse : responseList.getPendingPollResponses()){
             AcknowledgeType ackType = new AcknowledgeType();
             ackType.setMessage("");
@@ -313,7 +316,7 @@ public class InmarsatPlugin extends PluginDataHolder  {
             ackType.setUnsentMessageGuid(pendingResponse.getMsgId());
 
             try {
-                String s = ExchangePluginResponseMapper.mapToSetPollStatusToSuccessfulResponse(getApplicaionName(), ackType, pendingResponse.getMsgId());
+                String s = ExchangePluginResponseMapper.mapToSetPollStatusToSuccessfulResponse(getApplicationName(), ackType, pendingResponse.getMsgId());
                 messageProducer.sendModuleMessage(s, ModuleQueue.EXCHANGE);
                 boolean b = responseList.removePendingPollResponse(pendingResponse);
                 LOGGER.debug("Pending poll response removed: {}", b);
@@ -324,9 +327,27 @@ public class InmarsatPlugin extends PluginDataHolder  {
             }
 
         }
-        */
+
 
         LOGGER.debug("Sending movement to Exchange");
+    }
+
+    public  String getApplicationName() {
+        try {
+            return  (String) super.getPluginApplicaitonProperties().get("application.name");
+        } catch (Exception e) {
+            LOGGER.error("Failed to getSetting for key: application.name" , getRegisterClassName());
+            return null;
+        }
+    }
+
+    private String getPLuginApplicationProperty(String key) {
+        try {
+            return (String) super.getPluginApplicaitonProperties().get(key);
+        } catch (Exception e) {
+            LOGGER.error("Failed to getSetting for key: " + key, getRegisterClassName());
+            return null;
+        }
     }
 
     private void sendMovementReportToExchange(SetReportMovementType reportType) {
@@ -489,7 +510,6 @@ public class InmarsatPlugin extends PluginDataHolder  {
     }
 
     private void sendPwd(PrintStream output, String pwd) {
-
         output.print(pwd + "\r\n");
         output.flush();
     }

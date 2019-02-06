@@ -55,7 +55,7 @@ public class PluginNameEventBusListener implements MessageListener {
     private InmarsatPlugin startup;
 
     @Inject
-    private InmarsatPollHandler pollHandler;
+    private InmarsatPollHandler inmarsatPollHandler;
 
     @Override
     public void onMessage(Message inMessage) {
@@ -82,7 +82,7 @@ public class PluginNameEventBusListener implements MessageListener {
                     break;
                 case SET_COMMAND:
                     SetCommandRequest setCommandRequest = JAXBMarshaller.unmarshallTextMessage(textMessage, SetCommandRequest.class);
-                    AcknowledgeTypeType setCommand = pollHandler.setCommand(setCommandRequest.getCommand());
+                    AcknowledgeTypeType setCommand = inmarsatPollHandler.setCommand(setCommandRequest.getCommand());
                     AcknowledgeType setCommandAck = ExchangePluginResponseMapper.mapToAcknowlegeType(textMessage.getJMSMessageID(), setCommand);
 
                     PollStatusAcknowledgeType pollAck = new PollStatusAcknowledgeType();
