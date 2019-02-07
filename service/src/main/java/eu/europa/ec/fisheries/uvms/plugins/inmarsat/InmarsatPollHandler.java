@@ -70,15 +70,11 @@ public class InmarsatPollHandler {
             if (PollTypeType.POLL == poll.getPollTypeType()) {
                 try {
                     String reference = sendPoll(poll);
-                    // FAILED ROLLBACK   DONT POP the Queue
                     if (reference == null) {
-
-                        LOGGER.error("Error no reference for poll with id: " + poll.getPollId());
-                        //
-                        return AcknowledgeTypeType.NOK;
+                        LOGGER.error("Error no reference for poll with pollId: " + poll.getPollId());
+                        return AcknowledgeTypeType.NOK; //consumed but erroneus
                     }
-                    LOGGER.info("poll SEND id: {}  reference: {} ", poll.getPollId(), reference);
-                    // Register Not acknowledge response
+                    LOGGER.info("poll SEND pollId: {}  reference: {} ", poll.getPollId(), reference);
                     InmarsatPendingResponse ipr = createAnInmarsatPendingResponseObject(poll, reference);
                     responseList.addPendingPollResponse(ipr);
                     // Send status update to exchange
@@ -119,7 +115,7 @@ public class InmarsatPollHandler {
                 try {
                     result = sendPollCommand(poll, input, output, oceanRegion);
                 } catch (Throwable te) {
-                    LOGGER.warn("could not send pollcommand for region " + oceanRegion.name(), te);
+                    LOGGER.warn(result+ " " + oceanRegion.name(), te);
                     continue;
                 }
                 if (result != null) {
@@ -175,7 +171,15 @@ public class InmarsatPollHandler {
 
     private String sendPollCommand(PollType poll, InputStream in, PrintStream out, InmarsatPoll.OceanRegion oceanRegion) throws TelnetException, IOException {
 
-        String cmd = buildPollCommand(poll, oceanRegion);
+        String cmd = null;
+        try{
+            cmd = buildPollCommand(poll, oceanRegion);
+        }
+        catch(Throwable t){
+            LOGGER.error("could not build pollcommand", t);
+            return null;
+        }
+
         String ret;
         functions.write(cmd, out);
         ret = functions.readUntil("Text:", in);
@@ -193,11 +197,19 @@ public class InmarsatPollHandler {
 
 
     private InmarsatPendingResponse createAnInmarsatPendingResponseObject(PollType poll, String result) {
+
+        int refNumber = -1;
+        try {
+            refNumber = Integer.parseInt(result);
+        }catch(NumberFormatException nfe){
+            LOGGER.error("Reference is not a number. Code should not reach this point. Erroneus usage of function");
+        }
+
         // Register response as pending
         InmarsatPendingResponse ipr = new InmarsatPendingResponse();
         ipr.setPollType(poll);
         ipr.setMsgId(poll.getPollId());
-        ipr.setReferenceNumber(Integer.parseInt(result));
+        ipr.setReferenceNumber(refNumber);
         List<KeyValueType> pollReciver = poll.getPollReceiver();
         for (KeyValueType element : pollReciver) {
             if (element.getKey().equalsIgnoreCase("MOBILE_TERMINAL_ID")) {
@@ -211,6 +223,7 @@ public class InmarsatPollHandler {
         ipr.setStatus(InmarsatPendingResponse.StatusType.PENDING);
         return ipr;
     }
+
 
     private void sentStatusToExchange(InmarsatPendingResponse ipr) {
 
