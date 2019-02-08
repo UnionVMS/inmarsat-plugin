@@ -294,7 +294,12 @@ public class InmarsatPlugin extends PluginDataHolder  {
         reportType.setPluginName(getRegisterClassName());
         reportType.setPluginType(PluginType.SATELLITE_RECEIVER);
 
-        sendMovementReportToExchange(reportType);
+        if(!sendMovementReportToExchange(reportType)){
+            // if it didnt send so quit return
+            return;
+        }
+        // it send so check if it was a pollrequest
+        // in that case update the pollrequest status
 
 
         PluginPendingResponseList responseList = inmarsatPollHandler.getPluginPendingResponseList();
