@@ -320,9 +320,10 @@ public class InmarsatPlugin extends PluginDataHolder  {
             ackType.setPollStatus(osat);
             ackType.setType(AcknowledgeTypeType.OK);
 
-            // TODO set unsent mesage id
+            // TODO set unsent (pollrequest) message id
             //ackType.setUnsentMessageGuid(pendingResponse.get);
-            ackType.setUnsentMessageGuid(ipr.getMsgId());
+            String iprMessageId = ipr.getMsgId();
+            ackType.setUnsentMessageGuid(iprMessageId);
 
             try {
                 String s = ExchangePluginResponseMapper.mapToSetPollStatusToSuccessfulResponse(getApplicationName(), ackType, ipr.getMsgId());

@@ -74,7 +74,7 @@ public class InmarsatPollHandler {
                         LOGGER.error("Error no reference for poll with pollId: " + poll.getPollId());
                         return AcknowledgeTypeType.NOK; //consumed but erroneus
                     }
-                    LOGGER.info("poll SEND pollId: {}  reference: {} ", poll.getPollId(), reference);
+                    LOGGER.info("sent poll with pollId: {} and reference: {} ", poll.getPollId(), reference);
                     InmarsatPendingResponse ipr = createAnInmarsatPendingResponseObject(poll, reference);
                     responseList.addPendingPollResponse(ipr);
                     // Send status update to exchange
@@ -115,13 +115,12 @@ public class InmarsatPollHandler {
                 try {
                     result = sendPollCommand(poll, input, output, oceanRegion);
                 } catch (Throwable te) {
-                    LOGGER.warn(result+ " " + oceanRegion.name(), te);
                     continue;
                 }
                 if (result != null) {
                     if (result.contains("Reference number")) {
                         String referenceNumber = parseResponse(result);
-                        LOGGER.info("sendPoll invoked. Reference number : {} {}", referenceNumber, result);
+                        LOGGER.info("sendPoll invoked. Reference number : {} ", referenceNumber);
                         return referenceNumber;
                     }
                 }
