@@ -125,7 +125,8 @@ public class InmarsatPlugin extends PluginDataHolder  {
     }
 
 
-    @Schedule(minute = "*/3", hour = "*", persistent = false)
+//    @Schedule(minute = "*/3", hour = "*", persistent = false)
+    @Schedule(minute = "*/1", hour = "*", persistent = false)
     private void connectAndRetrieve() {
 
         LOGGER.info("HEARTBEAT connectAndRetrieve running. IsEnabled=" + isEnabled + " threadId=" + Thread.currentThread().toString());
@@ -296,16 +297,19 @@ public class InmarsatPlugin extends PluginDataHolder  {
         sendMovementReportToExchange(reportType);
 
 
-        // try to senPollForRemainingEntriesInList  collectedPollRequests
         PluginPendingResponseList responseList = inmarsatPollHandler.getPluginPendingResponseList();
 
-        for(InmarsatPendingResponse pendingResponse : responseList.getPendingPollResponses()){
+        // If the report is a pending poll response, also generate a status update for that poll
+        InmarsatPendingResponse ipr = responseList.containsPollTo(dnidId.getValue(), membId.getValue());
+
+        if (ipr != null) {
+            LOGGER.info("PendingPollResponse found in list: {}", ipr.getReferenceNumber());
             AcknowledgeType ackType = new AcknowledgeType();
             ackType.setMessage("");
-            ackType.setMessageId(pendingResponse.getMsgId());
+            ackType.setMessageId(ipr.getMsgId());
 
             PollStatusAcknowledgeType osat = new PollStatusAcknowledgeType();
-            osat.setPollId(pendingResponse.getMsgId());
+            osat.setPollId(ipr.getMsgId());
             osat.setStatus(ExchangeLogStatusTypeType.SUCCESSFUL);
 
             ackType.setPollStatus(osat);
@@ -313,19 +317,18 @@ public class InmarsatPlugin extends PluginDataHolder  {
 
             // TODO set unsent mesage id
             //ackType.setUnsentMessageGuid(pendingResponse.get);
-            ackType.setUnsentMessageGuid(pendingResponse.getMsgId());
+            ackType.setUnsentMessageGuid(ipr.getMsgId());
 
             try {
-                String s = ExchangePluginResponseMapper.mapToSetPollStatusToSuccessfulResponse(getApplicationName(), ackType, pendingResponse.getMsgId());
+                String s = ExchangePluginResponseMapper.mapToSetPollStatusToSuccessfulResponse(getApplicationName(), ackType, ipr.getMsgId());
                 messageProducer.sendModuleMessage(s, ModuleQueue.EXCHANGE);
-                boolean b = responseList.removePendingPollResponse(pendingResponse);
+                boolean b = responseList.removePendingPollResponse(ipr);
                 LOGGER.debug("Pending poll response removed: {}", b);
             } catch (ExchangeModelMarshallException ex) {
                 LOGGER.debug("ExchangeModelMarshallException", ex);
             } catch (JMSException jex) {
                 LOGGER.debug("JMSException", jex);
             }
-
         }
 
 
@@ -350,15 +353,18 @@ public class InmarsatPlugin extends PluginDataHolder  {
         }
     }
 
-    private void sendMovementReportToExchange(SetReportMovementType reportType) {
+    private boolean sendMovementReportToExchange(SetReportMovementType reportType) {
         try {
             String text = ExchangeModuleRequestMapper.createSetMovementReportRequest(reportType, "TWOSTAGE", null, DateUtils.nowUTC().toDate(), null, PluginType.SATELLITE_RECEIVER, "TWOSTAGE", null);
             String messageId = messageProducer.sendModuleMessage(text, ModuleQueue.EXCHANGE);
             LOGGER.debug("Sent to exchange - text:{}, id:{}", text, messageId);
+            return true;
         } catch (ExchangeModelMarshallException e) {
-            LOGGER.error("Couldn't map movement to setreportmovementtype");
+            LOGGER.error("Couldn't map movement to setreportmovementtype",e);
+            return false;
         } catch (JMSException e) {
-            LOGGER.error("couldn't send movement");
+            LOGGER.error("couldn't send movement", e);
+            return false;
         }
     }
 
