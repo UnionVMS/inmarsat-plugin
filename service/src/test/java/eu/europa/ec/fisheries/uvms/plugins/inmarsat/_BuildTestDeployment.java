@@ -62,8 +62,8 @@ public class _BuildTestDeployment {
 
         testWar.addPackages(true, "eu.europa.ec.fisheries.uvms.plugins.inmarsat");
 
-        testWar.deleteClass(InmarsatPluginImpl.class);
-        testWar.addClass(InmarsatPluginMock.class);
+        //testWar.deleteClass(InmarsatPluginImpl.class);
+        //testWar.addClass(InmarsatPluginMock.class);
 
         testWar.addAsResource("plugin.properties", "plugin.properties");
         testWar.addAsResource("capabilities.properties", "capabilities.properties");

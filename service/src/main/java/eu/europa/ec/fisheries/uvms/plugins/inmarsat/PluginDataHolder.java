@@ -11,8 +11,6 @@ copy of the GNU General Public License along with the IFDM Suite. If not, see <h
  */
 package eu.europa.ec.fisheries.uvms.plugins.inmarsat;
 
-import eu.europa.ec.fisheries.schema.exchange.movement.v1.SetReportMovementType;
-
 import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -25,7 +23,6 @@ public abstract class PluginDataHolder {
     public static final String CAPABILITIES_PROPERTIES = "capabilities.properties";
     private final ConcurrentMap<String, String> settings = new ConcurrentHashMap<>();
     private final ConcurrentMap<String, String> capabilities = new ConcurrentHashMap<>();
-    //private final ConcurrentMap<String, SetReportMovementType> cachedMovement = new ConcurrentHashMap<>();
     private Properties twostageApplicaitonProperties;
     private Properties twostageProperties;
     private Properties twostageCapabilities;
@@ -37,10 +34,6 @@ public abstract class PluginDataHolder {
     public ConcurrentMap<String, String> getCapabilities() {
         return capabilities;
     }
-
-    //public ConcurrentMap<String, SetReportMovementType> getCachedMovement() {
-    //    return cachedMovement;
-    //}
 
     public Properties getPluginApplicaitonProperties() {
         return twostageApplicaitonProperties;
