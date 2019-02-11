@@ -99,7 +99,7 @@ public class InmarsatPollHandler {
             String user = (String)connectSettings.get(USERNAME);
             String pwd = (String)connectSettings.get(PSW);
 
-            telnet = createTelnetClient(url, port);
+            telnet = functions.createTelnetClient(url, port);
 
             // logon
             BufferedInputStream input = new BufferedInputStream(telnet.getInputStream());
@@ -107,7 +107,7 @@ public class InmarsatPollHandler {
             functions.readUntil("name:", input);
             functions.write(user, output);
             functions.readUntil("word:", input);
-            sendPwd(output, pwd);
+            functions.sendPwd(output, pwd);
             functions.readUntil(">", input);
 
             String result = "";
@@ -274,19 +274,6 @@ public class InmarsatPollHandler {
             }
         }
     }
-
-
-    private TelnetClient createTelnetClient(String url, int port) throws IOException {
-        TelnetClient telnet = new TelnetClient();
-        telnet.connect(url, port);
-        return telnet;
-    }
-
-    private void sendPwd(PrintStream output, String pwd) {
-        output.print(pwd + "\r\n");
-        output.flush();
-    }
-
 
 
 

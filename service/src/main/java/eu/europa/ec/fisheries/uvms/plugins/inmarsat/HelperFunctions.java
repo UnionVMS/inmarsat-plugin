@@ -1,5 +1,6 @@
 package eu.europa.ec.fisheries.uvms.plugins.inmarsat;
 
+import org.apache.commons.net.telnet.TelnetClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -82,4 +83,17 @@ public class HelperFunctions {
             }
         }
     }
+
+    public TelnetClient createTelnetClient(String url, int port) throws IOException {
+        TelnetClient telnet = new TelnetClient();
+        telnet.connect(url, port);
+        return telnet;
+    }
+
+    public void sendPwd(PrintStream output, String pwd) {
+        output.print(pwd + "\r\n");
+        output.flush();
+    }
+
+
 }

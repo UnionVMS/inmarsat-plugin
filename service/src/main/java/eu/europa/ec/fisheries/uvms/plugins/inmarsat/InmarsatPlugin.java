@@ -43,9 +43,6 @@ import java.util.*;
 public class InmarsatPlugin extends PluginDataHolder  {
 
 
-    private static final String[] faultPatterns = {
-            "????????", "[Connection to 41424344 aborted: error status 0]", "Illegal address parameter."
-    };
 
     private static final Logger LOGGER = LoggerFactory.getLogger(InmarsatPlugin.class);
 
@@ -140,7 +137,7 @@ public class InmarsatPlugin extends PluginDataHolder  {
                 String user = getSetting("USERNAME");
                 String pwd = getSetting("PSW");
 
-                telnet = createTelnetClient(url, Integer.parseInt(port));
+                telnet = functions.createTelnetClient(url, Integer.parseInt(port));
 
                 // logon
                 BufferedInputStream input = new BufferedInputStream(telnet.getInputStream());
@@ -148,7 +145,7 @@ public class InmarsatPlugin extends PluginDataHolder  {
                 functions.readUntil("name:", input);
                 functions.write(user, output);
                 functions.readUntil("word:", input);
-                sendPwd(output, pwd);
+                functions.sendPwd(output, pwd);
                 functions.readUntil(">", input);
 
                 downloadAndPutToQueue(input, output, dnids);
@@ -350,15 +347,6 @@ public class InmarsatPlugin extends PluginDataHolder  {
         }
     }
 
-    private String getPLuginApplicationProperty(String key) {
-        try {
-            return (String) super.getPluginApplicaitonProperties().get(key);
-        } catch (Exception e) {
-            LOGGER.error("Failed to getSetting for key: " + key, getRegisterClassName());
-            return null;
-        }
-    }
-
     private boolean sendMovementReportToExchange(SetReportMovementType reportType) {
         try {
             String text = ExchangeModuleRequestMapper.createSetMovementReportRequest(reportType, "TWOSTAGE", null, DateUtils.nowUTC().toDate(), null, PluginType.SATELLITE_RECEIVER, "TWOSTAGE", null);
@@ -377,9 +365,6 @@ public class InmarsatPlugin extends PluginDataHolder  {
     public AcknowledgeTypeType setReport(ReportType report) {
         return AcknowledgeTypeType.NOK;
     }
-
-
-
 
     /**
      * Set the config values for the twostage
@@ -499,7 +484,7 @@ public class InmarsatPlugin extends PluginDataHolder  {
                     bos.flush();
                     return bos.toByteArray();
                 } else {
-                    containsFault(currentString);
+                    functions.containsFault(currentString);
                 }
             }
         } while (bytesRead >= 0);
@@ -508,29 +493,6 @@ public class InmarsatPlugin extends PluginDataHolder  {
         throw new TelnetException("Unknown download response from Inmarsat-C LES Telnet @  : " + Arrays.toString(bos.toByteArray()));
     }
 
-
-
-
-    private void containsFault(String currentString) throws TelnetException {
-
-        for (String faultPattern : faultPatterns) {
-            if (currentString.trim().contains(faultPattern)) {
-                LOGGER.error("Error while reading from Inmarsat-C LES Telnet @  {}", currentString);
-                throw new TelnetException("Error while reading from Inmarsat-C LES Telnet @ " + ": " + currentString);
-            }
-        }
-    }
-
-    private void sendPwd(PrintStream output, String pwd) {
-        output.print(pwd + "\r\n");
-        output.flush();
-    }
-
-    private TelnetClient createTelnetClient(String url, int port) throws IOException {
-        TelnetClient telnet = new TelnetClient();
-        telnet.connect(url, port);
-        return telnet;
-    }
 
 
 }
