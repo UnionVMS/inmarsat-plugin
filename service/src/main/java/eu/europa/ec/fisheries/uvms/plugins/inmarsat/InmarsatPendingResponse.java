@@ -20,6 +20,7 @@ public class InmarsatPendingResponse implements Serializable {
 
     private PollType poll;
     private String msgId;
+    private String unsentMsgId;
     private int referenceNumber;
     private StatusType status;
     private String mobTermId;
@@ -93,6 +94,14 @@ public class InmarsatPendingResponse implements Serializable {
     @Override
     public int hashCode() {
         return referenceNumber;
+    }
+
+    public String getUnsentMsgId() {
+        return unsentMsgId;
+    }
+
+    public void setUnsentMsgId(String unsentMsgId) {
+        this.unsentMsgId = unsentMsgId;
     }
 
     public enum StatusType {

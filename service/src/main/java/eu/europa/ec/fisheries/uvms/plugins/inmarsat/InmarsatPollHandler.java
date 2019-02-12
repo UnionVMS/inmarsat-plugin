@@ -76,9 +76,8 @@ public class InmarsatPollHandler {
                     }
                     LOGGER.info("sent poll with pollId: {} and reference: {} ", poll.getPollId(), reference);
                     InmarsatPendingResponse ipr = createAnInmarsatPendingResponseObject(poll, reference);
+                    ipr.setUnsentMsgId(command.getUnsentMessageGuid());
                     responseList.addPendingPollResponse(ipr);
-                    // Send status update to exchange
-                    sentStatusToExchange(ipr);
                     return AcknowledgeTypeType.OK;
                 } catch (Throwable e) {
                     LOGGER.error("Error while sending poll: {}", e.getMessage(), e);
@@ -224,29 +223,6 @@ public class InmarsatPollHandler {
     }
 
 
-    private void sentStatusToExchange(InmarsatPendingResponse ipr) {
-
-        AcknowledgeType ackType = new AcknowledgeType();
-        ackType.setMessage("");
-        ackType.setMessageId(ipr.getMsgId());
-
-        PollStatusAcknowledgeType osat = new PollStatusAcknowledgeType();
-        osat.setPollId(ipr.getPollType().getPollId());
-        osat.setStatus(ExchangeLogStatusTypeType.SENT);
-
-        ackType.setPollStatus(osat);
-        ackType.setType(AcknowledgeTypeType.OK);
-
-        try {
-            String s = ExchangePluginResponseMapper.mapToSetCommandResponse(inmarsatPlugin.getApplicationName(), ackType);
-            messageProducer.sendModuleMessage(s, ModuleQueue.EXCHANGE);
-            LOGGER.debug("Poll response {} sent to exchange with status: {}",ipr.getMsgId(),ExchangeLogStatusTypeType.PENDING);
-        } catch (ExchangeModelMarshallException ex) {
-            LOGGER.debug("ExchangeModelMarshallException", ex);
-        } catch (JMSException jex) {
-            LOGGER.debug("JMSException", jex);
-        }
-    }
 
     private String sendConfigurationPoll(PollType poll) throws TelnetException {
         throw new UnsupportedOperationException("Not supported yet.");
