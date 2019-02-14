@@ -143,13 +143,13 @@ public class InmarsatHeader {
 				&& API_LEAD_TEXT.getBytes()[2] == headerToValidate[HeaderStruct.POS_LEAD_TEXT_2]
 				 && API_EOH == headerToValidate[headerToValidate.length - 1];
 
-		if(ret) return ret;
+		if(!ret) {
+			ret = headerToValidate != null && API_SOH == headerToValidate[HeaderStruct.POS_START_OF_HEADER_POS]
+					&& API_LEAD_TEXT.getBytes()[0] == headerToValidate[HeaderStruct.POS_LEAD_TEXT_0]
+					&& API_LEAD_TEXT.getBytes()[1] == headerToValidate[HeaderStruct.POS_LEAD_TEXT_1]
+					&& API_LEAD_TEXT.getBytes()[2] == headerToValidate[HeaderStruct.POS_LEAD_TEXT_2];
 
-		 ret =  headerToValidate != null && API_SOH == headerToValidate[HeaderStruct.POS_START_OF_HEADER_POS]
-				&& API_LEAD_TEXT.getBytes()[0] == headerToValidate[HeaderStruct.POS_LEAD_TEXT_0]
-				&& API_LEAD_TEXT.getBytes()[1] == headerToValidate[HeaderStruct.POS_LEAD_TEXT_1]
-				&& API_LEAD_TEXT.getBytes()[2] == headerToValidate[HeaderStruct.POS_LEAD_TEXT_2];
-
+		}
 		return ret;
 
 	}
