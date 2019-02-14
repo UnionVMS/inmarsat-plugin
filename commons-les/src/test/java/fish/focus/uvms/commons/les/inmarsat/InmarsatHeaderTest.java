@@ -30,20 +30,20 @@ public class InmarsatHeaderTest {
 	@Parameterized.Parameters
 	public static Collection<Object[]> data() throws ParseException {
 
-		return Arrays.asList(new Object[][] {{"015426540116890b08000255140036372455c307e702",
+		return Arrays.asList(new Object[][] {{"015426540116890b08000255140036372455c307e70",
 				new HeaderDataBuilder().setType(HeaderType.DNID).setRefno(527241)
 						.setDataPresentation(HeaderDataPresentation.TRANS_DATA).setSatIdAndLesId(121).setDataLength(20)
 						.setStoredTime("2015-04-07 19:59:50").setDnid(1987).setMemNo(231).createHeaderData()},
-				{"01542654021993c30c00024c20003f37364ade403521591d02",
+				{"01542654021993c30c00024c20003f37364ade403521591d0",
 						new HeaderDataBuilder().setType(HeaderType.DNID_MSG).setRefno(836499)
 								.setDataPresentation(HeaderDataPresentation.TRANS_DATA).setSatIdAndLesId(112)
 								.setDataLength(0x20).setStoredTime("2009-06-15 11:57:51").setDnid(0x40de)
 								.setMesNo(492380469).createHeaderData()},
-				{"01542654051593c30c0063023f37364a3521591d02",
+				{"01542654051593c30c0063023f37364a3521591d0",
 						new HeaderDataBuilder().setType(HeaderType.NDN).setRefno(0x000cc393).setFailureReason(0x63)
 								.setDeliveryAttempts(0x02).setStoredTime("2009-06-15 11:57:51").setMesNo(0x1d592135)
 								.createHeaderData()},
-				{"0154265401163AA80C00024414003369AD59F929FF02",
+				{"0154265401163AA80C00024414003369AD59F929FF0",
 						new HeaderDataBuilder().setType(HeaderType.DNID).setRefno(829498)
 								.setDataPresentation(HeaderDataPresentation.TRANS_DATA).setSatIdAndLesId(14)
 								.setDataLength(20).setStoredTime("2017-09-04 14:54:43").setDnid(10745).setMemNo(255)
