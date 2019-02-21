@@ -122,7 +122,7 @@ public class InmarsatPlugin extends PluginDataHolder  {
             }
         }
         catch(Exception e){
-            
+            LOGGER.error(e.toString(), e);
         }
     }
 
