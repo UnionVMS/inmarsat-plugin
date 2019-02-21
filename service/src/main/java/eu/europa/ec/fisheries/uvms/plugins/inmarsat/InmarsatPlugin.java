@@ -106,18 +106,23 @@ public class InmarsatPlugin extends PluginDataHolder  {
     @Schedule(second = "*/10", minute = "*", hour = "*", persistent = false)
     private void timeout(Timer timer) {
 
+        try {
 
-        LOGGER.info("HEARTBEAT timeout running. isRegistered=" + isRegistered + " ,numberOfTriesExecuted=" + numberOfTriesExecuted + " threadId=" + Thread.currentThread().toString());
-        if (!isRegistered && numberOfTriesExecuted < MAX_NUMBER_OF_TRIES) {
-            LOGGER.info(getRegisterClassName() + " is not registered, trying to register");
-            register();
-            numberOfTriesExecuted++;
+            LOGGER.info("HEARTBEAT timeout running. isRegistered=" + isRegistered + " ,numberOfTriesExecuted=" + numberOfTriesExecuted + " threadId=" + Thread.currentThread().toString());
+            if (!isRegistered && numberOfTriesExecuted < MAX_NUMBER_OF_TRIES) {
+                LOGGER.info(getRegisterClassName() + " is not registered, trying to register");
+                register();
+                numberOfTriesExecuted++;
+            }
+            if (isRegistered) {
+                LOGGER.info(getRegisterClassName() + " is registered. Cancelling timer.");
+                timer.cancel();
+            } else if (numberOfTriesExecuted >= MAX_NUMBER_OF_TRIES) {
+                LOGGER.info(getRegisterClassName() + " failed to register, maximum number of retries reached.");
+            }
         }
-        if (isRegistered) {
-            LOGGER.info(getRegisterClassName() + " is registered. Cancelling timer.");
-            timer.cancel();
-        } else if (numberOfTriesExecuted >= MAX_NUMBER_OF_TRIES) {
-            LOGGER.info(getRegisterClassName() + " failed to register, maximum number of retries reached.");
+        catch(Exception e){
+            
         }
     }
 
