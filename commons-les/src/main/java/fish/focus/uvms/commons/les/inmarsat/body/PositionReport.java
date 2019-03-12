@@ -109,10 +109,18 @@ public class PositionReport extends InmarsatBody {
 
 	@Override
 	public boolean validate() {
+
+		/*
 		if ((body.length != DATA_PACKET_1_BYTES) && body.length != (DATA_PACKET_1_BYTES + DATA_PACKET_2_BYTES)) {
 			LOGGER.debug("Position report data length not valid: {}", body);
 			return false;
 		}
+		*/
+		if (!((body.length == DATA_PACKET_1_BYTES) || body.length == (DATA_PACKET_1_BYTES + DATA_PACKET_2_BYTES))) {
+			LOGGER.debug("Position report data length not valid: {}", body);
+			return false;
+		}
+
 		// validate body data
 		try {
 			getPositionDate();

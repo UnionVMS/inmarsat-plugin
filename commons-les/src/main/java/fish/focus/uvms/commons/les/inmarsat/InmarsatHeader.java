@@ -137,20 +137,17 @@ public class InmarsatHeader {
 	}
 
 	private static boolean isValidHeaderBase(byte[] headerToValidate) {
-		boolean ret =  headerToValidate != null && API_SOH == headerToValidate[HeaderStruct.POS_START_OF_HEADER_POS]
-				&& API_LEAD_TEXT.getBytes()[0] == headerToValidate[HeaderStruct.POS_LEAD_TEXT_0]
-				&& API_LEAD_TEXT.getBytes()[1] == headerToValidate[HeaderStruct.POS_LEAD_TEXT_1]
-				&& API_LEAD_TEXT.getBytes()[2] == headerToValidate[HeaderStruct.POS_LEAD_TEXT_2]
-				 && API_EOH == headerToValidate[headerToValidate.length - 1];
+		boolean b1 =  headerToValidate != null && API_SOH == headerToValidate[HeaderStruct.POS_START_OF_HEADER_POS];
+		boolean b2 =  API_LEAD_TEXT.getBytes()[0] == headerToValidate[HeaderStruct.POS_LEAD_TEXT_0];
+		boolean b3 =  API_LEAD_TEXT.getBytes()[1] == headerToValidate[HeaderStruct.POS_LEAD_TEXT_1];
+		boolean b4 =  API_LEAD_TEXT.getBytes()[2] == headerToValidate[HeaderStruct.POS_LEAD_TEXT_2];
+		boolean b5 =  API_EOH == headerToValidate[headerToValidate.length - 1];
 
-		if(!ret) {
-			ret = headerToValidate != null && API_SOH == headerToValidate[HeaderStruct.POS_START_OF_HEADER_POS]
-					&& API_LEAD_TEXT.getBytes()[0] == headerToValidate[HeaderStruct.POS_LEAD_TEXT_0]
-					&& API_LEAD_TEXT.getBytes()[1] == headerToValidate[HeaderStruct.POS_LEAD_TEXT_1]
-					&& API_LEAD_TEXT.getBytes()[2] == headerToValidate[HeaderStruct.POS_LEAD_TEXT_2];
-
+		if(!b5){
+			LOGGER.warn("failed on end of header  (not there)");
 		}
-		return ret;
+
+		return b1 && b2 && b3 && b4 && b5;
 
 	}
 

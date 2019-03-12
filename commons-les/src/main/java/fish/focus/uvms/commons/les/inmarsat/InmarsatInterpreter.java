@@ -56,7 +56,12 @@ public class InmarsatInterpreter {
 				try {
 					message = new InmarsatMessage(messageBytes);
 				} catch (InmarsatException e) {
-					LOGGER.error("Error in Inmarsat Message: {} , Error: {}", Arrays.toString(bytes), e);
+					try {
+					sendFailedReportMessage(messageBytes);
+					} catch (JMSException ee) {
+						LOGGER.error("could not post rejected message to queue : ");
+						LOGGER.error(Arrays.toString(messageBytes));
+					}
 					continue;
 				}
 
@@ -64,8 +69,7 @@ public class InmarsatInterpreter {
 					messages.add(message);
 				} else {
 					try {
-						String msgId = sendFailedReportMessage(messageBytes);
-						LOGGER.info("Message with id {} rejected: ", msgId);
+						sendFailedReportMessage(messageBytes);
 					} catch (JMSException e) {
 						LOGGER.error("could not post rejected message to queue : ");
 						LOGGER.error(Arrays.toString(messageBytes));
