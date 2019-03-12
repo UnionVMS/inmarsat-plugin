@@ -1,20 +1,18 @@
 package eu.europa.ec.fisheries.uvms.plugins.inmarsat;
 
-import eu.europa.ec.fisheries.schema.exchange.common.v1.*;
+import eu.europa.ec.fisheries.schema.exchange.common.v1.AcknowledgeTypeType;
+import eu.europa.ec.fisheries.schema.exchange.common.v1.CommandType;
+import eu.europa.ec.fisheries.schema.exchange.common.v1.CommandTypeType;
+import eu.europa.ec.fisheries.schema.exchange.common.v1.KeyValueType;
 import eu.europa.ec.fisheries.schema.exchange.plugin.types.v1.PollType;
 import eu.europa.ec.fisheries.schema.exchange.plugin.types.v1.PollTypeType;
 import eu.europa.ec.fisheries.schema.exchange.service.v1.SettingType;
-import eu.europa.ec.fisheries.schema.exchange.v1.ExchangeLogStatusTypeType;
-import eu.europa.ec.fisheries.uvms.exchange.model.exception.ExchangeModelMarshallException;
-import eu.europa.ec.fisheries.uvms.exchange.model.mapper.ExchangePluginResponseMapper;
-import eu.europa.ec.fisheries.uvms.plugins.inmarsat.message.PluginMessageProducer;
 import org.apache.commons.net.telnet.TelnetClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.ejb.Singleton;
 import javax.inject.Inject;
-import javax.jms.JMSException;
 import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -40,14 +38,9 @@ public class InmarsatPollHandler {
     @Inject
     private PluginPendingResponseList responseList;
 
-    @Inject
-    private PluginMessageProducer messageProducer;
 
     @Inject
     private HelperFunctions functions;
-
-    @Inject
-    private InmarsatPlugin inmarsatPlugin;
 
     public ConcurrentMap<String, Object> getSettings() {
         return connectSettings;
