@@ -65,7 +65,7 @@ public class InmarsatHeaderTest {
 		byte[] cloneHeader = header.clone();
 		cloneHeader[cloneHeader.length - 1] = 0x1;
 		iHeader.header = cloneHeader;
-		assertTrue(iHeader.validate());
+		assertFalse(iHeader.validate());
 	}
 
 
