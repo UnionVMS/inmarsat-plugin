@@ -40,8 +40,7 @@ import java.util.*;
 
 @Startup
 @Singleton
-public class InmarsatPlugin extends PluginDataHolder  {
-
+public class InmarsatPlugin extends PluginDataHolder {
 
 
     private static final Logger LOGGER = LoggerFactory.getLogger(InmarsatPlugin.class);
@@ -120,8 +119,7 @@ public class InmarsatPlugin extends PluginDataHolder  {
             } else if (numberOfTriesExecuted >= MAX_NUMBER_OF_TRIES) {
                 LOGGER.info(getRegisterClassName() + " failed to register, maximum number of retries reached.");
             }
-        }
-        catch(Exception e){
+        } catch (Exception e) {
             LOGGER.error(e.toString(), e);
         }
     }
@@ -254,9 +252,6 @@ public class InmarsatPlugin extends PluginDataHolder  {
     }
 
 
-
-
-
     /**
      * @param msg inmarsat message to send
      */
@@ -295,7 +290,7 @@ public class InmarsatPlugin extends PluginDataHolder  {
         reportType.setPluginName(getRegisterClassName());
         reportType.setPluginType(PluginType.SATELLITE_RECEIVER);
 
-        if(!sendMovementReportToExchange(reportType)){
+        if (!sendMovementReportToExchange(reportType)) {
             // if it didnt send so quit return
             return;
         }
@@ -340,11 +335,11 @@ public class InmarsatPlugin extends PluginDataHolder  {
         LOGGER.debug("Sending movement to Exchange");
     }
 
-    public  String getApplicationName() {
+    public String getApplicationName() {
         try {
-            return  (String) super.getPluginApplicaitonProperties().get("application.name");
+            return (String) super.getPluginApplicaitonProperties().get("application.name");
         } catch (Exception e) {
-            LOGGER.error("Failed to getSetting for key: application.name" , getRegisterClassName());
+            LOGGER.error("Failed to getSetting for key: application.name", getRegisterClassName());
             return null;
         }
     }
@@ -356,7 +351,7 @@ public class InmarsatPlugin extends PluginDataHolder  {
             LOGGER.debug("Sent to exchange - text:{}, id:{}", text, messageId);
             return true;
         } catch (ExchangeModelMarshallException e) {
-            LOGGER.error("Couldn't map movement to setreportmovementtype",e);
+            LOGGER.error("Couldn't map movement to setreportmovementtype", e);
             return false;
         } catch (JMSException e) {
             LOGGER.error("couldn't send movement", e);
@@ -427,17 +422,15 @@ public class InmarsatPlugin extends PluginDataHolder  {
 
         for (String dnid : dnids) {
             try {
-                List<byte[]> messages = download(input, output, dnid);
-                for (byte[] message : messages) {
-                    InmarsatMessage[] inmarsatMessages = inmarsatInterpreter.byteToInmMessage(message);
-                    if ((inmarsatMessages != null) && (inmarsatMessages.length > 0)) {
-                        int n = inmarsatMessages.length;
-                        for (int i = 0; i < n; i++) {
-                            try {
-                                msgToQue(inmarsatMessages[i]);
-                            } catch (InmarsatException e) {
-                                LOGGER.error("Positiondate not found in " + inmarsatMessages[i].toString(), e);
-                            }
+                byte[] message = download(input, output, dnid);
+                InmarsatMessage[] inmarsatMessages = inmarsatInterpreter.byteToInmMessage(message);
+                if ((inmarsatMessages != null) && (inmarsatMessages.length > 0)) {
+                    int n = inmarsatMessages.length;
+                    for (int i = 0; i < n; i++) {
+                        try {
+                            msgToQue(inmarsatMessages[i]);
+                        } catch (InmarsatException e) {
+                            LOGGER.error("Positiondate not found in " + inmarsatMessages[i].toString(), e);
                         }
                     }
                 }
@@ -448,9 +441,8 @@ public class InmarsatPlugin extends PluginDataHolder  {
     }
 
 
-    private List<byte[]> download(BufferedInputStream input, PrintStream output, String dnid) throws TelnetException {
+    private byte[] download(BufferedInputStream input, PrintStream output, String dnid) throws TelnetException {
 
-        List<byte[]> response = new ArrayList<>();
         try {
             LOGGER.info("Trying to download from :{}", dnid);
 
@@ -458,13 +450,11 @@ public class InmarsatPlugin extends PluginDataHolder  {
             String cmd = "DNID " + dnid + " 9";
             functions.write(cmd, output);
             byte[] bos = readUntilDownload(">", input);
-            response.add(bos);
-
+            return bos;
         } catch (NullPointerException | IOException ex) {
             LOGGER.error("Error when communicating with Telnet", ex);
+            return new byte[0];
         }
-        LOGGER.info("Retrieved: " + response.size() + " files with dnid: " + dnid);
-        return response;
     }
 
     private byte[] readUntilDownload(String pattern, InputStream in) throws TelnetException, IOException {
@@ -479,7 +469,6 @@ public class InmarsatPlugin extends PluginDataHolder  {
             if (bytesRead > 0) {
                 bos.write(contents, 0, bytesRead);
                 String s = new String(contents, 0, bytesRead);
-                LOGGER.debug("[ Inmarsat C READ: {}", s);
                 sb.append(s);
                 String currentString = sb.toString();
                 if (currentString.trim().endsWith(pattern)) {
@@ -494,7 +483,6 @@ public class InmarsatPlugin extends PluginDataHolder  {
         bos.flush();
         throw new TelnetException("Unknown download response from Inmarsat-C LES Telnet @  : " + Arrays.toString(bos.toByteArray()));
     }
-
 
 
 }
