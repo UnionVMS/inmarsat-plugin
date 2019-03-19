@@ -11,10 +11,12 @@ import org.slf4j.LoggerFactory;
 import javax.annotation.PostConstruct;
 import javax.ejb.Stateless;
 import javax.jms.*;
-import javax.jms.Queue;
 import java.io.ByteArrayOutputStream;
 import java.nio.ByteBuffer;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Calendar;
+import java.util.Date;
 
 @Stateless
 public class InmarsatInterpreter {
@@ -57,7 +59,7 @@ public class InmarsatInterpreter {
 					message = new InmarsatMessage(messageBytes);
 				} catch (InmarsatException e) {
 					try {
-					sendFailedReportMessage(messageBytes);
+					    sendFailedReportMessage( messageBytes, fileBytes, bytes, e);
 					} catch (JMSException ee) {
 						LOGGER.error("could not post rejected message to queue : ");
 						LOGGER.error(Arrays.toString(messageBytes));
@@ -69,7 +71,7 @@ public class InmarsatInterpreter {
 					messages.add(message);
 				} else {
 					try {
-						sendFailedReportMessage(messageBytes);
+						sendFailedReportMessage( messageBytes, fileBytes, bytes, null);
 					} catch (JMSException e) {
 						LOGGER.error("could not post rejected message to queue : ");
 						LOGGER.error(Arrays.toString(messageBytes));
@@ -81,24 +83,62 @@ public class InmarsatInterpreter {
 		// Inmarsat[messages.size()]" to get better performance
 	}
 
-	public String  sendFailedReportMessage(byte[] inmarsatReport) throws JMSException {
+	public String  sendFailedReportMessage(byte[] message, byte[] fileBytes, byte[] bytes, Exception exception) throws JMSException {
+
+
+		String messageStr = byte2str(message);
+		String filebytesStr = byte2str(fileBytes);
+		String bytesStr = byte2str(bytes);
+		String exceptionStr = "";
+		if(exception != null){
+			exceptionStr = exception.toString();
+		}
+
 
 		try (Connection connection = connectionFactory.createConnection();
 			 Session session = JMSUtils.connectToQueue(connection)) {
 
-			BytesMessage message = session.createBytesMessage();
-			message.setStringProperty("source", "INMARSAT_C");
-			message.writeBytes(inmarsatReport);
-			sendMessage(session, inmarsatFailedReportQueue, message);
-			return message.getJMSMessageID();
+			BytesMessage messageHeader = session.createBytesMessage();
+			messageHeader.setStringProperty("messagesource", "INMARSAT_C");
+			messageHeader.setStringProperty("message_as_string", messageStr);
+			messageHeader.setStringProperty("filebytes_before_corr", filebytesStr);
+			messageHeader.setStringProperty("filebytes_after__corr", bytesStr);
+			if(exception != null) {
+				messageHeader.setStringProperty("exception", exceptionStr);
+			}
+			messageHeader.writeBytes(message);
+			sendMessage(session, inmarsatFailedReportQueue, messageHeader);
+
+
+			return messageHeader.getJMSMessageID();
 		} catch (JMSException e) {
 			throw e;
 		}
 
 	}
 
+	private String byte2str(byte[] message){
+		if(message == null ) return "";
+		if(message.length < 1) return "";
+
+		StringBuilder sb = new StringBuilder(message.length * 2);
+		for(byte b: message) {
+			sb.append(String.format("%02x", b & 0xff));
+		}
+		String s = sb.toString();
+		return s;
+	}
+
 
 	private void sendMessage(Session session, Destination destination, BytesMessage message)
+			throws JMSException {
+		try (MessageProducer messageProducer = session.createProducer(destination)) {
+			messageProducer.setDeliveryMode(DeliveryMode.PERSISTENT);
+			messageProducer.send(message);
+		}
+	}
+
+	private void sendMessage(Session session, Destination destination, TextMessage message)
 			throws JMSException {
 		try (MessageProducer messageProducer = session.createProducer(destination)) {
 			messageProducer.setDeliveryMode(DeliveryMode.PERSISTENT);
