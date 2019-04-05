@@ -11,13 +11,13 @@ copy of the GNU General Public License along with the IFDM Suite. If not, see <h
  */
 package eu.europa.ec.fisheries.uvms.plugins.inmarsat.message;
 
-import eu.europa.ec.fisheries.uvms.commons.message.impl.JMSUtils;
 import eu.europa.ec.fisheries.uvms.exchange.model.constant.ExchangeModelConstants;
 import eu.europa.ec.fisheries.uvms.plugins.inmarsat.ModuleQueue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.PostConstruct;
+import javax.annotation.Resource;
 import javax.ejb.LocalBean;
 import javax.jms.*;
 
@@ -27,46 +27,70 @@ import static eu.europa.ec.fisheries.uvms.plugins.inmarsat.ModuleQueue.EXCHANGE;
 public class PluginMessageProducer {
 
 
-
     private static final Logger LOGGER = LoggerFactory.getLogger(PluginMessageProducer.class);
+
+
+    @Resource(mappedName = "java:/" + ExchangeModelConstants.EXCHANGE_MESSAGE_IN_QUEUE)
     private Queue exchangeQueue;
+
+
+    @Resource(mappedName = "java:/" + ExchangeModelConstants.PLUGIN_EVENTBUS)
     private Topic eventBus;
+
+    @Resource(mappedName = "java:/ConnectionFactory")
     private ConnectionFactory connectionFactory;
 
     @PostConstruct
     public void resourceLookup() {
-        connectionFactory = JMSUtils.lookupConnectionFactory();
-        exchangeQueue = JMSUtils.lookupQueue(ExchangeModelConstants.EXCHANGE_MESSAGE_IN_QUEUE);
-        eventBus = JMSUtils.lookupTopic(ExchangeModelConstants.PLUGIN_EVENTBUS);
     }
 
     public void sendResponseMessage(String text, TextMessage requestMessage) throws JMSException {
 
         try (Connection connection = connectionFactory.createConnection();
-             Session session = JMSUtils.connectToQueue(connection)) {
-
+             Session session = connection.createSession(false, 1);
+             MessageProducer producer = session.createProducer(requestMessage.getJMSReplyTo());
+        ) {
             TextMessage message = session.createTextMessage();
             message.setJMSDestination(requestMessage.getJMSReplyTo());
             message.setJMSCorrelationID(requestMessage.getJMSMessageID());
             message.setText(text);
 
-            sendMessage(session, requestMessage.getJMSReplyTo(), message);
+            producer.setDeliveryMode(DeliveryMode.PERSISTENT);
+            producer.send(message);
+        }
+    }
 
+    public String sendEventBusMessage(String text, String serviceName) throws JMSException {
+
+        try (Connection connection = connectionFactory.createConnection();
+             Session session = connection.createSession(false, 1);
+             MessageProducer producer = session.createProducer(eventBus);
+        ) {
+            TextMessage message = session.createTextMessage();
+            message.setText(text);
+            message.setStringProperty(ExchangeModelConstants.SERVICE_NAME, serviceName);
+            producer.setDeliveryMode(DeliveryMode.PERSISTENT);
+            producer.send(message);
+            return message.getJMSMessageID();
         } catch (JMSException e) {
-            LOGGER.error("[ Error when sending jms message. {}] {}", text, e.getMessage());
-            throw new JMSException(e.getMessage());
+            LOGGER.error(e.toString(),e);
+            throw e;
         }
     }
 
     public String sendModuleMessage(String text, ModuleQueue queue) throws JMSException {
         try (Connection connection = connectionFactory.createConnection();
-             Session session = JMSUtils.connectToQueue(connection)) {
+             Session session = connection.createSession(false, 1);
+             MessageProducer producer = session.createProducer(exchangeQueue);
+        ) {
 
             TextMessage message = session.createTextMessage();
             message.setText(text);
 
             if (EXCHANGE == queue) {
-                sendMessage(session, exchangeQueue, message);
+                producer.setDeliveryMode(DeliveryMode.PERSISTENT);
+                producer.send(message);
+
             } else {
                 LOGGER.error("[ Sending Queue is not implemented ]");
             }
@@ -77,33 +101,6 @@ public class PluginMessageProducer {
         } catch (JMSException e) {
             LOGGER.error("[ Error when sending data source message. {}] {}", text, e.getMessage());
             throw new JMSException(e.getMessage());
-        }
-    }
-
-    public String sendEventBusMessage(String text, String serviceName) throws JMSException {
-        try (Connection connection = connectionFactory.createConnection();
-             Session session = JMSUtils.connectToQueue(connection)) {
-
-            TextMessage message = session.createTextMessage();
-            message.setText(text);
-            message.setStringProperty(ExchangeModelConstants.SERVICE_NAME, serviceName);
-
-            sendMessage(session, eventBus, message);
-
-            return message.getJMSMessageID();
-        } catch (JMSException e) {
-            LOGGER.error("[ Error when sending message. {}] {}", text, e.getMessage());
-            throw new JMSException(e.getMessage());
-        }
-    }
-
-
-
-    private void sendMessage(Session session, Destination destination, TextMessage message)
-            throws JMSException {
-        try (MessageProducer messageProducer = session.createProducer(destination)) {
-            messageProducer.setDeliveryMode(DeliveryMode.PERSISTENT);
-            messageProducer.send(message);
         }
     }
 
