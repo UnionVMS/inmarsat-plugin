@@ -46,11 +46,11 @@
         <artifactId>commons-lang3</artifactId>
         <version>${uvms-pom.commons.lang3.version}</version>
       </dependency>
-      <dependency>
+      <!--dependency>
         <groupId>eu.europa.ec.fisheries.uvms.commons</groupId>
         <artifactId>uvms-commons-message</artifactId>
         <version>${uvms.common.version}</version>
-      </dependency>
+      </dependency-->
       <dependency>
         <groupId>eu.europa.ec.fisheries.uvms.exchange</groupId>
         <artifactId>exchange-model</artifactId>
