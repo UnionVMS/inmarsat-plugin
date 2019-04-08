@@ -422,39 +422,44 @@ public class InmarsatPlugin extends PluginDataHolder {
 
         for (String dnid : dnids) {
             try {
-                byte[] message = download(input, output, dnid);
-                InmarsatMessage[] inmarsatMessages = inmarsatInterpreter.byteToInmMessage(message);
-                if ((inmarsatMessages != null) && (inmarsatMessages.length > 0)) {
-                    int n = inmarsatMessages.length;
-                    for (int i = 0; i < n; i++) {
-                        try {
-                            msgToQue(inmarsatMessages[i]);
-                        } catch (InmarsatException e) {
-                            LOGGER.error("Positiondate not found in " + inmarsatMessages[i].toString(), e);
+                List<byte[]> messages = download(input, output, dnid);
+                for (byte[] message : messages) {
+                    InmarsatMessage[] inmarsatMessagesPerOceanRegion = inmarsatInterpreter.byteToInmMessage(message);
+                    if ((inmarsatMessagesPerOceanRegion != null) && (inmarsatMessagesPerOceanRegion.length > 0)) {
+                        int n = inmarsatMessagesPerOceanRegion.length;
+                        for (int i = 0; i < n; i++) {
+                            try {
+                                msgToQue(inmarsatMessagesPerOceanRegion[i]);
+                            } catch (InmarsatException e) {
+                                LOGGER.error("Positiondate not found in " + inmarsatMessagesPerOceanRegion[i].toString(), e);
+                            }
                         }
                     }
                 }
             } catch (TelnetException e) {
-                LOGGER.error("Exception while downloading: {}", e.getMessage());
+                LOGGER.error(e.toString(), e);
+                continue;
             }
         }
     }
 
 
-    private byte[] download(BufferedInputStream input, PrintStream output, String dnid) throws TelnetException {
+    private List<byte[]> download(BufferedInputStream input, PrintStream output, String dnid) throws TelnetException {
 
-        try {
-            LOGGER.info("Trying to download from :{}", dnid);
+        List<byte[]> result = new ArrayList<>();
 
-            // according to manual 9 == all regions  -> only one call
-            String cmd = "DNID " + dnid + " 9";
-            functions.write(cmd, output);
-            byte[] bos = readUntilDownload(">", input);
-            return bos;
-        } catch (NullPointerException | IOException ex) {
-            LOGGER.error("Error when communicating with Telnet", ex);
-            return new byte[0];
+        LOGGER.info("Trying to download for :{}", dnid);
+        for (int oceanRegion = 0; oceanRegion < 4; oceanRegion++) {
+            try {
+                String cmd = "DNID " + dnid + " " + oceanRegion;
+                functions.write(cmd, output);
+                byte[] bos = readUntilDownload(">", input);
+                result.add(bos);
+            } catch (NullPointerException | IOException ex) {
+                LOGGER.error("Error when communicating with Telnet", ex);
+            }
         }
+        return result;
     }
 
     private byte[] readUntilDownload(String pattern, InputStream in) throws TelnetException, IOException {
