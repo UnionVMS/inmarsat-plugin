@@ -159,8 +159,10 @@ public class InmarsatInterpreter {
         output = insertMissingStoredTime(output);
         output = insertMissingMemberNo(output);
 
-        LOGGER.warn("Message fixed: {} -> {}", InmarsatUtils.bytesArrayToHexString(input),
-                InmarsatUtils.bytesArrayToHexString(output));
+        if (input.length < output.length){
+            LOGGER.warn("Message fixed: {} -> {}", InmarsatUtils.bytesArrayToHexString(input),
+                    InmarsatUtils.bytesArrayToHexString(output));
+        }
         return output;
 
     }
