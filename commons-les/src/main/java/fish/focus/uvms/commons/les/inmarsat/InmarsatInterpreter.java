@@ -41,8 +41,8 @@ public class InmarsatInterpreter {
     public void resourceLookup() {
     }
 
-    public InmarsatMessage[] byteToInmMessage(final byte[] fileBytes) {
-        byte[] bytes = insertMissingData(fileBytes);
+    public InmarsatMessage[] byteToInmMessage(final byte[] originalMessageFromInmarsat) {
+        byte[] bytes = insertMissingData(originalMessageFromInmarsat);
 
         ArrayList<InmarsatMessage> messages = new ArrayList<>();
         if (bytes == null || bytes.length <= PATTERN_LENGTH) {
@@ -54,16 +54,19 @@ public class InmarsatInterpreter {
             // Find message
             if (InmarsatHeader.isStartOfMessage(bytes, i)) {
                 InmarsatMessage message;
-                byte[] messageBytes = Arrays.copyOfRange(bytes, i, bytes.length);
+                byte[] currentMessageBytes = Arrays.copyOfRange(bytes, i, bytes.length);
                 try {
-                    message = new InmarsatMessage(messageBytes);
+                    message = new InmarsatMessage(currentMessageBytes);
                 } catch (InmarsatException e) {
                     LOGGER.error(e.toString(), e);
+                    LOGGER.error("{}", Arrays.toString(originalMessageFromInmarsat));
+                    LOGGER.error("{}", Arrays.toString(bytes));
+
                     try {
-                        sendFailedReportMessage(messageBytes, fileBytes, bytes, e);
+                        sendFailedReportMessage(currentMessageBytes, originalMessageFromInmarsat, bytes, e);
                     } catch (JMSException ee) {
                         LOGGER.error("could not post rejected message to queue : ");
-                        LOGGER.error(Arrays.toString(messageBytes));
+                        LOGGER.error(Arrays.toString(currentMessageBytes));
                     }
                     continue;
                 }
@@ -73,10 +76,10 @@ public class InmarsatInterpreter {
                 } else {
                     LOGGER.error("Could not validate position(s)");
                     try {
-                        sendFailedReportMessage(messageBytes, fileBytes, bytes, null);
+                        sendFailedReportMessage(currentMessageBytes, originalMessageFromInmarsat, bytes, null);
                     } catch (JMSException e) {
                         LOGGER.error("could not post rejected message to queue : ");
-                        LOGGER.error(Arrays.toString(messageBytes));
+                        LOGGER.error(Arrays.toString(currentMessageBytes));
                     }
                 }
             }
@@ -85,18 +88,21 @@ public class InmarsatInterpreter {
         // Inmarsat[messages.size()]" to get better performance
     }
 
-    public String sendFailedReportMessage(byte[] incomingMessage, byte[] fileBytes, byte[] bytes, Exception exception) throws JMSException {
+    String nullGuard(byte[] bytes) {
+        if (bytes == null) return "";
+        if (bytes.length == 0) return "";
+        return Arrays.toString(bytes);
+    }
+
+    public String sendFailedReportMessage(byte[] currentMessageBytes, byte[] originalMessageFromInmarsat, byte[] fixedBytes, Exception exception) throws JMSException {
 
         // we slice it up because buffersize is limited to 50000isch in Artemis
-        if(incomingMessage.length > 50000){
-            byte[] truncated = Arrays.copyOfRange(incomingMessage,0,  50000);
-            sendFailedReportMessage(truncated, fileBytes, bytes, exception);
-            incomingMessage = Arrays.copyOfRange(incomingMessage,50000, incomingMessage.length );
+        if (currentMessageBytes.length > 50000) {
+            byte[] truncated = Arrays.copyOfRange(currentMessageBytes, 0, 50000);
+            sendFailedReportMessage(truncated, originalMessageFromInmarsat, fixedBytes, exception);
+            currentMessageBytes = Arrays.copyOfRange(currentMessageBytes, 50000, currentMessageBytes.length);
         }
 
-        String messageStr = byte2str(incomingMessage);
-        String filebytesStr = byte2str(fileBytes);
-        String bytesStr = byte2str(bytes);
         String exceptionStr = "";
         if (exception != null) {
             exceptionStr = exception.toString();
@@ -110,13 +116,13 @@ public class InmarsatInterpreter {
 
             BytesMessage message = session.createBytesMessage();
             message.setStringProperty("messagesource", "INMARSAT_C");
-            message.setStringProperty("message_as_string", messageStr);
-            message.setStringProperty("filebytes_before_corr", filebytesStr);
-            message.setStringProperty("filebytes_after__corr", bytesStr);
+            message.setStringProperty("incoming_message_as_string", nullGuard(currentMessageBytes));
+            message.setStringProperty("filebytes_before_corr", nullGuard(originalMessageFromInmarsat));
+            message.setStringProperty("filebytes_after__corr", nullGuard(fixedBytes));
             if (exception != null) {
                 message.setStringProperty("exception", exceptionStr);
             }
-            message.writeBytes(incomingMessage);
+            message.writeBytes(currentMessageBytes);
             producer.setDeliveryMode(DeliveryMode.PERSISTENT);
             producer.send(message);
 
@@ -138,7 +144,7 @@ public class InmarsatInterpreter {
         String s = sb.toString();
         return s;
     }
-    
+
     /**
      * Header sent doesn't always adhere to the byte contract.. This method tries to insert fix the missing parts..
      *
@@ -146,16 +152,46 @@ public class InmarsatInterpreter {
      * @return message with fixed bytes
      */
     private byte[] insertMissingData(byte[] input) {
-        byte[] output = insertMissingMsgRefNo(input);
+
+        byte[] output = input;
+        output = insertMissingEOH(output);
+        output = insertMissingMsgRefNo(output);
         output = insertMissingStoredTime(output);
         output = insertMissingMemberNo(output);
 
-        if (LOGGER.isDebugEnabled() && (input.length < output.length)) {
-            LOGGER.debug("Message fixed: {} -> {}", InmarsatUtils.bytesArrayToHexString(input),
-                    InmarsatUtils.bytesArrayToHexString(output));
-        }
+        LOGGER.warn("Message fixed: {} -> {}", InmarsatUtils.bytesArrayToHexString(input),
+                InmarsatUtils.bytesArrayToHexString(output));
         return output;
 
+    }
+
+    private byte[] insertMissingEOH(final byte[] contents) {
+        byte[] input = contents.clone();
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+        boolean insert = false;
+        int insertPosition = 0;
+        for (int i = 0; i < input.length; i++) {
+            // Find SOH
+            if (InmarsatHeader.isStartOfMessage(input, i)) {
+                byte[] header = Arrays.copyOfRange(input, i, input.length);
+                HeaderType headerType = InmarsatHeader.getType(header);
+
+                int headerLength = headerType.getHeaderLength();
+                int token = header[headerLength];
+                if (token != InmarsatDefinition.API_EOH) {
+                    LOGGER.debug("API_EOH missing at given position so we add it");
+                    insert = true;
+                    insertPosition = i + InmarsatDefinition.API_EOH;
+                }
+            }
+            if (insert && (insertPosition == i)) {
+                insert = false;
+                insertPosition = 0;
+                output.write((byte) InmarsatDefinition.API_EOH); // END_OF_HEADER
+            }
+            output.write(input[i]);
+        }
+        return output.toByteArray();
     }
 
     private byte[] insertMissingMsgRefNo(final byte[] contents) {

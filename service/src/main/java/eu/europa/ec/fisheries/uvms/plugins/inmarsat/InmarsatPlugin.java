@@ -448,7 +448,7 @@ public class InmarsatPlugin extends PluginDataHolder {
 
         List<byte[]> result = new ArrayList<>();
 
-        LOGGER.info("Trying to download for :{}", dnid);
+        LOGGER.info("Download for :{} ", dnid);
         for (int oceanRegion = 0; oceanRegion < 4; oceanRegion++) {
             try {
                 String cmd = "DNID " + dnid + " " + oceanRegion;
@@ -459,6 +459,7 @@ public class InmarsatPlugin extends PluginDataHolder {
                 LOGGER.error("Error when communicating with Telnet", ex);
             }
         }
+        LOGGER.info("OK");
         return result;
     }
 
