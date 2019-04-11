@@ -43,13 +43,28 @@ public class HeaderDnidTest {
 	@Parameterized.Parameters
 	public static Collection<Object[]> data() {
 		return Arrays.asList(new Object[][] {
-				{"015426540116890b08000155140036372455c307e702", 20, HeaderDataPresentation.IA5, 1987,
-						"2015-04-07 21:59:50", 231, 121},
-				{"015426540116890b08000255160036372455c307e702", 22, HeaderDataPresentation.TRANS_DATA, 1987,
-						"2015-04-07 21:59:50", 231, 121},
-				{"015426540116890b08000255010036372855c307e702", 1, HeaderDataPresentation.TRANS_DATA, 1987,
-						"2015-04-10 22:48:54", 231, 121}});
+				{"015426540116890b08000155140036372455c307e702", 20, HeaderDataPresentation.IA5,        1987, "2015-04-07 21:59:50", 231, 121},
+				{"015426540116890b08000255160036372455c307e702", 22, HeaderDataPresentation.TRANS_DATA, 1987, "2015-04-07 21:59:50", 231, 121},
+				{"015426540116890b08000255160036372455c307e702", 22, HeaderDataPresentation.TRANS_DATA, 1987, "2015-04-07 21:59:50", 231, 121},
+				{"015426540116890b08000255010036372855c307e702",  1, HeaderDataPresentation.TRANS_DATA, 1987, "2015-04-10 22:48:54", 231, 121},
+		});
 	}
+
+	@Test
+	public void testHeaderWithNoEOH(){
+
+		byte[] msg = new byte[] {1,84,38,84,1,22,-100,21,6,0,2,-60,20,0,-59,-97,-117,92,-125,42,78,106,-72,47,-91,11,61,-104,0,-121,-128,0,53,-128,0,0,0,0,0,0,13,10,62,32};
+
+		InmarsatInterpreter interpreter = new InmarsatInterpreter();
+		byte[]  fixedHeader = interpreter.insertMissingData(msg);
+		assertTrue(msg.length  + 1 == fixedHeader.length);
+
+		// 0154265401169C15060002C41400C59F8B5C832A4E6AB82FA50B3D980087800035800000000000000D0A3E20
+		// 015402265401169C15060002C41400C59F8B5C832A4E6AB82FA50B3D980087800035800000000000000D0A3E20
+		//
+	}
+
+
 
 	@Test
 	public void createHeader() {

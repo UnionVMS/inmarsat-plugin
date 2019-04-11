@@ -151,7 +151,7 @@ public class InmarsatInterpreter {
      * @param input bytes that might contain miss some bytes
      * @return message with fixed bytes
      */
-    private byte[] insertMissingData(byte[] input) {
+    public byte[] insertMissingData(byte[] input) {
 
         byte[] output = input;
         output = insertMissingEOH(output);
@@ -181,7 +181,7 @@ public class InmarsatInterpreter {
                 int headerLength = headerType.getHeaderLength();
                 int token = header[headerLength];
                 if (token != InmarsatDefinition.API_EOH) {
-                    LOGGER.debug("API_EOH missing at given position so we add it");
+                    LOGGER.warn("API_EOH missing at given position so we add it");
                     insert = true;
                     insertPosition = i + InmarsatDefinition.API_EOH;
                 }
@@ -212,7 +212,7 @@ public class InmarsatInterpreter {
                     HeaderDataPresentation presentation = InmarsatHeader.getDataPresentation(header);
 
                     if (presentation == null) {
-                        LOGGER.debug("Presentation is not correct so we add 00 to msg ref no");
+                        LOGGER.warn("Presentation is not correct so we add 00 to msg ref no");
                         insert = true;
                         insertPosition = i + HeaderStruct.POS_REF_NO_END;
                     }
@@ -245,7 +245,7 @@ public class InmarsatInterpreter {
                 Date headerDate = InmarsatHeader.getStoredTime(header);
 
                 if (headerDate.after(Calendar.getInstance(InmarsatDefinition.API_TIMEZONE).getTime())) {
-                    LOGGER.debug("Stored time is not correct so we add 00 to in first position");
+                    LOGGER.warn("Stored time is not correct so we add 00 to in first position");
                     insert = true;
                     insertPosition = i + headerType.getHeaderStruct().getPositionStoredTime();
                 }
@@ -286,7 +286,7 @@ public class InmarsatInterpreter {
             }
             // Find EOH
             if (insert && (input[i] == (byte) InmarsatDefinition.API_EOH) && (insertPosition == i)) {
-                LOGGER.debug("Message is missing member no");
+                LOGGER.warn("Message is missing member no");
                 output.write((byte) 0xFF);
                 insert = false;
                 insertPosition = 0;
