@@ -2,19 +2,19 @@ package eu.europa.ec.fisheries.uvms.plugins.inmarsat;
 
 
 import eu.europa.ec.fisheries.schema.exchange.common.v1.*;
+import eu.europa.ec.fisheries.schema.exchange.module.v1.ExchangeModuleMethod;
 import eu.europa.ec.fisheries.schema.exchange.movement.mobileterminal.v1.IdList;
 import eu.europa.ec.fisheries.schema.exchange.movement.mobileterminal.v1.IdType;
 import eu.europa.ec.fisheries.schema.exchange.movement.mobileterminal.v1.MobileTerminalId;
 import eu.europa.ec.fisheries.schema.exchange.movement.v1.*;
 import eu.europa.ec.fisheries.schema.exchange.plugin.types.v1.PluginType;
+import eu.europa.ec.fisheries.schema.exchange.registry.v1.ExchangeRegistryMethod;
 import eu.europa.ec.fisheries.schema.exchange.service.v1.CapabilityListType;
 import eu.europa.ec.fisheries.schema.exchange.service.v1.ServiceType;
 import eu.europa.ec.fisheries.schema.exchange.service.v1.SettingListType;
 import eu.europa.ec.fisheries.schema.exchange.service.v1.SettingType;
 import eu.europa.ec.fisheries.schema.exchange.v1.ExchangeLogStatusTypeType;
-import eu.europa.ec.fisheries.uvms.commons.date.DateUtils;
 import eu.europa.ec.fisheries.uvms.exchange.model.constant.ExchangeModelConstants;
-import eu.europa.ec.fisheries.uvms.exchange.model.exception.ExchangeModelMarshallException;
 import eu.europa.ec.fisheries.uvms.exchange.model.mapper.ExchangeModuleRequestMapper;
 import eu.europa.ec.fisheries.uvms.exchange.model.mapper.ExchangePluginResponseMapper;
 import eu.europa.ec.fisheries.uvms.plugins.inmarsat.message.PluginMessageProducer;
@@ -36,6 +36,7 @@ import javax.ejb.Timer;
 import javax.inject.Inject;
 import javax.jms.JMSException;
 import java.io.*;
+import java.time.Instant;
 import java.util.*;
 
 @Startup
@@ -173,9 +174,9 @@ public class InmarsatPlugin extends PluginDataHolder {
         LOGGER.info("Registering to Exchange Module");
         try {
             String registerServiceRequest = ExchangeModuleRequestMapper.createRegisterServiceRequest(serviceType, capabilityList, settingList);
-            messageProducer.sendEventBusMessage(registerServiceRequest, ExchangeModelConstants.EXCHANGE_REGISTER_SERVICE);
+            messageProducer.sendEventBusMessage(registerServiceRequest, ExchangeModelConstants.EXCHANGE_REGISTER_SERVICE, ExchangeRegistryMethod.REGISTER_SERVICE.value());
             LOGGER.info("Registering to Exchange Module successfully sent.");
-        } catch (JMSException | ExchangeModelMarshallException e) {
+        } catch (JMSException | RuntimeException e) {
             LOGGER.error("Failed to send registration message to {}", ExchangeModelConstants.EXCHANGE_REGISTER_SERVICE);
         }
     }
@@ -184,8 +185,8 @@ public class InmarsatPlugin extends PluginDataHolder {
         LOGGER.info("Unregistering from Exchange Module");
         try {
             String unregisterServiceRequest = ExchangeModuleRequestMapper.createUnregisterServiceRequest(serviceType);
-            messageProducer.sendEventBusMessage(unregisterServiceRequest, ExchangeModelConstants.EXCHANGE_REGISTER_SERVICE);
-        } catch (JMSException | ExchangeModelMarshallException e) {
+            messageProducer.sendEventBusMessage(unregisterServiceRequest, ExchangeModelConstants.EXCHANGE_REGISTER_SERVICE, ExchangeRegistryMethod.UNREGISTER_SERVICE.value());
+        } catch (JMSException | RuntimeException e) {
             LOGGER.error("Failed to send unregistration message to {}", ExchangeModelConstants.EXCHANGE_REGISTER_SERVICE);
         }
     }
@@ -321,10 +322,10 @@ public class InmarsatPlugin extends PluginDataHolder {
 
             try {
                 String s = ExchangePluginResponseMapper.mapToSetPollStatusToSuccessfulResponse(getApplicationName(), ackType, ipr.getMsgId());
-                messageProducer.sendModuleMessage(s, ModuleQueue.EXCHANGE);
+                messageProducer.sendModuleMessage(s, ModuleQueue.EXCHANGE, ExchangeModuleMethod.PLUGIN_SET_COMMAND_ACK.value());
                 boolean b = responseList.removePendingPollResponse(ipr);
                 LOGGER.debug("Pending poll response removed: {}", b);
-            } catch (ExchangeModelMarshallException ex) {
+            } catch (RuntimeException ex) {
                 LOGGER.debug("ExchangeModelMarshallException", ex);
             } catch (JMSException jex) {
                 LOGGER.debug("JMSException", jex);
@@ -346,11 +347,11 @@ public class InmarsatPlugin extends PluginDataHolder {
 
     private boolean sendMovementReportToExchange(SetReportMovementType reportType) {
         try {
-            String text = ExchangeModuleRequestMapper.createSetMovementReportRequest(reportType, "TWOSTAGE", null, DateUtils.nowUTC().toDate(), null, PluginType.SATELLITE_RECEIVER, "TWOSTAGE", null);
-            String messageId = messageProducer.sendModuleMessage(text, ModuleQueue.EXCHANGE);
+            String text = ExchangeModuleRequestMapper.createSetMovementReportRequest(reportType, "TWOSTAGE", null, Instant.now(),  PluginType.SATELLITE_RECEIVER, "TWOSTAGE", null);
+            String messageId = messageProducer.sendModuleMessage(text, ModuleQueue.EXCHANGE, ExchangeModuleMethod.SET_MOVEMENT_REPORT.value());
             LOGGER.debug("Sent to exchange - text:{}, id:{}", text, messageId);
             return true;
-        } catch (ExchangeModelMarshallException e) {
+        } catch (RuntimeException e) {
             LOGGER.error("Couldn't map movement to setreportmovementtype", e);
             return false;
         } catch (JMSException e) {

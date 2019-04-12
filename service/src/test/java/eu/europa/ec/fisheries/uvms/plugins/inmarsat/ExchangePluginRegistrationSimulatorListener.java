@@ -13,7 +13,6 @@ import eu.europa.ec.fisheries.schema.exchange.service.v1.ServiceResponseType;
 import eu.europa.ec.fisheries.schema.exchange.service.v1.SettingListType;
 import eu.europa.ec.fisheries.uvms.commons.message.api.MessageConstants;
 import eu.europa.ec.fisheries.uvms.exchange.model.constant.ExchangeModelConstants;
-import eu.europa.ec.fisheries.uvms.exchange.model.exception.ExchangeModelMarshallException;
 import eu.europa.ec.fisheries.uvms.exchange.model.mapper.ExchangePluginResponseMapper;
 import eu.europa.ec.fisheries.uvms.exchange.model.mapper.JAXBMarshaller;
 import org.slf4j.Logger;
@@ -60,7 +59,7 @@ public class ExchangePluginRegistrationSimulatorListener implements MessageListe
                     SettingListType settingListType = new SettingListType();
                     service.setSettingList(settingListType);
                     String response = ExchangePluginResponseMapper.mapToRegisterServiceResponseOK("messageID", service);
-                    producer.sendEventBusMessage(response, register.getService().getServiceResponseMessageName());
+                    //producer.sendEventBusMessage(response, register.getService().getServiceResponseMessageName());
 
                     break;
                 case UNREGISTER_SERVICE:
@@ -79,8 +78,8 @@ public class ExchangePluginRegistrationSimulatorListener implements MessageListe
     private void unregisterService(TextMessage textMessage) {
         try {
             UnregisterServiceRequest unregister = JAXBMarshaller.unmarshallTextMessage(textMessage, UnregisterServiceRequest.class);
-        } catch (ExchangeModelMarshallException e) {
-            e.printStackTrace();
+        } catch (RuntimeException e) {
+            LOG.error(e.getMessage(), e);
         }
 
     }

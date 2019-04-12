@@ -16,7 +16,6 @@ import eu.europa.ec.fisheries.schema.exchange.common.v1.AcknowledgeTypeType;
 import eu.europa.ec.fisheries.schema.exchange.common.v1.PollStatusAcknowledgeType;
 import eu.europa.ec.fisheries.schema.exchange.plugin.v1.*;
 import eu.europa.ec.fisheries.schema.exchange.v1.ExchangeLogStatusTypeType;
-import eu.europa.ec.fisheries.uvms.exchange.model.exception.ExchangeModelMarshallException;
 import eu.europa.ec.fisheries.uvms.exchange.model.mapper.ExchangePluginResponseMapper;
 import eu.europa.ec.fisheries.uvms.exchange.model.mapper.JAXBMarshaller;
 import eu.europa.ec.fisheries.uvms.plugins.inmarsat.InmarsatPlugin;
@@ -124,7 +123,7 @@ public class PluginNameEventBusListener implements MessageListener {
 
             messageProducer.sendResponseMessage(responseMessage, textMessage);
 
-        } catch (ExchangeModelMarshallException | NullPointerException e) {
+        } catch (RuntimeException e) {
             LOGGER.error(
                     "[ Error when receiving message in twostage " + startup.getRegisterClassName() + " ]", e);
         } catch (JMSException ex) {
