@@ -146,10 +146,11 @@ public class InmarsatInterpreter {
      * @return message with fixed bytes
      */
     public byte[] insertMissingData(byte[] input) {
-        byte[] output = insertMissingMsgRefNo(input);
+
+        byte [] output = insertMissingEOH(input);
+        output = insertMissingMsgRefNo(output);
         output = insertMissingStoredTime(output);
         output = insertMissingMemberNo(output);
-        output = insertMissingEOH(output);
 
         if (input.length < output.length) {
             LOGGER.warn("Message fixed: {} -> {}", InmarsatUtils.bytesArrayToHexString(input),
