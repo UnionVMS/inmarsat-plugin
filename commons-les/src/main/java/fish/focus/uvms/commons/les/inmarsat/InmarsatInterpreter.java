@@ -145,7 +145,7 @@ public class InmarsatInterpreter {
      * @param input bytes that might contain miss some bytes
      * @return message with fixed bytes
      */
-    private byte[] insertMissingData(byte[] input) {
+    public byte[] insertMissingData(byte[] input) {
         byte[] output = insertMissingMsgRefNo(input);
         output = insertMissingStoredTime(output);
         output = insertMissingMemberNo(output);
@@ -170,18 +170,19 @@ public class InmarsatInterpreter {
                 byte[] header = Arrays.copyOfRange(input, i, input.length);
                 HeaderType headerType = InmarsatHeader.getType(header);
 
-                int headerLength = headerType.getHeaderLength();
-                int token = header[headerLength ];
+                int headerLength = headerType.getHeaderLength()  ;
+                int token = header[headerLength - 1];
                 if (token != InmarsatDefinition.API_EOH) {
                     LOGGER.warn("API_EOH missing at given position so we add it");
                     insert = true;
-                    insertPosition = i + headerLength;
+                    insertPosition = i + headerLength ;
                 }
             }
-            if (insert && (insertPosition == i)) {
+            if (insert && ((insertPosition - 1) == i)) {
                 insert = false;
                 insertPosition = 0;
                 output.write((byte) InmarsatDefinition.API_EOH); // END_OF_HEADER
+                continue;
             }
             output.write(input[i]);
         }
