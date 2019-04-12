@@ -175,7 +175,7 @@ public class InmarsatInterpreter {
                 if (token != InmarsatDefinition.API_EOH) {
                     LOGGER.warn("API_EOH missing at given position so we add it");
                     insert = true;
-                    insertPosition = i + InmarsatDefinition.API_EOH;
+                    insertPosition = i + headerLength;
                 }
             }
             if (insert && (insertPosition == i)) {
