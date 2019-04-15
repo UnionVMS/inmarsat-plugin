@@ -60,6 +60,8 @@ public class InmarsatHeaderTest {
 	}
 
 
+
+
 	@Test
 	public void isValidHeaderNegativeEOH() {
 		byte[] cloneHeader = header.clone();

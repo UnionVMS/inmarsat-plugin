@@ -49,7 +49,7 @@ public class PositionReport extends InmarsatBody {
 		PositionReport posReport = new PositionReport();
 		posReport.body = body;
 		if (!posReport.validate()) {
-			LOGGER.debug("Not a valid Position report body: {}", body);
+			LOGGER.error("Not a valid Position report body: {}", body);
 			throw new InmarsatException("Not a valid Position report body");
 		}
 		return posReport;
@@ -100,7 +100,7 @@ public class PositionReport extends InmarsatBody {
 
 		posReport.body = InmarsatUtils.binaryStringToByteArray(sb);
 		if (!posReport.validate()) {
-			LOGGER.debug("Not a valid Position report body: {}", body);
+			LOGGER.error("Not a valid Position report body: {}", body);
 			throw new InmarsatException("Not a valid Position report body");
 		}
 

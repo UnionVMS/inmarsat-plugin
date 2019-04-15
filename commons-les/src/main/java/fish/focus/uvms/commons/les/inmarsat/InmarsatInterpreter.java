@@ -145,17 +145,49 @@ public class InmarsatInterpreter {
      * @param input bytes that might contain miss some bytes
      * @return message with fixed bytes
      */
-    private byte[] insertMissingData(byte[] input) {
-        byte[] output = insertMissingMsgRefNo(input);
+    public byte[] insertMissingData(byte[] input) {
+
+        byte [] output = insertMissingEOH(input);
+        output = insertMissingMsgRefNo(output);
         output = insertMissingStoredTime(output);
         output = insertMissingMemberNo(output);
 
-        if (LOGGER.isDebugEnabled() && (input.length < output.length)) {
-            LOGGER.debug("Message fixed: {} -> {}", InmarsatUtils.bytesArrayToHexString(input),
+        if (input.length < output.length) {
+            LOGGER.warn("Message fixed: {} -> {}", InmarsatUtils.bytesArrayToHexString(input),
                     InmarsatUtils.bytesArrayToHexString(output));
         }
         return output;
 
+    }
+
+    private byte[] insertMissingEOH(final byte[] contents) {
+        byte[] input = contents.clone();
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+        boolean insert = false;
+        int insertPosition = 0;
+        for (int i = 0; i < input.length; i++) {
+            // Find SOH
+            if (InmarsatHeader.isStartOfMessage(input, i)) {
+                byte[] header = Arrays.copyOfRange(input, i, input.length);
+                HeaderType headerType = InmarsatHeader.getType(header);
+
+                int headerLength = headerType.getHeaderLength()  ;
+                int token = header[headerLength - 1];
+                if (token != InmarsatDefinition.API_EOH) {
+                    LOGGER.warn("API_EOH missing at given position so we add it");
+                    insert = true;
+                    insertPosition = i + headerLength ;
+                }
+            }
+            if (insert && ((insertPosition - 1) == i)) {
+                insert = false;
+                insertPosition = 0;
+                output.write((byte) InmarsatDefinition.API_EOH); // END_OF_HEADER
+                continue;
+            }
+            output.write(input[i]);
+        }
+        return output.toByteArray();
     }
 
     private byte[] insertMissingMsgRefNo(final byte[] contents) {
@@ -174,7 +206,7 @@ public class InmarsatInterpreter {
                     HeaderDataPresentation presentation = InmarsatHeader.getDataPresentation(header);
 
                     if (presentation == null) {
-                        LOGGER.debug("Presentation is not correct so we add 00 to msg ref no");
+                        LOGGER.warn("Presentation is not correct so we add 00 to msg ref no");
                         insert = true;
                         insertPosition = i + HeaderStruct.POS_REF_NO_END;
                     }
@@ -207,7 +239,7 @@ public class InmarsatInterpreter {
                 Date headerDate = InmarsatHeader.getStoredTime(header);
 
                 if (headerDate.after(Calendar.getInstance(InmarsatDefinition.API_TIMEZONE).getTime())) {
-                    LOGGER.debug("Stored time is not correct so we add 00 to in first position");
+                    LOGGER.warn("Stored time is not correct so we add 00 to in first position");
                     insert = true;
                     insertPosition = i + headerType.getHeaderStruct().getPositionStoredTime();
                 }
