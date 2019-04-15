@@ -22,8 +22,8 @@
   <properties>
     <docker.dev.version>3.30.3.w14</docker.dev.version>
     <commons.net.version>3.6</commons.net.version>
-    <exchange.model.version>4.0.25</exchange.model.version>
-    <uvms.common.version>3.0.23</uvms.common.version>
+    <exchange.model.version>5.0.0-UVMS</exchange.model.version>
+    <uvms.common.version>3.0.32</uvms.common.version>
     <scm.url>scm:git:https://github.com/UnionVMS/inmarsat-plugin.git</scm.url>
     <scm.connection>${scm.url}</scm.connection>
     <defaultLibBundleDir>APP-INF/lib</defaultLibBundleDir>
@@ -46,11 +46,6 @@
         <artifactId>commons-lang3</artifactId>
         <version>${uvms-pom.commons.lang3.version}</version>
       </dependency>
-      <!--dependency>
-        <groupId>eu.europa.ec.fisheries.uvms.commons</groupId>
-        <artifactId>uvms-commons-message</artifactId>
-        <version>${uvms.common.version}</version>
-      </dependency-->
       <dependency>
         <groupId>eu.europa.ec.fisheries.uvms.exchange</groupId>
         <artifactId>exchange-model</artifactId>
@@ -78,18 +73,6 @@
   </modules>
   <build>
     <plugins>
-      <!--plugin>
-          <groupId>com.coveo</groupId>
-          <artifactId>fmt-maven-plugin</artifactId>
-          <version>2.1.0</version>
-          <executions>
-              <execution>
-                  <goals>
-                      <goal>check</goal>
-                  </goals>
-              </execution>
-          </executions>
-      </plugin-->
     </plugins>
   </build>
 </project>

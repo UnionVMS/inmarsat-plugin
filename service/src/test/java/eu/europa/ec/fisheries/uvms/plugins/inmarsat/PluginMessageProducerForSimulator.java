@@ -21,8 +21,8 @@ import javax.jms.*;
 import static eu.europa.ec.fisheries.uvms.plugins.inmarsat.ModuleQueue.EXCHANGE;
 
 public class PluginMessageProducerForSimulator {
-
-    private static final Logger LOGGER = LoggerFactory.getLogger(PluginMessageProducerForSimulator.class);
+        //Outcommented to make stuff compile until thomas has fixed the inmarsat simulator
+   /* private static final Logger LOGGER = LoggerFactory.getLogger(PluginMessageProducerForSimulator.class);
     private Queue exchangeQueue;
     private Topic eventBus;
     private ConnectionFactory connectionFactory;
@@ -100,5 +100,5 @@ public class PluginMessageProducerForSimulator {
             //messageProducer.setTimeToLive(60000L);
             messageProducer.send(message);
         }
-    }
+    }*/
 }

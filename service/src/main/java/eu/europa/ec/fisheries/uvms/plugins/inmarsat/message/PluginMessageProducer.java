@@ -11,6 +11,7 @@ copy of the GNU General Public License along with the IFDM Suite. If not, see <h
  */
 package eu.europa.ec.fisheries.uvms.plugins.inmarsat.message;
 
+import eu.europa.ec.fisheries.uvms.commons.message.api.MessageConstants;
 import eu.europa.ec.fisheries.uvms.exchange.model.constant.ExchangeModelConstants;
 import eu.europa.ec.fisheries.uvms.plugins.inmarsat.ModuleQueue;
 import org.slf4j.Logger;
@@ -60,7 +61,7 @@ public class PluginMessageProducer {
         }
     }
 
-    public String sendEventBusMessage(String text, String serviceName) throws JMSException {
+    public String sendEventBusMessage(String text, String serviceName, String function) throws JMSException {
 
         try (Connection connection = connectionFactory.createConnection();
              Session session = connection.createSession(false, 1);
@@ -69,6 +70,7 @@ public class PluginMessageProducer {
             TextMessage message = session.createTextMessage();
             message.setText(text);
             message.setStringProperty(ExchangeModelConstants.SERVICE_NAME, serviceName);
+            message.setStringProperty(MessageConstants.JMS_FUNCTION_PROPERTY, function);
             producer.setDeliveryMode(DeliveryMode.PERSISTENT);
             producer.send(message);
             return message.getJMSMessageID();
@@ -78,7 +80,7 @@ public class PluginMessageProducer {
         }
     }
 
-    public String sendModuleMessage(String text, ModuleQueue queue) throws JMSException {
+    public String sendModuleMessage(String text, ModuleQueue queue, String function) throws JMSException {
         try (Connection connection = connectionFactory.createConnection();
              Session session = connection.createSession(false, 1);
              MessageProducer producer = session.createProducer(exchangeQueue);
@@ -86,6 +88,7 @@ public class PluginMessageProducer {
 
             TextMessage message = session.createTextMessage();
             message.setText(text);
+            message.setStringProperty(MessageConstants.JMS_FUNCTION_PROPERTY, function);
 
             if (EXCHANGE == queue) {
                 producer.setDeliveryMode(DeliveryMode.PERSISTENT);
