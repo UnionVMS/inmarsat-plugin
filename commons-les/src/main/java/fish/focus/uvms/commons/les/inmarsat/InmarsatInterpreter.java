@@ -183,7 +183,6 @@ public class InmarsatInterpreter {
                 insert = false;
                 insertPosition = 0;
                 output.write((byte) InmarsatDefinition.API_EOH); // END_OF_HEADER
-                continue;
             }
             output.write(input[i]);
         }
