@@ -59,8 +59,8 @@ public class InmarsatHeaderTestMissingEOH {
 
         // test that last token in the old array is the previous erroneus token that should not be in the head
         byte notfixed_token = aMessageHeader[aMessageHeader.length - 1];
-        byte fixed_token = fixed[fixed.length - 1];
-        assertTrue(notfixed_token == fixed_token);
+        byte fixed_token = fixed[fixed.length - 2];
+        assertTrue(notfixed_token != fixed_token);
 
         // remove the last token that not belongs to the header, so we can validate the header
         fixed = removeLast(fixed);
