@@ -449,6 +449,7 @@ public class InmarsatPlugin extends PluginDataHolder {
 
         List<byte[]> result = new ArrayList<>();
 
+        String status = "NOK";
         LOGGER.info("Trying to download for :{}", dnid);
         for (int oceanRegion = 0; oceanRegion < 4; oceanRegion++) {
             try {
@@ -456,10 +457,13 @@ public class InmarsatPlugin extends PluginDataHolder {
                 functions.write(cmd, output);
                 byte[] bos = readUntilDownload(">", input);
                 result.add(bos);
+                status = "OK";
             } catch (NullPointerException | IOException ex) {
                 LOGGER.error("Error when communicating with Telnet", ex);
+                status = "NOK Error when communicating with Telnet";
             }
         }
+        LOGGER.info(status);
         return result;
     }
 
