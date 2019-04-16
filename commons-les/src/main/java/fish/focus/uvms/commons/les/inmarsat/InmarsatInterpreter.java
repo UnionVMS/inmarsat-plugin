@@ -94,8 +94,7 @@ public class InmarsatInterpreter {
             return ret;
         }
         byte[] part1 = Arrays.copyOfRange(in, 0, 50000);
-        byte[] part2 = Arrays.copyOfRange(in, 50000, in.length - 50000);
-
+        byte[] part2 = Arrays.copyOfRange(in, 50000, in.length );
         ret.add(part1);
         ret.add(part2);
         return ret;
