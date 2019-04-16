@@ -97,4 +97,43 @@ public class InmarsatHeaderTestMissingEOH {
     }
 
 
+    @Test
+    public void repairErrorInHeadBiggerMessage_2_() {
+
+        InmarsatInterpreter interpreter = new InmarsatInterpreter();
+        byte[] aMessageHeader = InmarsatUtils.hexStringToByteArray(
+                "0d0a52657472696576696e6720444e494420646174612e2e2e0d0a015426540116f3d9030002c414001c67b55c832a4e6ab82fa50b40ab006100004580000000000000015426540116bd38000002c414007367b55c832a13024e5b301da38b40ac0d2a800045800000000000000154265401168a59020002c414007367b55c832a0e024ddcb03a6c0b40ac1c0d458000000000000001542654011654730b0002c414007367b55c832a0f024f383044900b40ac009180004580000000000000015426540116990002c414007367b55c832a14024e09983e218b40ac00b28000458000000000000001542654011668d9020002c414007367b55c832a11024e6ca842860b40ac00a7000045800000000000000d0a3e20");
+        byte[] fixed = interpreter.insertMissingData(aMessageHeader);
+
+        // this one is taken from errorlog and we want to check why its found there
+        byte[] afterCorr = InmarsatUtils.hexStringToByteArray("0d0a52657472696576696e6720444e494420646174612e2e2e0d0a015426540116f3d9030002c414001c67b55c832a4e026ab82fa50b40ab006100004580000000000000015426540116bd38000002c414007367b55c832a13024e5b301da38b40ac0d2a800045800000000000000154265401168a59020002c414007367b55c832a0e024ddcb03a6c0b40ac1c0d458000000000000001542654011654730b0002c414007367b55c832a0f024f383044900b40ac00918000458000000000000001542654011699000200c41400730067b55c832a14024e0209983e218b40ac00b28000458000000000000001542654011668d9020002c414007367b55c832a11024e6ca842860b40ac00a7000045800000000000000d0a3e20");
+
+        InmarsatMessage[] messages = interpreter.byteToInmMessage(fixed);
+        int n = messages.length;
+        assertTrue(n > 1);
+        for (int i = 0; i < n; i++) {
+            InmarsatMessage msg = messages[i];
+            assertTrue(msg.validate());
+        }
+
+        InmarsatMessage[] messages2 = interpreter.byteToInmMessage(afterCorr);
+        int n2 = messages2.length;
+        assertTrue(n2 > 1);
+        for (int i = 0; i < n2; i++) {
+            InmarsatMessage msg = messages2[i];
+            assertTrue(msg.validate());
+        }
+
+        String fromErrorLog =  new String(afterCorr);
+        String afterFixLocal =  new String(fixed);
+        assertTrue(fromErrorLog.equals(afterFixLocal));
+
+
+
+
+
+    }
+
+
+
 }
