@@ -224,11 +224,14 @@ public class InmarsatInterpreter {
                 HeaderType headerType = InmarsatHeader.getType(header);
 
                 int headerLength = headerType.getHeaderLength();
-                int token = header[headerLength - 1];
-                if (token != InmarsatDefinition.API_EOH) {
-                    LOGGER.warn("API_EOH missing at given position so we add it");
-                    insert = true;
-                    insertPosition = i + headerLength;
+                int realHeaderLength = header.length;
+                if((headerLength - 1) < realHeaderLength) {  // avoid arrayoutofbounds
+                    int token = header[headerLength - 1];
+                    if (token != InmarsatDefinition.API_EOH) {
+                        LOGGER.warn("API_EOH missing at given position so we add it");
+                        insert = true;
+                        insertPosition = i + headerLength;
+                    }
                 }
             }
             if (insert && ((insertPosition - 1) == i)) {
