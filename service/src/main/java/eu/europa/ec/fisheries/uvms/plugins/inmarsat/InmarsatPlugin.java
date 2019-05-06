@@ -485,12 +485,14 @@ public class InmarsatPlugin extends PluginDataHolder {
             String currentString = sb.toString();
             if (currentString.trim().endsWith(pattern)) {
                 bos.flush();
+                LOGGER.info("loop terminated with " + pattern + "   " + currentString);
                 return bos.toByteArray();
             } else {
                 functions.containsFault(currentString);
             }
         }
 
+        LOGGER.info("loop terminated with  " + bytesRead + " bytes read");
         bos.flush();
         return new byte[0];
     }
