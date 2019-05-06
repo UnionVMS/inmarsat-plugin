@@ -456,7 +456,9 @@ public class InmarsatPlugin extends PluginDataHolder {
                 String cmd = "DNID " + dnid + " " + oceanRegion;
                 functions.write(cmd, output);
                 byte[] bos = readUntilDownload(">", input);
-                result.add(bos);
+                if(bos != null  && bos.length > 0) {
+                    result.add(bos);
+                }
                 status = "OK";
             } catch (NullPointerException | IOException ex) {
                 LOGGER.error("Error when communicating with Telnet", ex);
@@ -474,25 +476,26 @@ public class InmarsatPlugin extends PluginDataHolder {
         int bytesRead;
         ByteArrayOutputStream bos = new ByteArrayOutputStream();
 
-        do {
-            bytesRead = in.read(contents);
-            if (bytesRead > 0) {
-                bos.write(contents, 0, bytesRead);
-                String s = new String(contents, 0, bytesRead);
-                sb.append(s);
-                String currentString = sb.toString();
-                if (currentString.trim().endsWith(pattern)) {
-                    bos.flush();
-                    return bos.toByteArray();
-                } else {
-                    functions.containsFault(currentString);
-                }
+        while(( bytesRead = in.read(contents)) > 0){
+            LOGGER.info("bytes read : " + bytesRead);
+            bos.write(contents, 0, bytesRead);
+            String s = new String(contents, 0, bytesRead);
+            LOGGER.info("current s :  : " + s);
+            sb.append(s);
+            String currentString = sb.toString();
+            if (currentString.trim().endsWith(pattern)) {
+                bos.flush();
+                LOGGER.info("loop terminated with " + pattern + "   " + currentString);
+                return bos.toByteArray();
+            } else {
+                functions.containsFault(currentString);
             }
-        } while (bytesRead >= 0);
+        }
 
+        LOGGER.info("loop terminated with  " + bytesRead + " bytes read");
         bos.flush();
-        throw new TelnetException("Unknown download response from Inmarsat-C LES Telnet @  : " + Arrays.toString(bos.toByteArray()));
+        return new byte[0];
     }
-
+    
 
 }
