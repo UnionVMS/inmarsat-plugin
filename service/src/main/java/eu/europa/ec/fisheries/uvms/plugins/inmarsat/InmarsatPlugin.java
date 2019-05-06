@@ -496,34 +496,6 @@ public class InmarsatPlugin extends PluginDataHolder {
         bos.flush();
         return new byte[0];
     }
-
-
-    private byte[] readUntilDownloadOLD(String pattern, InputStream in) throws TelnetException, IOException {
-
-        StringBuilder sb = new StringBuilder();
-        byte[] contents = new byte[1024];
-        int bytesRead;
-        ByteArrayOutputStream bos = new ByteArrayOutputStream();
-
-        do {
-            bytesRead = in.read(contents);
-            if (bytesRead > 0) {
-                bos.write(contents, 0, bytesRead);
-                String s = new String(contents, 0, bytesRead);
-                sb.append(s);
-                String currentString = sb.toString();
-                if (currentString.trim().endsWith(pattern)) {
-                    bos.flush();
-                    return bos.toByteArray();
-                } else {
-                    functions.containsFault(currentString);
-                }
-            }
-        } while (bytesRead >= 0);
-
-        bos.flush();
-        throw new TelnetException("Unknown download response from Inmarsat-C LES Telnet @  : " + Arrays.toString(bos.toByteArray()));
-    }
-
+    
 
 }
