@@ -456,7 +456,9 @@ public class InmarsatPlugin extends PluginDataHolder {
                 String cmd = "DNID " + dnid + " " + oceanRegion;
                 functions.write(cmd, output);
                 byte[] bos = readUntilDownload(">", input);
-                result.add(bos);
+                if(bos != null  && bos.length > 0) {
+                    result.add(bos);
+                }
                 status = "OK";
             } catch (NullPointerException | IOException ex) {
                 LOGGER.error("Error when communicating with Telnet", ex);
@@ -468,6 +470,33 @@ public class InmarsatPlugin extends PluginDataHolder {
     }
 
     private byte[] readUntilDownload(String pattern, InputStream in) throws TelnetException, IOException {
+
+        StringBuilder sb = new StringBuilder();
+        byte[] contents = new byte[1024];
+        int bytesRead;
+        ByteArrayOutputStream bos = new ByteArrayOutputStream();
+
+        while(( bytesRead = in.read(contents)) > 0){
+            LOGGER.info("bytes read : " + bytesRead);
+            bos.write(contents, 0, bytesRead);
+            String s = new String(contents, 0, bytesRead);
+            LOGGER.info("current s :  : " + s);
+            sb.append(s);
+            String currentString = sb.toString();
+            if (currentString.trim().endsWith(pattern)) {
+                bos.flush();
+                return bos.toByteArray();
+            } else {
+                functions.containsFault(currentString);
+            }
+        }
+
+        bos.flush();
+        return new byte[0];
+    }
+
+
+    private byte[] readUntilDownloadOLD(String pattern, InputStream in) throws TelnetException, IOException {
 
         StringBuilder sb = new StringBuilder();
         byte[] contents = new byte[1024];
