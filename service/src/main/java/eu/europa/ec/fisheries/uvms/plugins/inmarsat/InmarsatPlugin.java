@@ -152,6 +152,7 @@ public class InmarsatPlugin extends PluginDataHolder {
                 functions.readUntil(">", input);
 
                 downloadAndPutToQueue(input, output, dnids);
+
             }
         } catch (Throwable t) {
             LOGGER.error(t.toString(), t);
@@ -460,7 +461,7 @@ public class InmarsatPlugin extends PluginDataHolder {
                     result.add(bos);
                 }
                 status = "OK";
-            } catch (NullPointerException | IOException ex) {
+            } catch (NullPointerException  ex) {
                 LOGGER.error("Error when communicating with Telnet", ex);
                 status = "NOK Error when communicating with Telnet";
             }
@@ -469,32 +470,38 @@ public class InmarsatPlugin extends PluginDataHolder {
         return result;
     }
 
-    private byte[] readUntilDownload(String pattern, InputStream in) throws TelnetException, IOException {
+    private byte[] readUntilDownload(String pattern, BufferedInputStream in) throws TelnetException {
 
         StringBuilder sb = new StringBuilder();
-        byte[] contents = new byte[1024];
+        byte[] contents = new byte[4096];
         int bytesRead;
         ByteArrayOutputStream bos = new ByteArrayOutputStream();
 
-        while(( bytesRead = in.read(contents)) > 0){
-            LOGGER.info("bytes read : " + bytesRead);
-            bos.write(contents, 0, bytesRead);
-            String s = new String(contents, 0, bytesRead);
-            LOGGER.info("current s :  : " + s);
-            sb.append(s);
-            String currentString = sb.toString();
-            if (currentString.trim().endsWith(pattern)) {
-                bos.flush();
-                LOGGER.info("loop terminated with " + pattern + "   " + currentString);
-                return bos.toByteArray();
-            } else {
-                functions.containsFault(currentString);
+        try {
+            while ((bytesRead = in.read(contents)) > 0) {
+                LOGGER.info("bytes read : " + bytesRead);
+                bos.write(contents, 0, bytesRead);
+                String s = new String(contents, 0, bytesRead);
+                LOGGER.info("current s : " + s);
+                sb.append(s);
+                String currentString = sb.toString().trim();
+                if (currentString.trim().endsWith(pattern)) {
+                    bos.flush();
+                    LOGGER.info("loop terminated with " + pattern + "   " + currentString);
+                    return bos.toByteArray();
+                } else {
+                    functions.containsFault(currentString);
+                }
             }
+            LOGGER.info("loop terminated with  " + bytesRead + " bytes read");
+            bos.flush();
+            return new byte[0];
+
+        }catch(IOException ioe){
+            LOGGER.info(ioe.toString(),ioe);
+            return new byte[0];
         }
 
-        LOGGER.info("loop terminated with  " + bytesRead + " bytes read");
-        bos.flush();
-        return new byte[0];
     }
     
 
