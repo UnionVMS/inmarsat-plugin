@@ -126,7 +126,7 @@ public class InmarsatPlugin extends PluginDataHolder {
     }
 
 
-    @Schedule(minute = "*/3", hour = "*", persistent = false)
+   // @Schedule(minute = "*/3", hour = "*", persistent = false)
     private void connectAndRetrieve() {
 
         LOGGER.info("HEARTBEAT connectAndRetrieve running. IsEnabled=" + isEnabled + " threadId=" + Thread.currentThread().toString());

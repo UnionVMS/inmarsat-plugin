@@ -18,6 +18,7 @@ import eu.europa.ec.fisheries.schema.exchange.plugin.v1.*;
 import eu.europa.ec.fisheries.schema.exchange.v1.ExchangeLogStatusTypeType;
 import eu.europa.ec.fisheries.uvms.exchange.model.mapper.ExchangePluginResponseMapper;
 import eu.europa.ec.fisheries.uvms.exchange.model.mapper.JAXBMarshaller;
+import eu.europa.ec.fisheries.uvms.plugins.inmarsat.InmarsatMessageRetriever;
 import eu.europa.ec.fisheries.uvms.plugins.inmarsat.InmarsatPlugin;
 import eu.europa.ec.fisheries.uvms.plugins.inmarsat.InmarsatPollHandler;
 import eu.europa.ec.fisheries.uvms.plugins.inmarsat.message.PluginMessageProducer;
@@ -56,6 +57,10 @@ public class PluginNameEventBusListener implements MessageListener {
     @Inject
     private InmarsatPollHandler inmarsatPollHandler;
 
+    @Inject
+    private InmarsatMessageRetriever inmarsatMessageRetriever;
+
+
     @Override
     public void onMessage(Message inMessage) {
 
@@ -76,6 +81,7 @@ public class PluginNameEventBusListener implements MessageListener {
                 case SET_CONFIG:
                     SetConfigRequest setConfigRequest = JAXBMarshaller.unmarshallTextMessage(textMessage, SetConfigRequest.class);
                     AcknowledgeTypeType setConfig = startup.setConfig(setConfigRequest.getConfigurations());
+                    inmarsatMessageRetriever.setConfig(setConfigRequest.getConfigurations());
                     AcknowledgeType setConfigAck = ExchangePluginResponseMapper.mapToAcknowlegeType(textMessage.getJMSMessageID(), setConfig);
                     responseMessage = ExchangePluginResponseMapper.mapToSetConfigResponse(startup.getRegisterClassName(), setConfigAck);
                     break;
@@ -103,12 +109,14 @@ public class PluginNameEventBusListener implements MessageListener {
                 case START:
                     JAXBMarshaller.unmarshallTextMessage(textMessage, StartRequest.class);
                     AcknowledgeTypeType start = startup.start();
+                    inmarsatMessageRetriever.start();
                     AcknowledgeType startAck = ExchangePluginResponseMapper.mapToAcknowlegeType(textMessage.getJMSMessageID(), start);
                     responseMessage = ExchangePluginResponseMapper.mapToStartResponse(startup.getRegisterClassName(), startAck);
                     break;
                 case STOP:
                     JAXBMarshaller.unmarshallTextMessage(textMessage, StopRequest.class);
                     AcknowledgeTypeType stop = startup.stop();
+                    inmarsatMessageRetriever.stop();
                     AcknowledgeType stopAck = ExchangePluginResponseMapper.mapToAcknowlegeType(textMessage.getJMSMessageID(), stop);
                     responseMessage = ExchangePluginResponseMapper.mapToStopResponse(startup.getRegisterClassName(), stopAck);
                     break;

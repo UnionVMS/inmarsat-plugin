@@ -15,6 +15,7 @@ import eu.europa.ec.fisheries.schema.exchange.registry.v1.ExchangeRegistryBaseRe
 import eu.europa.ec.fisheries.schema.exchange.registry.v1.RegisterServiceResponse;
 import eu.europa.ec.fisheries.schema.exchange.registry.v1.UnregisterServiceResponse;
 import eu.europa.ec.fisheries.uvms.exchange.model.mapper.JAXBMarshaller;
+import eu.europa.ec.fisheries.uvms.plugins.inmarsat.InmarsatMessageRetriever;
 import eu.europa.ec.fisheries.uvms.plugins.inmarsat.InmarsatPlugin;
 import eu.europa.ec.fisheries.uvms.plugins.inmarsat.InmarsatPollHandler;
 import org.slf4j.Logger;
@@ -48,6 +49,9 @@ public class PluginAckEventBusListener implements MessageListener {
     @Inject
     private InmarsatPollHandler inmarsatPollHandler;
 
+    @Inject
+    private InmarsatMessageRetriever inmarsatMessageRetriever;
+
     @Override
     public void onMessage(Message inMessage) {
 
@@ -67,6 +71,7 @@ public class PluginAckEventBusListener implements MessageListener {
                         switch (registerResponse.getAck().getType()) {
                             case OK:
                                 LOGGER.info("Register OK");
+                                inmarsatMessageRetriever.updateSettings(registerResponse.getService().getSettingList().getSetting());
                                 startupService.setIsRegistered(Boolean.TRUE);
                                 startupService.updateSettings(registerResponse.getService().getSettingList().getSetting());
                                 inmarsatPollHandler.updateSettings(registerResponse.getService().getSettingList().getSetting());
