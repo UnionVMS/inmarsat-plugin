@@ -120,7 +120,7 @@ public class InmarsatMessageRetriever {
 
 
     //    @Schedule(second = "15", minute = "*", hour = "*", persistent = false)
-    @Schedule(minute = "*/1", hour = "*", persistent = false)
+    @Schedule(minute = "*/3", hour = "*", persistent = false)
     private void retrieveMessages() {
 
         LOGGER.info("HEARTBEAT retrieveMessages running. IsEnabled=" + isEnabled + " threadId=" + Thread.currentThread().toString());
