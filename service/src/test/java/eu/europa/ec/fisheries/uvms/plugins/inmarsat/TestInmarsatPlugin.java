@@ -135,12 +135,6 @@ public class TestInmarsatPlugin extends _BuildTestDeployment {
     @OperateOnDeployment("normal")
     public void testSomeProps() {
 
-        startupBean.setIsEnabled(false);
-        boolean isEnabled = startupBean.isIsEnabled();
-        Assert.assertFalse(isEnabled);
-        startupBean.setIsEnabled(true);
-        isEnabled = startupBean.isIsEnabled();
-        Assert.assertTrue(isEnabled);
 
 
         startupBean.setIsRegistered(false);

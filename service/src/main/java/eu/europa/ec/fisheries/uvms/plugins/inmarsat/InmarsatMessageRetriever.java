@@ -6,7 +6,8 @@ import eu.europa.ec.fisheries.schema.exchange.common.v1.KeyValueType;
 import eu.europa.ec.fisheries.schema.exchange.common.v1.ReportType;
 import eu.europa.ec.fisheries.schema.exchange.service.v1.SettingListType;
 import eu.europa.ec.fisheries.schema.exchange.service.v1.SettingType;
-import eu.europa.ec.fisheries.uvms.plugins.inmarsat.message.PluginMessageProducer;
+import fish.focus.uvms.commons.les.inmarsat.InmarsatDefinition;
+import fish.focus.uvms.commons.les.inmarsat.InmarsatHeader;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.net.telnet.TelnetClient;
 import org.slf4j.Logger;
@@ -25,6 +26,7 @@ import java.io.BufferedInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.nio.ByteBuffer;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -33,10 +35,19 @@ import java.util.concurrent.ConcurrentMap;
 @Singleton
 public class InmarsatMessageRetriever {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(InmarsatMessageRetriever.class);
-   // private static final String INMARSAT_MESSAGES = "jms/queue/UVMSInmarsatMessages";
 
-    private static final String INMARSAT_MESSAGES = "jms/queue/UVMSPluginFailedReport";
+    private static final byte[] HEADER_PATTERN = ByteBuffer.allocate(4).put((byte) InmarsatDefinition.API_SOH).put(InmarsatDefinition.API_LEAD_TEXT.getBytes()).array();
+    private static final int PATTERN_LENGTH = HEADER_PATTERN.length;
+
+
+    // API Misc. definitions
+    public static final int API_SOH = 1;
+    public static final int API_EOH = 2;
+    public static final String API_LEAD_TEXT = "T&T";
+
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(InmarsatMessageRetriever.class);
+    private static final String INMARSAT_MESSAGES = "jms/queue/UVMSInmarsatMessages";
 
 
 
@@ -55,11 +66,12 @@ public class InmarsatMessageRetriever {
     private Properties twostageApplicaitonProperties;
     private boolean isEnabled = false;
 
-    @Inject
-    private PluginMessageProducer messageProducer;
+//    @Inject
+//    private PluginMessageProducer messageProducer;
 
     @Inject
     private HelperFunctions functions;
+
 
     public void mapToMapFromProperties(ConcurrentMap<String, String> map, Properties props, String registerClassName) {
 
@@ -107,8 +119,8 @@ public class InmarsatMessageRetriever {
     }
 
 
-//    @Schedule(second = "15", minute = "*", hour = "*", persistent = false)
-    @Schedule(minute = "*/3", hour = "*", persistent = false)
+    //    @Schedule(second = "15", minute = "*", hour = "*", persistent = false)
+    @Schedule(minute = "*/1", hour = "*", persistent = false)
     private void retrieveMessages() {
 
         LOGGER.info("HEARTBEAT retrieveMessages running. IsEnabled=" + isEnabled + " threadId=" + Thread.currentThread().toString());
@@ -134,35 +146,38 @@ public class InmarsatMessageRetriever {
                 functions.readUntil(">", input);
 
                 for (String dnid : dnids) {
-                    try {
-
-                        String status = "NOK";
-                        LOGGER.info("Trying to download for :{}", dnid);
-                        for (int oceanRegion = 0; oceanRegion < 4; oceanRegion++) {
+                    String status = "NOK";
+                    LOGGER.info("Trying to download for :{}", dnid);
+                    for (int oceanRegion = 0; oceanRegion < 4; oceanRegion++) {
+                        try {
+                            String cmd = "DNID " + dnid + " " + oceanRegion;
+                            functions.write(cmd, output);
                             try {
-                                String cmd = "DNID " + dnid + " " + oceanRegion;
-                                functions.write(cmd, output);
                                 byte[] bos = readUntil(">", input);
                                 if (bos != null && bos.length > 0) {
+
+                                    String messageControl = new String(bos);
+                                    int pos = messageControl.indexOf("T&T");
+                                    if(pos < 0){
+                                        status = "OK";
+                                        continue;
+                                    }
                                     if (post(bos)) {
                                         status = "OK";
                                     } else {
                                         status = "NOK could not post to queue";
                                     }
                                 }
-                            } catch (NullPointerException ex) {
-                                LOGGER.error("Error when communicating with Telnet", ex);
-                                status = "NOK Error when communicating with Telnet";
+                            } catch (TelnetException tex) {
+                                LOGGER.info("Possible reason : Vessel probably not in that Ocean Region " + String.valueOf(oceanRegion), tex);
                             }
+                        } catch (NullPointerException ex) {
+                            LOGGER.error("Error when communicating with Telnet", ex);
+                            status = "NOK Error when communicating with Telnet";
                         }
-                        LOGGER.info(status);
-
-                    } catch (TelnetException e) {
-                        LOGGER.error(e.toString(), e);
-                        continue;
                     }
+                    LOGGER.info(status);
                 }
-
             }
         } catch (Throwable t) {
             LOGGER.error(t.toString(), t);
@@ -179,6 +194,25 @@ public class InmarsatMessageRetriever {
                 }
             }
         }
+    }
+
+
+    /**
+     * check if stream contains a 1T&T
+     *
+     * @param bytes
+     * @return
+     */
+    private boolean verifyMessage(byte[] bytes) {
+        if ((bytes == null) || (bytes.length < 4)) return false;
+        boolean retval = false;
+
+        for (int i = 0; i < (bytes.length - PATTERN_LENGTH); i++) {
+            if (InmarsatHeader.isStartOfMessage(bytes, i)) {
+                retval = true;
+            }
+        }
+        return retval;
     }
 
     private boolean post(byte[] msg) {
@@ -202,7 +236,7 @@ public class InmarsatMessageRetriever {
             LOGGER.info("Added to internal queue " + msgId);
             return true;
         } catch (JMSException e) {
-            LOGGER.error(e.toString(),e);
+            LOGGER.error(e.toString(), e);
             return false;
         }
     }
@@ -220,7 +254,7 @@ public class InmarsatMessageRetriever {
                 String s = new String(contents, 0, bytesRead);
                 sb.append(s);
                 String currentString = sb.toString().trim();
-                if (currentString.trim().endsWith(pattern)) {
+                if (currentString.endsWith(pattern)) {
                     bos.flush();
                     return bos.toByteArray();
                 } else {

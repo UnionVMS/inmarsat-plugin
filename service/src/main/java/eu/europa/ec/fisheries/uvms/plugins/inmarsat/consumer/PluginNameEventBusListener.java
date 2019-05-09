@@ -108,21 +108,19 @@ public class PluginNameEventBusListener implements MessageListener {
                     break;
                 case START:
                     JAXBMarshaller.unmarshallTextMessage(textMessage, StartRequest.class);
-                    AcknowledgeTypeType start = startup.start();
-                    inmarsatMessageRetriever.start();
+                    AcknowledgeTypeType start =  inmarsatMessageRetriever.start();
                     AcknowledgeType startAck = ExchangePluginResponseMapper.mapToAcknowlegeType(textMessage.getJMSMessageID(), start);
                     responseMessage = ExchangePluginResponseMapper.mapToStartResponse(startup.getRegisterClassName(), startAck);
                     break;
                 case STOP:
                     JAXBMarshaller.unmarshallTextMessage(textMessage, StopRequest.class);
-                    AcknowledgeTypeType stop = startup.stop();
-                    inmarsatMessageRetriever.stop();
+                    AcknowledgeTypeType stop = inmarsatMessageRetriever.stop();
                     AcknowledgeType stopAck = ExchangePluginResponseMapper.mapToAcknowlegeType(textMessage.getJMSMessageID(), stop);
                     responseMessage = ExchangePluginResponseMapper.mapToStopResponse(startup.getRegisterClassName(), stopAck);
                     break;
                 case PING:
                     JAXBMarshaller.unmarshallTextMessage(textMessage, PingRequest.class);
-                    responseMessage = ExchangePluginResponseMapper.mapToPingResponse(startup.isIsEnabled(), startup.isIsEnabled());
+                    responseMessage = ExchangePluginResponseMapper.mapToPingResponse(inmarsatMessageRetriever.isEnabled(), inmarsatMessageRetriever.isEnabled());
                     break;
                 default:
                     LOGGER.error("Not supported method");
