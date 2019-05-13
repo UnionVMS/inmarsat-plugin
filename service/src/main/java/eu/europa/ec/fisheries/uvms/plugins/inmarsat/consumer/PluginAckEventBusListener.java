@@ -113,7 +113,7 @@ public class PluginAckEventBusListener implements MessageListener {
             LOGGER.error(
                     startupService.getPluginResponseSubscriptionName() + " received fault : " + fault.getText() + " : " );
         } catch (JMSException e) {
-            LOGGER.error("Could not get text from incoming message in inmarsat");
+            LOGGER.error("Could not get text from incoming message in inmarsat-c");
         }
     }
 

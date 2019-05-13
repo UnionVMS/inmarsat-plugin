@@ -65,7 +65,7 @@ public class PluginNameEventBusListener implements MessageListener {
     public void onMessage(Message inMessage) {
 
         LOGGER.debug(
-                "Eventbus listener for twostage (MessageConstants.PLUGIN_SERVICE_CLASS_NAME): {}",
+                "Eventbus listener for inmarsat-c (MessageConstants.PLUGIN_SERVICE_CLASS_NAME): {}",
                 startup.getRegisterClassName());
 
         TextMessage textMessage = (TextMessage) inMessage;
@@ -131,10 +131,10 @@ public class PluginNameEventBusListener implements MessageListener {
 
         } catch (RuntimeException e) {
             LOGGER.error(
-                    "[ Error when receiving message in twostage " + startup.getRegisterClassName() + " ]", e);
+                    "[ Error when receiving message in inmarsat-c " + startup.getRegisterClassName() + " ]", e);
         } catch (JMSException ex) {
             LOGGER.error(
-                    "[ Error when handling JMS message in twostage " + startup.getRegisterClassName() + " ]",
+                    "[ Error when handling JMS message in inmarsat-c " + startup.getRegisterClassName() + " ]",
                     ex);
         }
     }

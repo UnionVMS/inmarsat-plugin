@@ -40,16 +40,8 @@ public class InmarsatMessageRetriever {
     private static final int PATTERN_LENGTH = HEADER_PATTERN.length;
 
 
-    // API Misc. definitions
-    public static final int API_SOH = 1;
-    public static final int API_EOH = 2;
-    public static final String API_LEAD_TEXT = "T&T";
-
-
     private static final Logger LOGGER = LoggerFactory.getLogger(InmarsatMessageRetriever.class);
     private static final String INMARSAT_MESSAGES = "jms/queue/UVMSInmarsatMessages";
-
-
 
     @Resource(mappedName = "java:/" + INMARSAT_MESSAGES)
     private Queue inmarsatMessages;
@@ -194,25 +186,6 @@ public class InmarsatMessageRetriever {
                 }
             }
         }
-    }
-
-
-    /**
-     * check if stream contains a 1T&T
-     *
-     * @param bytes
-     * @return
-     */
-    private boolean verifyMessage(byte[] bytes) {
-        if ((bytes == null) || (bytes.length < 4)) return false;
-        boolean retval = false;
-
-        for (int i = 0; i < (bytes.length - PATTERN_LENGTH); i++) {
-            if (InmarsatHeader.isStartOfMessage(bytes, i)) {
-                retval = true;
-            }
-        }
-        return retval;
     }
 
     private boolean post(byte[] msg) {
