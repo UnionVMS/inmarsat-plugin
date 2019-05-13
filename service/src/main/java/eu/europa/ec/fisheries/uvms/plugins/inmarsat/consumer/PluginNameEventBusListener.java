@@ -18,6 +18,7 @@ import eu.europa.ec.fisheries.schema.exchange.plugin.v1.*;
 import eu.europa.ec.fisheries.schema.exchange.v1.ExchangeLogStatusTypeType;
 import eu.europa.ec.fisheries.uvms.exchange.model.mapper.ExchangePluginResponseMapper;
 import eu.europa.ec.fisheries.uvms.exchange.model.mapper.JAXBMarshaller;
+import eu.europa.ec.fisheries.uvms.plugins.inmarsat.InmarsatMessageRetriever;
 import eu.europa.ec.fisheries.uvms.plugins.inmarsat.InmarsatPlugin;
 import eu.europa.ec.fisheries.uvms.plugins.inmarsat.InmarsatPollHandler;
 import eu.europa.ec.fisheries.uvms.plugins.inmarsat.message.PluginMessageProducer;
@@ -56,11 +57,15 @@ public class PluginNameEventBusListener implements MessageListener {
     @Inject
     private InmarsatPollHandler inmarsatPollHandler;
 
+    @Inject
+    private InmarsatMessageRetriever inmarsatMessageRetriever;
+
+
     @Override
     public void onMessage(Message inMessage) {
 
         LOGGER.debug(
-                "Eventbus listener for twostage (MessageConstants.PLUGIN_SERVICE_CLASS_NAME): {}",
+                "Eventbus listener for inmarsat-c (MessageConstants.PLUGIN_SERVICE_CLASS_NAME): {}",
                 startup.getRegisterClassName());
 
         TextMessage textMessage = (TextMessage) inMessage;
@@ -76,6 +81,7 @@ public class PluginNameEventBusListener implements MessageListener {
                 case SET_CONFIG:
                     SetConfigRequest setConfigRequest = JAXBMarshaller.unmarshallTextMessage(textMessage, SetConfigRequest.class);
                     AcknowledgeTypeType setConfig = startup.setConfig(setConfigRequest.getConfigurations());
+                    inmarsatMessageRetriever.setConfig(setConfigRequest.getConfigurations());
                     AcknowledgeType setConfigAck = ExchangePluginResponseMapper.mapToAcknowlegeType(textMessage.getJMSMessageID(), setConfig);
                     responseMessage = ExchangePluginResponseMapper.mapToSetConfigResponse(startup.getRegisterClassName(), setConfigAck);
                     break;
@@ -102,19 +108,19 @@ public class PluginNameEventBusListener implements MessageListener {
                     break;
                 case START:
                     JAXBMarshaller.unmarshallTextMessage(textMessage, StartRequest.class);
-                    AcknowledgeTypeType start = startup.start();
+                    AcknowledgeTypeType start =  inmarsatMessageRetriever.start();
                     AcknowledgeType startAck = ExchangePluginResponseMapper.mapToAcknowlegeType(textMessage.getJMSMessageID(), start);
                     responseMessage = ExchangePluginResponseMapper.mapToStartResponse(startup.getRegisterClassName(), startAck);
                     break;
                 case STOP:
                     JAXBMarshaller.unmarshallTextMessage(textMessage, StopRequest.class);
-                    AcknowledgeTypeType stop = startup.stop();
+                    AcknowledgeTypeType stop = inmarsatMessageRetriever.stop();
                     AcknowledgeType stopAck = ExchangePluginResponseMapper.mapToAcknowlegeType(textMessage.getJMSMessageID(), stop);
                     responseMessage = ExchangePluginResponseMapper.mapToStopResponse(startup.getRegisterClassName(), stopAck);
                     break;
                 case PING:
                     JAXBMarshaller.unmarshallTextMessage(textMessage, PingRequest.class);
-                    responseMessage = ExchangePluginResponseMapper.mapToPingResponse(startup.isIsEnabled(), startup.isIsEnabled());
+                    responseMessage = ExchangePluginResponseMapper.mapToPingResponse(inmarsatMessageRetriever.isEnabled(), inmarsatMessageRetriever.isEnabled());
                     break;
                 default:
                     LOGGER.error("Not supported method");
@@ -125,10 +131,10 @@ public class PluginNameEventBusListener implements MessageListener {
 
         } catch (RuntimeException e) {
             LOGGER.error(
-                    "[ Error when receiving message in twostage " + startup.getRegisterClassName() + " ]", e);
+                    "[ Error when receiving message in inmarsat-c " + startup.getRegisterClassName() + " ]", e);
         } catch (JMSException ex) {
             LOGGER.error(
-                    "[ Error when handling JMS message in twostage " + startup.getRegisterClassName() + " ]",
+                    "[ Error when handling JMS message in inmarsat-c " + startup.getRegisterClassName() + " ]",
                     ex);
         }
     }
