@@ -18,19 +18,22 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintStream;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
 @Singleton
 public class InmarsatPollHandler {
 
-    private static final String  PORT = "PORT";
-    private static final String  DNIDS = "DNIDS";
-    private static final String  URL = "URL";
-    private static final String  PSW = "PSW";
-    private static final String  USERNAME = "USERNAME";
+    private static final String PORT = "PORT";
+    private static final String DNIDS = "DNIDS";
+    private static final String URL = "URL";
+    private static final String PSW = "PSW";
+    private static final String USERNAME = "USERNAME";
 
     private final ConcurrentMap<String, Object> connectSettings = new ConcurrentHashMap<>();
+
+    private final Map<String, String> dnidMemberLastFoundInRegion = new ConcurrentHashMap<>();
 
 
     private static final Logger LOGGER = LoggerFactory.getLogger(InmarsatPollHandler.class);
@@ -47,11 +50,11 @@ public class InmarsatPollHandler {
     }
 
     public Object getSetting(String setting) {
-        return  connectSettings.get(setting);
+        return connectSettings.get(setting);
     }
 
 
-    public PluginPendingResponseList getPluginPendingResponseList(){
+    public PluginPendingResponseList getPluginPendingResponseList() {
         return responseList;
     }
 
@@ -86,10 +89,10 @@ public class InmarsatPollHandler {
         PrintStream output = null;
         try {
 
-            String url = (String)connectSettings.get(URL);
+            String url = (String) connectSettings.get(URL);
             Integer port = (Integer) connectSettings.get(PORT);
-            String user = (String)connectSettings.get(USERNAME);
-            String pwd = (String)connectSettings.get(PSW);
+            String user = (String) connectSettings.get(USERNAME);
+            String pwd = (String) connectSettings.get(PSW);
 
             telnet = functions.createTelnetClient(url, port);
 
@@ -102,7 +105,43 @@ public class InmarsatPollHandler {
             functions.sendPwd(output, pwd);
             functions.readUntil(">", input);
 
+
+            // first we try to poll at the OceanRegion we found the vessel last time
+            // if not found we send poll in all OceanRegions
+            List<KeyValueType> pollReceiver = poll.getPollReceiver();
+            String wrkDnid = "";
+            String wrkMemberNo = "";
+            for (KeyValueType value : pollReceiver) {
+                String key = value.getKey();
+                if (key.equalsIgnoreCase("DNID")) {
+                    wrkDnid = value.getValue() == null ? "" : value.getValue().trim();
+                }
+                if (key.equalsIgnoreCase("MEMBER_NUMBER")) {
+                    wrkMemberNo = value.getValue() == null ? "" : value.getValue().trim();
+                }
+            }
+            String keyDnidMemberLastFoundInRegion = wrkDnid + wrkMemberNo;
             String result = "";
+            if (dnidMemberLastFoundInRegion.containsKey(keyDnidMemberLastFoundInRegion)) {
+                InmarsatPoll.OceanRegion oceanRegion = InmarsatPoll.OceanRegion.valueOf(dnidMemberLastFoundInRegion.get(keyDnidMemberLastFoundInRegion));
+                try {
+                    result = sendPollCommand(poll, input, output, oceanRegion);
+                    if (result != null) {
+
+                        // success in this region return with referencenumber
+                        if (result.contains("Reference number")) {
+                            String referenceNumber = parseResponse(result);
+                            LOGGER.info("sendPoll invoked. Reference number : {} ", referenceNumber);
+                            return referenceNumber;
+                        }
+                    }
+                } catch (Throwable te) {
+                    LOGGER.warn(te.toString(), te);
+                }
+            }
+
+            // try with all regions  for not found in previous OceanRegion AND if moved o a new OceanRegion
+
             for (InmarsatPoll.OceanRegion oceanRegion : InmarsatPoll.OceanRegion.values()) {
                 try {
                     result = sendPollCommand(poll, input, output, oceanRegion);
@@ -113,17 +152,20 @@ public class InmarsatPollHandler {
                     if (result.contains("Reference number")) {
                         String referenceNumber = parseResponse(result);
                         LOGGER.info("sendPoll invoked. Reference number : {} ", referenceNumber);
+
+                        // success put it in the map for next time
+                        dnidMemberLastFoundInRegion.put(keyDnidMemberLastFoundInRegion, oceanRegion.name());
                         return referenceNumber;
                     }
                 }
             }
+
         } catch (Throwable t) {
             if (poll != null) {
                 LOGGER.error("SENDPOLL ERROR pollid : {}", poll.getPollId());
             }
             LOGGER.error(t.toString(), t);
-        }
-        finally {
+        } finally {
 
             if (output != null) {
                 output.print("QUIT \r\n");
@@ -136,7 +178,6 @@ public class InmarsatPollHandler {
                     // OK
                 }
             }
-
 
 
         }
@@ -163,10 +204,9 @@ public class InmarsatPollHandler {
     private String sendPollCommand(PollType poll, InputStream in, PrintStream out, InmarsatPoll.OceanRegion oceanRegion) throws TelnetException, IOException {
 
         String cmd = null;
-        try{
+        try {
             cmd = buildPollCommand(poll, oceanRegion);
-        }
-        catch(Throwable t){
+        } catch (Throwable t) {
             LOGGER.error("could not build pollcommand", t);
             return null;
         }
@@ -192,7 +232,7 @@ public class InmarsatPollHandler {
         int refNumber = -1;
         try {
             refNumber = Integer.parseInt(result);
-        }catch(NumberFormatException nfe){
+        } catch (NumberFormatException nfe) {
             LOGGER.error("Reference is not a number. Code should not reach this point. Erroneus usage of function");
         }
 
@@ -216,7 +256,6 @@ public class InmarsatPollHandler {
     }
 
 
-
     private String sendConfigurationPoll(PollType poll) throws TelnetException {
         throw new UnsupportedOperationException("Not supported yet.");
     }
@@ -229,21 +268,19 @@ public class InmarsatPollHandler {
             key = key.substring(pos + 1);
             String value = setting.getValue();
 
-            if(key.equals(PORT)){
-                try{
+            if (key.equals(PORT)) {
+                try {
                     Integer port = Integer.parseInt(value);
-                    connectSettings.put(key,port);
-                }
-                catch(NumberFormatException e){
+                    connectSettings.put(key, port);
+                } catch (NumberFormatException e) {
                     LOGGER.error("Port is not an integer");
                     return;
                 }
-            }else{
-                connectSettings.put(key,setting.getValue());
+            } else {
+                connectSettings.put(key, setting.getValue());
             }
         }
     }
-
 
 
 }
