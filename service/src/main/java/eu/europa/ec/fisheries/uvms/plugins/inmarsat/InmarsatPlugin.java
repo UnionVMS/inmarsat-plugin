@@ -30,10 +30,12 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 @Startup
 @Singleton
-public class InmarsatPlugin extends PluginDataHolder {
+public class InmarsatPlugin  {
 
 
     private static final Logger LOGGER = LoggerFactory.getLogger(InmarsatPlugin.class);
@@ -54,28 +56,70 @@ public class InmarsatPlugin extends PluginDataHolder {
     private SettingListType settingList;
     private ServiceType serviceType;
 
+    private static final String PLUGIN_PROPERTIES = "plugin.properties";
+    private static final String SETTINGS_PROPERTIES = "settings.properties";
+    private static final String CAPABILITIES_PROPERTIES = "capabilities.properties";
+    private final ConcurrentMap<String, String> settings = new ConcurrentHashMap<>();
+    private final ConcurrentMap<String, String> capabilities = new ConcurrentHashMap<>();
+    private Properties twostageApplicationProperties;
+    private Properties twostageProperties;
+    private Properties twostageCapabilities;
+
+    public ConcurrentMap<String, String> getSettings() {
+        return settings;
+    }
+
+    private ConcurrentMap<String, String> getCapabilities() {
+        return capabilities;
+    }
+
+    private Properties getPluginApplicationProperties() {
+        return twostageApplicationProperties;
+    }
+
+    private void setPluginApplicationProperties(Properties twostageApplicaitonProperties) {
+        this.twostageApplicationProperties = twostageApplicaitonProperties;
+    }
+
+    private Properties getPluginProperties() {
+        return twostageProperties;
+    }
+
+    private void setPluginProperties(Properties twostageProperties) {
+        this.twostageProperties = twostageProperties;
+    }
+
+    private Properties getPluginCapabilities() {
+        return twostageCapabilities;
+    }
+
+    private void setPluginCapabilities(Properties twostageCapabilities) {
+        this.twostageCapabilities = twostageCapabilities;
+    }
+
+
 
     @PostConstruct
     private void startup() {
 
-        Properties pluginProperties = functions.getPropertiesFromFile(this.getClass(), PluginDataHolder.PLUGIN_PROPERTIES);
-        super.setPluginApplicaitonProperties(pluginProperties);
+        Properties pluginProperties = functions.getPropertiesFromFile(this.getClass(), PLUGIN_PROPERTIES);
+        setPluginApplicationProperties(pluginProperties);
         registerClassName = getPluginApplicationProperty("application.groupid") + "." + getPluginApplicationProperty("application.name");
         LOGGER.debug("Plugin will try to register as:{}", registerClassName);
-        super.setPluginProperties(functions.getPropertiesFromFile(this.getClass(), PluginDataHolder.SETTINGS_PROPERTIES));
-        super.setPluginCapabilities(functions.getPropertiesFromFile(this.getClass(), PluginDataHolder.CAPABILITIES_PROPERTIES));
-        ServiceMapper.mapToMapFromProperties(super.getSettings(), super.getPluginProperties(), getRegisterClassName());
-        ServiceMapper.mapToMapFromProperties(super.getCapabilities(), super.getPluginCapabilities(), null);
+        setPluginProperties(functions.getPropertiesFromFile(this.getClass(), SETTINGS_PROPERTIES));
+        setPluginCapabilities(functions.getPropertiesFromFile(this.getClass(), CAPABILITIES_PROPERTIES));
+        ServiceMapper.mapToMapFromProperties(getSettings(), getPluginProperties(), getRegisterClassName());
+        ServiceMapper.mapToMapFromProperties(getCapabilities(), getPluginCapabilities(), null);
 
-        capabilityList = ServiceMapper.getCapabilitiesListTypeFromMap(super.getCapabilities());
-        settingList = ServiceMapper.getSettingsListTypeFromMap(super.getSettings());
+        capabilityList = ServiceMapper.getCapabilitiesListTypeFromMap(getCapabilities());
+        settingList = ServiceMapper.getSettingsListTypeFromMap(getSettings());
         serviceType = ServiceMapper.getServiceType(getRegisterClassName(), "Thrane&Thrane", "inmarsat plugin for the Thrane&Thrane API", PluginType.SATELLITE_RECEIVER, getPluginResponseSubscriptionName(), "INMARSAT_C");
 
         register();
 
         if (LOGGER.isDebugEnabled()) {
             LOGGER.debug("Settings updated in plugin {}", registerClassName);
-            for (Map.Entry<String, String> entry : super.getSettings().entrySet()) {
+            for (Map.Entry<String, String> entry : getSettings().entrySet()) {
                 LOGGER.debug("Setting: KEY: {} , VALUE: {}", entry.getKey(), entry.getValue());
             }
         }
@@ -142,7 +186,7 @@ public class InmarsatPlugin extends PluginDataHolder {
 
     private String getPluginApplicationProperty(String key) {
         try {
-            return (String) super.getPluginApplicaitonProperties().get(key);
+            return (String) getPluginApplicationProperties().get(key);
         } catch (Exception e) {
             LOGGER.error("Failed to getSetting for key: " + key, getRegisterClassName());
             return null;
@@ -151,7 +195,7 @@ public class InmarsatPlugin extends PluginDataHolder {
 
     public String getSetting(String setting) {
         LOGGER.debug("Trying to get setting {}.{}", registerClassName, setting);
-        String settingValue = super.getSettings().get(registerClassName + "." + setting);
+        String settingValue = getSettings().get(registerClassName + "." + setting);
         LOGGER.debug("Got setting value for {}.{};{}", registerClassName, setting, settingValue);
         return settingValue;
     }
@@ -176,7 +220,7 @@ public class InmarsatPlugin extends PluginDataHolder {
 
     public String getApplicationName() {
         try {
-            return (String) super.getPluginApplicaitonProperties().get("application.name");
+            return (String) getPluginApplicationProperties().get("application.name");
         } catch (Exception e) {
             LOGGER.error("Failed to getSetting for key: application.name", getRegisterClassName());
             return null;
