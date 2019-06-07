@@ -60,7 +60,7 @@ public class InmarsatMessageListener implements MessageListener {
     private PluginMessageProducer messageProducer;
 
     @Inject
-    @Metric
+    @Metric(name = "inmarsat_incoming", absolute = true)
     Counter inmarsatIncoming;
 
     @Override
