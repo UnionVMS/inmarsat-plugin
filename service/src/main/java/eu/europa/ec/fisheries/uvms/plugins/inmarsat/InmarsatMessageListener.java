@@ -18,6 +18,8 @@ import fish.focus.uvms.commons.les.inmarsat.InmarsatException;
 import fish.focus.uvms.commons.les.inmarsat.InmarsatInterpreter;
 import fish.focus.uvms.commons.les.inmarsat.InmarsatMessage;
 import fish.focus.uvms.commons.les.inmarsat.body.PositionReport;
+import org.eclipse.microprofile.metrics.Counter;
+import org.eclipse.microprofile.metrics.annotation.Metric;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -57,6 +59,10 @@ public class InmarsatMessageListener implements MessageListener {
     @Inject
     private PluginMessageProducer messageProducer;
 
+    @Inject
+    @Metric(name = "inmarsat_incoming", absolute = true)
+    Counter inmarsatIncoming;
+
     @Override
     public void onMessage(Message message) {
 
@@ -73,6 +79,7 @@ public class InmarsatMessageListener implements MessageListener {
                         for (int i = 0; i < n; i++) {
                             try {
                                 msgToQue(inmarsatMessagesPerOceanRegion[i]);
+                                inmarsatIncoming.inc();
                             } catch (InmarsatException e) {
                                 LOG.error("Positiondate not found in " + inmarsatMessagesPerOceanRegion[i].toString(), e);
                             }
