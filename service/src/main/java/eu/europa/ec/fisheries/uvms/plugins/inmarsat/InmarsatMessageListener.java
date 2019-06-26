@@ -147,7 +147,6 @@ public class InmarsatMessageListener implements MessageListener {
             LOG.info("PendingPollResponse found in list: {}", ipr.getReferenceNumber());
             AcknowledgeType ackType = new AcknowledgeType();
             ackType.setMessage("");
-            ackType.setMessageId(ipr.getMsgId());
 
             PollStatusAcknowledgeType osat = new PollStatusAcknowledgeType();
             osat.setPollId(ipr.getMsgId());
