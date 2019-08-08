@@ -31,6 +31,7 @@ import javax.jms.JMSException;
 import javax.jms.Message;
 import javax.jms.MessageListener;
 import java.time.Instant;
+import java.util.Base64;
 import java.util.GregorianCalendar;
 import java.util.TimeZone;
 
@@ -78,7 +79,7 @@ public class InmarsatMessageListener implements MessageListener {
                         int n = inmarsatMessagesPerOceanRegion.length;
                         for (int i = 0; i < n; i++) {
                             try {
-                                msgToQue(inmarsatMessagesPerOceanRegion[i]);
+                                msgToQue(inmarsatMessagesPerOceanRegion[i], payload);
                                 inmarsatIncoming.inc();
                             } catch (InmarsatException e) {
                                 LOG.error("Positiondate not found in " + inmarsatMessagesPerOceanRegion[i].toString(), e);
@@ -93,7 +94,7 @@ public class InmarsatMessageListener implements MessageListener {
     }
 
 
-    private void msgToQue(InmarsatMessage msg) throws InmarsatException {
+    private void msgToQue(InmarsatMessage msg, byte[] orgiDatFile) throws InmarsatException {
 
         MovementBaseType movement = new MovementBaseType();
         movement.setComChannelType(MovementComChannelType.MOBILE_TERMINAL);
@@ -127,6 +128,9 @@ public class InmarsatMessageListener implements MessageListener {
         reportType.setTimestamp(gcal.getTime());
         reportType.setPluginName(inmarsatPlugin.getRegisterClassName());
         reportType.setPluginType(PluginType.SATELLITE_RECEIVER);
+
+        reportType.setOriginalIncomingMessage(Base64.getEncoder().encodeToString(orgiDatFile));
+
 
         if (!sendMovementReportToExchange(reportType)) {
             // if it didnt send so quit return

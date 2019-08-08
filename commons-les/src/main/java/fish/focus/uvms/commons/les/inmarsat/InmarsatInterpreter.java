@@ -199,8 +199,7 @@ public class InmarsatInterpreter {
      */
     public byte[] insertMissingData(byte[] input) {
 
-        byte[] output = insertMissingEOH(input);
-        output = insertMissingMsgRefNo(output);
+        byte[] output = insertMissingMsgRefNo(input);
         output = insertMissingStoredTime(output);
         output = insertMissingMemberNo(output);
 
