@@ -151,6 +151,33 @@ public class InterpreterTest {
 
     }
 
+    @Test
+    public void interpreterTest8() throws Exception{
+        //        NOTE : not a valid header from error queue, to see if it works wo header. Missing/missplaced EoH
+        String base64String = "AVQmVAEW0WQEAALEFABMXYgqPQJO2DBLRwsiZQBLAACFgAAAAAAAAA0KPiA=";
+
+        InmarsatInterpreter inmarsatInterpreter = new InmarsatInterpreter();
+
+        byte[] decodedString = Base64.getDecoder().decode(base64String.getBytes("UTF-8"));
+        InmarsatMessage[] inmarsatMessagesPerOceanRegion = inmarsatInterpreter.byteToInmMessage(decodedString);
+        int n = inmarsatMessagesPerOceanRegion.length;
+        for (int i = 0; i < n; i++) {
+            convertToMovement(inmarsatMessagesPerOceanRegion[i]);
+        }
+
+    }
+
+
+    //half padded hex messages with incomplete headers:
+    /*
+        0154265401162ab3000002c41400ba5d8b2abe024e95302cd98b215b0069800085800000000000000d0a3e20     base64:    AVQmVAEWKrMAAALEFAC6XYsqvgJOlTAs2YshWwBpgACFgAAAAAAAAA0KPiA=
+        0154265401160d9e0a0002c41400cb5d8a2aeb024e79182dda0b215b3093000085800000000000000d0a3e20     base64:    AVQmVAEWDZ4KAALEFADLXYoq6wJOeRgt2gshWzCTAACFgAAAAAAAAA0KPiA=
+        015426540116f41e040002c41400985d8a2ae9024e6c3823110b215a1621000085800000000000000154265401160d9e0a0002c41400cb5d8a2aeb024e79182dda0b215b3093000085800000000000000d0a3e20    base64: AVQmVAEW9B4EAALEFACYXYoq6QJObDgjEQshWhYhAACFgAAAAAAAAAFUJlQBFg2eCgACxBQAy12KKusCTnkYLdoLIVswkwAAhYAAAAAAAAANCj4g    NOTE: two messages, two errors
+        015426540116456d0000024414004b5d8b2a20024e6b202a410b214f008500008580000000000000015426540116166e04000244140010fa4b5d8b2a30024e95282ab78b214f08618000858000000000000001542654011635300f000244140010fa4b5d8b2adb024e4238303b0b214f0c98800085800000000000000d0a3e20    base64: AVQmVAEWRW0AAAJEFABLXYsqIAJOayAqQQshTwCFAACFgAAAAAAAAAFUJlQBFhZuBAACRBQAEPpLXYsqMAJOlSgqt4shTwhhgACFgAAAAAAAAAFUJlQBFjUwDwACRBQAEPpLXYsq2wJOQjgwOwshTwyYgACFgAAAAAAAAA0KPiA=  NOTE:three messages, one error
+        015426540116d164040002c414004c5d882a3d024ed8304b470b2265004b000085800000000000000d0a3e20     base64:    AVQmVAEW0WQEAALEFABMXYgqPQJO2DBLRwsiZQBLAACFgAAAAAAAAA0KPiA=
+     */
+
+
     //This is an almost carbon copy of code in the msgToQue method in the InmarsatMessageListener class. Placed here since I could not get tests to work over there........
     private SetReportMovementType convertToMovement(InmarsatMessage msg) throws Exception{
         MovementBaseType movement = new MovementBaseType();
