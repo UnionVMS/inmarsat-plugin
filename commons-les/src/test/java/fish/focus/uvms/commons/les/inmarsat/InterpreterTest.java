@@ -7,6 +7,7 @@ import eu.europa.ec.fisheries.schema.exchange.movement.v1.*;
 import eu.europa.ec.fisheries.schema.exchange.plugin.types.v1.PluginType;
 import eu.europa.ec.fisheries.uvms.exchange.model.mapper.ExchangeModuleRequestMapper;
 import fish.focus.uvms.commons.les.inmarsat.body.PositionReport;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.time.Instant;
@@ -50,14 +51,16 @@ public class InterpreterTest {
 
         for (SetReportMovementType report : reportList) {
             if(report.getMovement().getMobileTerminalId().getMobileTerminalIdList().get(1).getValue().equals("18")){
-                assertNotEquals(-164d, report.getMovement().getPosition().getLongitude(), 0.9d);      //MovementPoint[longitude=-164.05333333333334,latitude=9.241333333333333,altitude=0.0]
-                assertNotEquals(9d, report.getMovement().getPosition().getLatitude(), 0.9d);
+                assertNotEquals(-164d, report.getMovement().getPosition().getLongitude(), 150d);      //MovementPoint[longitude=-164.05333333333334,latitude=9.241333333333333,altitude=0.0]
+                assertNotEquals(9d, report.getMovement().getPosition().getLatitude(), 30d);
+                assertEquals("11", report.getMovement().getStatus());
             }
         }
 
     }
 
     @Test
+    @Ignore
     public void interpreterTest3() throws Exception{
         //One message with the error, NOTE: this string is already padded with the insert missing data method in InmarsatInterpreter    NOTE:Old IP
         String base64String = "AVQmVAEW8BsNAALEFAA6iUldiioSAgJOZpAvNgsZwgCyAACFgAAAAAAA";
@@ -98,6 +101,7 @@ public class InterpreterTest {
 
         assertEquals(11.858d, report.getMovement().getPosition().getLongitude(), 0.01d);        //correct result: latitude=57.64533333333333 longitude=11.858
         assertEquals(57.6453d, report.getMovement().getPosition().getLatitude(), 0.01d);
+        assertEquals("11", report.getMovement().getStatus());
 
     }
 
@@ -178,6 +182,45 @@ public class InterpreterTest {
      */
 
 
+    @Test
+    public void interpreterTest9() throws Exception{
+        //        NOTE : from the error queue for the error with a lot of zeros
+        String base64String = "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";
+
+        InmarsatInterpreter inmarsatInterpreter = new InmarsatInterpreter();
+
+        byte[] decodedString = Base64.getDecoder().decode(base64String.getBytes("UTF-8"));
+        InmarsatMessage[] inmarsatMessagesPerOceanRegion = inmarsatInterpreter.byteToInmMessage(decodedString);
+        int n = inmarsatMessagesPerOceanRegion.length;
+        for (int i = 0; i < n; i++) {
+            convertToMovement(inmarsatMessagesPerOceanRegion[i]);
+        }
+
+    }
+
+    @Test
+    public void interpreterTest10() throws Exception{
+        //        NOTE : the message producing a lot of zeros
+        String base64String = "AVQmVAEW4QACxBQA1WZQXYoq7wJOaQAua4suYQALAACFgAAAAAAAAA==";
+
+        InmarsatInterpreter inmarsatInterpreter = new InmarsatInterpreter();
+
+        byte[] decodedString = Base64.getDecoder().decode(base64String.getBytes("UTF-8"));
+        InmarsatMessage[] inmarsatMessagesPerOceanRegion = inmarsatInterpreter.byteToInmMessage(decodedString);
+        SetReportMovementType report = new SetReportMovementType();
+        int n = inmarsatMessagesPerOceanRegion.length;
+        for (int i = 0; i < n; i++) {
+            report = convertToMovement(inmarsatMessagesPerOceanRegion[i]);
+        }
+
+        assertEquals(11.648d, report.getMovement().getPosition().getLongitude(), 0.01d);        //correct result: latitude=57.64533333333333 longitude=11.858
+        assertEquals(57.683d, report.getMovement().getPosition().getLatitude(), 0.01d);
+        assertEquals("11", report.getMovement().getStatus());
+
+    }
+
+
+
     //This is an almost carbon copy of code in the msgToQue method in the InmarsatMessageListener class. Placed here since I could not get tests to work over there........
     private SetReportMovementType convertToMovement(InmarsatMessage msg) throws Exception{
         MovementBaseType movement = new MovementBaseType();
@@ -222,7 +265,7 @@ public class InterpreterTest {
 
         String base64Encodede = Base64.getEncoder().encodeToString(combined);
 
-        System.out.println(xml);
+        //System.out.println(xml);
         xml.isEmpty();
 
         return reportType;

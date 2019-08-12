@@ -202,6 +202,7 @@ public class InmarsatInterpreter {
     public byte[] insertMissingData(byte[] input) {
 
         byte[] output = insertMissingMsgRefNo(input);
+        output = insertMissingMsgRefNo(output);         //incoming inmarsat message might be missing one or two bytes in the message reference number
         //output = insertMissingStoredTime(output);
         output = insertMissingMemberNo(output);
         output = padHeaderToCorrectLength(output);
@@ -230,7 +231,6 @@ public class InmarsatInterpreter {
                 if((headerLength - 1) < realHeaderLength) {  // avoid arrayoutofbounds
                     int token = header[headerLength - 1];
                     if (token != InmarsatDefinition.API_EOH) {
-                        LOGGER.warn("Header is one/two short so we add 00 to the stored time position");    //since we dont use stored time it is "relatively" risk-free to add positions there
                         if(header[headerLength - 2] == InmarsatDefinition.API_EOH){
                             insert = true;
                             insertPosition = i +  headerType.getHeaderStruct().getPositionStoredTime();
@@ -238,6 +238,7 @@ public class InmarsatInterpreter {
                             doubleInsert = true;
                             insertPosition = i +  headerType.getHeaderStruct().getPositionStoredTime();
                         }
+                        LOGGER.warn("Header is " + ((doubleInsert) ? "two" : "one") + " short so we add 00 as needed to the stored time position at position: " + insertPosition);    //since we dont use stored time it is "relatively" risk-free to add positions there
 
                     }
                 }
@@ -269,12 +270,12 @@ public class InmarsatInterpreter {
                 HeaderType headerType = InmarsatHeader.getType(header);
 
                 if (headerType.getHeaderStruct().isPresentation()) {
-                    HeaderDataPresentation presentation = InmarsatHeader.getDataPresentation(header);
+                    HeaderDataPresentation presentation = InmarsatHeader.getDataPresentation(header);   //Data presentation checks if position 11 is a one or a two
 
                     if (presentation == null) {
-                        LOGGER.warn("Presentation is not correct so we add 00 to msg ref no");
                         insert = true;
-                        insertPosition = i + HeaderStruct.POS_REF_NO_END;
+                        insertPosition = i + HeaderStruct.POS_REF_NO_START;
+                        LOGGER.warn("Presentation is not correct so we add 00 to msg ref no at position: " + insertPosition);
                     }
                 }
             }
@@ -346,10 +347,10 @@ public class InmarsatInterpreter {
             }
             // Find EOH
             if (insert && (input[i] == (byte) InmarsatDefinition.API_EOH) && (insertPosition == i)) {
-                LOGGER.warn("Message is missing member no");
                 output.write((byte) 0xFF);
                 insert = false;
                 insertPosition = 0;
+                LOGGER.warn("Message is missing member no, inserting FF at position: " + insertPosition);
 
             }
             output.write(input[i]);
