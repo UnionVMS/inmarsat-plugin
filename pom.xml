@@ -27,6 +27,8 @@
     <scm.url>scm:git:https://github.com/UnionVMS/inmarsat-plugin.git</scm.url>
     <scm.connection>${scm.url}</scm.connection>
     <defaultLibBundleDir>APP-INF/lib</defaultLibBundleDir>
+    <docker.liquibase.db.user>movement</docker.liquibase.db.user>
+    <docker.liquibase.db.passwd>movement</docker.liquibase.db.passwd>
   </properties>
 
   <dependencyManagement>

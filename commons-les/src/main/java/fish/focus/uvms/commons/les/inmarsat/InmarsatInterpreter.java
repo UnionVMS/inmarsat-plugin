@@ -165,7 +165,7 @@ public class InmarsatInterpreter {
                 TextMessage message = session.createTextMessage();
                 message.setStringProperty("messagesource", "INMARSAT_C");
                 message.setStringProperty("message_as_hex_string", messageStr);
-                String padded64String = "Padded message as base64string: " + Base64.getEncoder().encodeToString(incomingMessage) + "\n";
+                String padded64String = "Padded message as base64string: " + Base64.getEncoder().encodeToString(incomingMessage) + "\r\n";
                 String base64String = "Base message as base64string: " + Base64.getEncoder().encodeToString(originalMessage);
                 if (exception != null) {
                     message.setStringProperty("exception", exceptionStr);
