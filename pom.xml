@@ -20,7 +20,7 @@
   </scm>
 
   <properties>
-    <docker.dev.version>3.38.2.w17</docker.dev.version>
+    <docker.dev.version>3.30.3.w14</docker.dev.version>
     <commons.net.version>3.6</commons.net.version>
     <exchange.model.version>5.0.10-UVMS</exchange.model.version>
     <uvms.common.version>4.0.1</uvms.common.version>
