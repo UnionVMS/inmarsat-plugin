@@ -219,6 +219,25 @@ public class InterpreterTest {
 
     }
 
+    @Test
+    public void interpreterTest11() throws Exception{
+        //        NOTE : from plugin failed queue
+        //String base64String = "DQpSZXRyaWV2aW5nIEROSUQgZGF0YS4uLg0KAVQmVAEWfzoIAALEFACbbVFdiypOargvpUAxsQAIgACFgAAAAAAAAA0KPiA=";
+        String base64String = "DQpSZXRyaWV2aW5nIEROSUQgZGF0YS4uLg0KAVQmVAEWpkwJAALEFADpdVFdiipOargvpQsxxgBEgACFgAAAAAAAAAFUJlQBFqk8BgACxBQAHXZRXYoqdAJOeFAuKYsxxgCpAACFgAAAAAAAAA0KPiA=";
+
+        InmarsatInterpreter inmarsatInterpreter = new InmarsatInterpreter();
+
+        byte[] decodedString = Base64.getDecoder().decode(base64String.getBytes("UTF-8"));
+        InmarsatMessage[] inmarsatMessagesPerOceanRegion = inmarsatInterpreter.byteToInmMessage(decodedString);
+        SetReportMovementType report = new SetReportMovementType();
+        int n = inmarsatMessagesPerOceanRegion.length;
+        for (int i = 0; i < n; i++) {
+            report = convertToMovement(inmarsatMessagesPerOceanRegion[i]);
+        }
+
+
+    }
+
 
 
     //This is an almost carbon copy of code in the msgToQue method in the InmarsatMessageListener class. Placed here since I could not get tests to work over there........
@@ -265,7 +284,7 @@ public class InterpreterTest {
 
         String base64Encodede = Base64.getEncoder().encodeToString(combined);
 
-        //System.out.println(xml);
+        System.out.println(xml);
         xml.isEmpty();
 
         return reportType;
