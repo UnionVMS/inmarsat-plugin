@@ -131,7 +131,7 @@ public class InmarsatHeader {
         if (!isValidHeaderLength(headerToValidate)) {
             LOGGER.debug("header validation failed is either null or to short");
             return false;
-        } else if (!isValidHeaderBase(headerToValidate)) {
+        }else if (!isValidHeaderBase(headerToValidate)) {
             LOGGER.debug("header validation failed format check");
             return false;
         }

@@ -16,6 +16,12 @@
             <artifactId>uvms-commons-message</artifactId>
             <version>${uvms.common.version}</version>
         </dependency>
+        <dependency>
+            <groupId>eu.europa.ec.fisheries.uvms.exchange</groupId>
+            <artifactId>exchange-model</artifactId>
+            <version>5.0.9-UVMS</version>
+            <scope>test</scope>
+        </dependency>
 
 
     </dependencies>
