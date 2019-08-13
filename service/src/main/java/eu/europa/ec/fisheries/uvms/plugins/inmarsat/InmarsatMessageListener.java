@@ -36,7 +36,7 @@ import java.util.GregorianCalendar;
 import java.util.TimeZone;
 
 
-@MessageDriven(mappedName = MessageConstants.QUEUE_ASSET_EVENT, activationConfig = {
+@MessageDriven( activationConfig = {
         @ActivationConfigProperty(propertyName = "messagingType", propertyValue = "javax.jms.MessageListener"),
         @ActivationConfigProperty(propertyName = "destinationType", propertyValue = "javax.jms.Queue"),
         @ActivationConfigProperty(propertyName = "destination", propertyValue = "UVMSInmarsatMessages"),
