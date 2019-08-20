@@ -82,6 +82,8 @@ public class InmarsatPollHandler {
 
     public AcknowledgeTypeType setConfigCommand(CommandType command) {
         LOGGER.error("Config not implemented");
+        LOGGER.error(command.toString());
+
         // TODO - Implement update of configuration  (send commands and data to stream
         return AcknowledgeTypeType.OK;
 
