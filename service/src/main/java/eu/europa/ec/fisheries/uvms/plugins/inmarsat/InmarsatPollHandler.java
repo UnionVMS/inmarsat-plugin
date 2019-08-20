@@ -2,7 +2,6 @@ package eu.europa.ec.fisheries.uvms.plugins.inmarsat;
 
 import eu.europa.ec.fisheries.schema.exchange.common.v1.AcknowledgeTypeType;
 import eu.europa.ec.fisheries.schema.exchange.common.v1.CommandType;
-import eu.europa.ec.fisheries.schema.exchange.common.v1.CommandTypeType;
 import eu.europa.ec.fisheries.schema.exchange.common.v1.KeyValueType;
 import eu.europa.ec.fisheries.schema.exchange.plugin.types.v1.PollType;
 import eu.europa.ec.fisheries.schema.exchange.plugin.types.v1.PollTypeType;
@@ -60,31 +59,34 @@ public class InmarsatPollHandler {
 
     public AcknowledgeTypeType setCommand(CommandType command) {
 
-
-        PollType poll = command.getPoll();
-        if (poll != null && CommandTypeType.POLL.equals(command.getCommand())) {
-            if (PollTypeType.POLL == poll.getPollTypeType()) {
-                try {
-                    String reference = sendPoll(poll);
-                    if (reference == null) {
-                        LOGGER.error("Error no reference for poll with pollId: " + poll.getPollId());
-                        return AcknowledgeTypeType.NOK; //consumed but erroneus
-                    }
-                    LOGGER.info("sent poll with pollId: {} and reference: {} ", poll.getPollId(), reference);
-                    InmarsatPendingResponse ipr = createAnInmarsatPendingResponseObject(poll, reference);
-                    ipr.setUnsentMsgId(command.getUnsentMessageGuid());
-                    responseList.addPendingPollResponse(ipr);
-                    return AcknowledgeTypeType.OK;
-                } catch (Throwable e) {
-                    LOGGER.error("Error while sending poll: {}", e.getMessage(), e);
+        PollType pollType = command.getPoll();
+        if (PollTypeType.POLL == pollType.getPollTypeType()) {
+            try {
+                String reference = sendPoll(pollType);
+                if (reference == null) {
+                    LOGGER.error("Error no reference for poll with pollId: " + pollType.getPollId());
+                    return AcknowledgeTypeType.NOK; //consumed but erroneus
                 }
-            } else if (PollTypeType.CONFIG == poll.getPollTypeType()) {
-                LOGGER.error("Config not implemented");
-                // TODO - Implement update of configuration  (send commands and data to stream
+                LOGGER.info("sent poll with pollId: {} and reference: {} ", pollType.getPollId(), reference);
+                InmarsatPendingResponse ipr = createAnInmarsatPendingResponseObject(pollType, reference);
+                ipr.setUnsentMsgId(command.getUnsentMessageGuid());
+                responseList.addPendingPollResponse(ipr);
                 return AcknowledgeTypeType.OK;
+            } catch (Throwable e) {
+                LOGGER.error("Error while sending poll: {}", e.getMessage(), e);
             }
         }
         return AcknowledgeTypeType.NOK;
+    }
+
+
+    public AcknowledgeTypeType setConfigCommand(CommandType command) {
+        LOGGER.error("Config not implemented");
+        LOGGER.error(command.toString());
+
+        // TODO - Implement update of configuration  (send commands and data to stream
+        return AcknowledgeTypeType.OK;
+
     }
 
     private String sendPoll(PollType poll) {

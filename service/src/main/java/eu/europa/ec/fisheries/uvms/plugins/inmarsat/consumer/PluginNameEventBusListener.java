@@ -11,9 +11,9 @@ copy of the GNU General Public License along with the IFDM Suite. If not, see <h
  */
 package eu.europa.ec.fisheries.uvms.plugins.inmarsat.consumer;
 
-import eu.europa.ec.fisheries.schema.exchange.common.v1.AcknowledgeType;
-import eu.europa.ec.fisheries.schema.exchange.common.v1.AcknowledgeTypeType;
-import eu.europa.ec.fisheries.schema.exchange.common.v1.PollStatusAcknowledgeType;
+import eu.europa.ec.fisheries.schema.exchange.common.v1.*;
+import eu.europa.ec.fisheries.schema.exchange.plugin.types.v1.PollType;
+import eu.europa.ec.fisheries.schema.exchange.plugin.types.v1.PollTypeType;
 import eu.europa.ec.fisheries.schema.exchange.plugin.v1.*;
 import eu.europa.ec.fisheries.schema.exchange.v1.ExchangeLogStatusTypeType;
 import eu.europa.ec.fisheries.uvms.exchange.model.mapper.ExchangePluginResponseMapper;
@@ -87,18 +87,33 @@ public class PluginNameEventBusListener implements MessageListener {
                     break;
                 case SET_COMMAND:
                     SetCommandRequest setCommandRequest = JAXBMarshaller.unmarshallTextMessage(textMessage, SetCommandRequest.class);
-                    AcknowledgeTypeType setCommand = inmarsatPollHandler.setCommand(setCommandRequest.getCommand());
-                    AcknowledgeType setCommandAck = ExchangePluginResponseMapper.mapToAcknowledgeType(setCommandRequest.getCommand().getLogId(), setCommand);
-                    setCommandAck.setUnsentMessageGuid(setCommandRequest.getCommand().getUnsentMessageGuid());
-                    PollStatusAcknowledgeType pollAck = new PollStatusAcknowledgeType();
-                    if(setCommand.equals(AcknowledgeTypeType.OK)) {
-                        pollAck.setStatus(ExchangeLogStatusTypeType.PENDING);
-                    }else{
-                        pollAck.setStatus(ExchangeLogStatusTypeType.FAILED);
+                    CommandType commandType  = setCommandRequest.getCommand();
+                    PollType poll = commandType.getPoll();
+                    if (poll != null && CommandTypeType.POLL.equals(commandType.getCommand())) {
+
+                        if (PollTypeType.POLL == poll.getPollTypeType()) {
+
+                            AcknowledgeTypeType setCommand = inmarsatPollHandler.setCommand(setCommandRequest.getCommand());
+                            AcknowledgeType setCommandAck = ExchangePluginResponseMapper.mapToAcknowledgeType(setCommandRequest.getCommand().getLogId(), setCommand);
+                            setCommandAck.setUnsentMessageGuid(setCommandRequest.getCommand().getUnsentMessageGuid());
+                            PollStatusAcknowledgeType pollAck = new PollStatusAcknowledgeType();
+                            if(setCommand.equals(AcknowledgeTypeType.OK)) {
+                                pollAck.setStatus(ExchangeLogStatusTypeType.PENDING);
+                            }else{
+                                pollAck.setStatus(ExchangeLogStatusTypeType.FAILED);
+                            }
+                            pollAck.setPollId(setCommandRequest.getCommand().getPoll().getPollId());
+                            setCommandAck.setPollStatus(pollAck);
+                            responseMessage = ExchangePluginResponseMapper.mapToSetCommandResponse(startup.getRegisterClassName(), setCommandAck);
+
+                        } else if (PollTypeType.CONFIG == poll.getPollTypeType()) {
+
+                            AcknowledgeTypeType setCommand = inmarsatPollHandler.setConfigCommand(setCommandRequest.getCommand());
+                            AcknowledgeType setCommandAck = ExchangePluginResponseMapper.mapToAcknowledgeType(setCommandRequest.getCommand().getLogId(), setCommand);
+                            responseMessage = ExchangePluginResponseMapper.mapToSetCommandResponse(startup.getRegisterClassName(), setCommandAck);
+                        }
                     }
-                    pollAck.setPollId(setCommandRequest.getCommand().getPoll().getPollId());
-                    setCommandAck.setPollStatus(pollAck);
-                    responseMessage = ExchangePluginResponseMapper.mapToSetCommandResponse(startup.getRegisterClassName(), setCommandAck);
+
                     break;
                 case SET_REPORT:
                     SetReportRequest setReportRequest = JAXBMarshaller.unmarshallTextMessage(textMessage, SetReportRequest.class);
