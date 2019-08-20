@@ -78,6 +78,10 @@ public class InmarsatPollHandler {
                 } catch (Throwable e) {
                     LOGGER.error("Error while sending poll: {}", e.getMessage(), e);
                 }
+            } else if (PollTypeType.CONFIG == poll.getPollTypeType()) {
+                LOGGER.error("Config not implemented");
+                // TODO - Implement update of configuration  (send commands and data to stream
+                return AcknowledgeTypeType.OK;
             }
         }
         return AcknowledgeTypeType.NOK;
