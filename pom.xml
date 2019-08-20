@@ -21,7 +21,6 @@
 
   <properties>
     <docker.dev.version>3.30.3.w14</docker.dev.version>
-    <commons.net.version>3.6</commons.net.version>
     <exchange.model.version>5.0.10-UVMS</exchange.model.version>
     <uvms.common.version>4.0.1</uvms.common.version>
     <scm.url>scm:git:https://github.com/UnionVMS/inmarsat-plugin.git</scm.url>
@@ -35,11 +34,6 @@
         <groupId>eu.europa.ec.fisheries.uvms.plugins</groupId>
         <artifactId>commons-les</artifactId>
         <version>${project.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>commons-net</groupId>
-        <artifactId>commons-net</artifactId>
-        <version>${commons.net.version}</version>
       </dependency>
       <dependency>
         <groupId>org.apache.commons</groupId>

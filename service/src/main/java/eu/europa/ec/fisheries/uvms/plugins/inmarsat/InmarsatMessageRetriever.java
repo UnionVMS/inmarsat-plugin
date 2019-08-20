@@ -7,9 +7,7 @@ import eu.europa.ec.fisheries.schema.exchange.common.v1.ReportType;
 import eu.europa.ec.fisheries.schema.exchange.service.v1.SettingListType;
 import eu.europa.ec.fisheries.schema.exchange.service.v1.SettingType;
 import fish.focus.uvms.commons.les.inmarsat.InmarsatDefinition;
-import fish.focus.uvms.commons.les.inmarsat.InmarsatHeader;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.net.telnet.TelnetClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -26,6 +24,7 @@ import java.io.BufferedInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.net.Socket;
 import java.nio.ByteBuffer;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -116,7 +115,7 @@ public class InmarsatMessageRetriever {
     private void retrieveMessages() {
 
         LOGGER.info("HEARTBEAT retrieveMessages running. IsEnabled=" + isEnabled + " threadId=" + Thread.currentThread().toString());
-        TelnetClient telnet = null;
+        Socket socket = null;
         PrintStream output = null;
         try {
             if (isEnabled()) {
@@ -126,11 +125,11 @@ public class InmarsatMessageRetriever {
                 String user = getSetting("USERNAME");
                 String pwd = getSetting("PSW");
 
-                telnet = functions.createTelnetClient(url, Integer.parseInt(port));
+                socket = new Socket(url, Integer.parseInt(port));
 
                 // logon
-                BufferedInputStream input = new BufferedInputStream(telnet.getInputStream());
-                output = new PrintStream(telnet.getOutputStream());
+                BufferedInputStream input = new BufferedInputStream(socket.getInputStream());
+                output = new PrintStream(socket.getOutputStream());
                 functions.readUntil("name:", input);
                 functions.write(user, output);
                 functions.readUntil("word:", input);
@@ -160,7 +159,7 @@ public class InmarsatMessageRetriever {
                                         status = "NOK could not post to queue";
                                     }
                                 }
-                            } catch (TelnetException tex) {
+                            } catch (InmarsatSocketException tex) {
                                 LOGGER.info("Possible reason : Vessel probably not in that Ocean Region " + String.valueOf(oceanRegion), tex);
                             }
                         } catch (NullPointerException ex) {
@@ -178,9 +177,9 @@ public class InmarsatMessageRetriever {
                 output.print("QUIT \r\n");
                 output.flush();
             }
-            if ((telnet != null) && (telnet.isConnected())) {
+            if (socket != null) {
                 try {
-                    telnet.disconnect();
+                    socket.close();
                 } catch (IOException e) {
                     // OK
                 }
@@ -214,7 +213,7 @@ public class InmarsatMessageRetriever {
         }
     }
 
-    private byte[] readUntil(String pattern, BufferedInputStream in) throws TelnetException {
+    private byte[] readUntil(String pattern, BufferedInputStream in) throws InmarsatSocketException {
 
         StringBuilder sb = new StringBuilder();
         byte[] contents = new byte[4096];

@@ -7,7 +7,6 @@ import eu.europa.ec.fisheries.schema.exchange.common.v1.KeyValueType;
 import eu.europa.ec.fisheries.schema.exchange.plugin.types.v1.PollType;
 import eu.europa.ec.fisheries.schema.exchange.plugin.types.v1.PollTypeType;
 import eu.europa.ec.fisheries.schema.exchange.service.v1.SettingType;
-import org.apache.commons.net.telnet.TelnetClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -17,6 +16,7 @@ import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintStream;
+import java.net.Socket;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -85,7 +85,7 @@ public class InmarsatPollHandler {
 
     private String sendPoll(PollType poll) {
 
-        TelnetClient telnet = null;
+        Socket socket = null;
         PrintStream output = null;
         try {
 
@@ -94,11 +94,11 @@ public class InmarsatPollHandler {
             String user = (String) connectSettings.get(USERNAME);
             String pwd = (String) connectSettings.get(PSW);
 
-            telnet = functions.createTelnetClient(url, port);
+            socket = new Socket(url, port);
 
             // logon
-            BufferedInputStream input = new BufferedInputStream(telnet.getInputStream());
-            output = new PrintStream(telnet.getOutputStream());
+            BufferedInputStream input = new BufferedInputStream(socket.getInputStream());
+            output = new PrintStream(socket.getOutputStream());
             functions.readUntil("name:", input);
             functions.write(user, output);
             functions.readUntil("word:", input);
@@ -171,9 +171,9 @@ public class InmarsatPollHandler {
                 output.print("QUIT \r\n");
                 output.flush();
             }
-            if ((telnet != null) && (telnet.isConnected())) {
+            if (socket != null) {
                 try {
-                    telnet.disconnect();
+                    socket.close();
                 } catch (IOException e) {
                     // OK
                 }
@@ -201,7 +201,7 @@ public class InmarsatPollHandler {
      * @return result of first successful poll command, or null if poll failed on every ocean region
      */
 
-    private String sendPollCommand(PollType poll, InputStream in, PrintStream out, InmarsatPoll.OceanRegion oceanRegion) throws TelnetException, IOException {
+    private String sendPollCommand(PollType poll, InputStream in, PrintStream out, InmarsatPoll.OceanRegion oceanRegion) throws InmarsatSocketException, IOException {
 
         String cmd = null;
         try {
@@ -256,7 +256,7 @@ public class InmarsatPollHandler {
     }
 
 
-    private String sendConfigurationPoll(PollType poll) throws TelnetException {
+    private String sendConfigurationPoll(PollType poll) throws InmarsatSocketException {
         throw new UnsupportedOperationException("Not supported yet.");
     }
 

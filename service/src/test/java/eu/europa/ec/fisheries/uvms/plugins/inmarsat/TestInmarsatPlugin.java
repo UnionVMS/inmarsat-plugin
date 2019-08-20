@@ -1,6 +1,5 @@
 package eu.europa.ec.fisheries.uvms.plugins.inmarsat;
 
-import org.apache.commons.net.telnet.TelnetClient;
 import org.jboss.arquillian.container.test.api.OperateOnDeployment;
 import org.jboss.arquillian.junit.Arquillian;
 import org.junit.Assert;
@@ -12,6 +11,7 @@ import org.slf4j.LoggerFactory;
 
 import javax.inject.Inject;
 import java.io.*;
+import java.net.Socket;
 import java.util.concurrent.ConcurrentMap;
 
 
@@ -66,10 +66,9 @@ public class TestInmarsatPlugin extends _BuildTestDeployment {
     @Test
     @OperateOnDeployment("normal")
     @Ignore
-    public void testAHandler() throws TelnetException, IOException {
+    public void testAHandler() throws InmarsatSocketException, IOException {
 
-        TelnetClient client = new TelnetClient();
-        client.connect("localhost",  9090);
+        Socket client = new Socket("localhost",  9090);
         InputStream is = client.getInputStream();
         OutputStream os = client.getOutputStream();
         PrintStream out = new  PrintStream(os);
@@ -87,16 +86,15 @@ public class TestInmarsatPlugin extends _BuildTestDeployment {
         String resp = new String(waitFor( is, ">"));
 
         Assert.assertTrue(resp.startsWith("SUCCESS"));
-        client.disconnect();
+        client.close();
     }
 
     @Test
     @OperateOnDeployment("normal")
     @Ignore
-    public void testAHandlerWillFail() throws TelnetException, IOException {
+    public void testAHandlerWillFail() throws InmarsatSocketException, IOException {
 
-        TelnetClient client = new TelnetClient();
-        client.connect("localhost",  9090);
+        Socket client = new Socket("localhost",  9090);
         InputStream is = client.getInputStream();
         OutputStream os = client.getOutputStream();
         PrintStream out = new  PrintStream(os);
@@ -114,7 +112,7 @@ public class TestInmarsatPlugin extends _BuildTestDeployment {
         String resp = new String(waitFor( is, ">"));
 
         Assert.assertTrue(resp.startsWith("Unknown command"));
-        client.disconnect();
+        client.close();
     }
 
     @Test

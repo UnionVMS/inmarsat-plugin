@@ -12,20 +12,20 @@ copy of the GNU General Public License along with the IFDM Suite. If not, see <h
 
 package eu.europa.ec.fisheries.uvms.plugins.inmarsat;
 
-public class TelnetException extends Exception {
+public class InmarsatSocketException extends Exception {
 
     private static final long serialVersionUID = 1L;
 
-    public TelnetException(String message) {
+    public InmarsatSocketException(String message) {
         super(message);
     }
 
-    public TelnetException(Exception ex) {
+    public InmarsatSocketException(Exception ex) {
         super(ex);
     }
 
 
-    public TelnetException(String message, Throwable ex) {
+    public InmarsatSocketException(String message, Throwable ex) {
         super(message, ex);
     }
 }

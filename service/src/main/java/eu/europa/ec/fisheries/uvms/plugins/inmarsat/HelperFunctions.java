@@ -1,6 +1,5 @@
 package eu.europa.ec.fisheries.uvms.plugins.inmarsat;
 
-import org.apache.commons.net.telnet.TelnetClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -47,12 +46,12 @@ public class HelperFunctions {
     }
 
     public void write(String value, PrintStream out) {
-        out.println(value);
+        out.println(value + "\r\n");
         out.flush();
     }
 
 
-    public String readUntil(String pattern, InputStream in) throws TelnetException, IOException {
+    public String readUntil(String pattern, InputStream in) throws InmarsatSocketException, IOException {
 
         StringBuilder sb = new StringBuilder();
         byte[] contents = new byte[1024];
@@ -72,22 +71,16 @@ public class HelperFunctions {
             }
         } while (bytesRead >= 0);
 
-        throw new TelnetException("Unknown response from Inmarsat-C LES Telnet @   (readUntil) : " + sb.toString());
+        throw new InmarsatSocketException("Unknown response from Inmarsat-C LES Telnet @   (readUntil) : " + sb.toString());
     }
 
-    public void containsFault(String currentString) throws TelnetException {
+    public void containsFault(String currentString) throws InmarsatSocketException {
 
         for (String faultPattern : faultPatterns) {
             if (currentString.trim().contains(faultPattern)) {
-                throw new TelnetException("Error while reading from Inmarsat-C LES Telnet @ " + ": " + currentString);
+                throw new InmarsatSocketException("Error while reading from Inmarsat-C LES Telnet @ " + ": " + currentString);
             }
         }
-    }
-
-    public TelnetClient createTelnetClient(String url, int port) throws IOException {
-        TelnetClient telnet = new TelnetClient();
-        telnet.connect(url, port);
-        return telnet;
     }
 
     public void sendPwd(PrintStream output, String pwd) {
