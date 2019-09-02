@@ -110,7 +110,6 @@ public class PluginNameEventBusListener implements MessageListener {
                     if (CommandTypeType.POLL.equals(commandType)) {
 
                         PollTypeType pollTypeType = poll.getPollTypeType();
-
                         if (PollTypeType.POLL == pollTypeType || PollTypeType.CONFIG == pollTypeType ) {
 
                             AcknowledgeTypeType setCommand = inmarsatPollHandler.setCommand(setCommandRequest.getCommand());
@@ -125,12 +124,6 @@ public class PluginNameEventBusListener implements MessageListener {
                             }
                             pollAck.setPollId(setCommandRequest.getCommand().getPoll().getPollId());
                             setCommandAck.setPollStatus(pollAck);
-                            responseMessage = ExchangePluginResponseMapper.mapToSetCommandResponse(startup.getRegisterClassName(), setCommandAck);
-
-                        } else if (PollTypeType.CONFIG == poll.getPollTypeType()) {
-
-                            AcknowledgeTypeType setCommand = inmarsatPollHandler.setCommand(setCommandRequest.getCommand());
-                            AcknowledgeType setCommandAck = ExchangePluginResponseMapper.mapToAcknowledgeType(setCommandRequest.getCommand().getLogId(), setCommand);
                             responseMessage = ExchangePluginResponseMapper.mapToSetCommandResponse(startup.getRegisterClassName(), setCommandAck);
                         }
                     }
