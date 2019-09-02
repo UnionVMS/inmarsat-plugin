@@ -87,18 +87,39 @@ public class PluginNameEventBusListener implements MessageListener {
                     break;
                 case SET_COMMAND:
                     SetCommandRequest setCommandRequest = JAXBMarshaller.unmarshallTextMessage(textMessage, SetCommandRequest.class);
+                    if(setCommandRequest == null){ // should give exception, but to be sure
+                        // TODO  this  must be checked should be a correct formatted
+                        responseMessage = "ERROR not a commandRequest";
+                        messageProducer.sendResponseMessage(responseMessage, textMessage);
+                        return;
+                    }
                     CommandType commandType  = setCommandRequest.getCommand();
+                    if(commandType == null){ // should give exception, but to be sure
+                        // TODO  this  must be checked should be a correct formatted
+                        responseMessage = "ERROR not a commandType";
+                        messageProducer.sendResponseMessage(responseMessage, textMessage);
+                        return;
+                    }
                     PollType poll = commandType.getPoll();
-                    if (poll != null && CommandTypeType.POLL.equals(commandType.getCommand())) {
+                    if(poll == null){ // should give exception, but to be sure
+                        // TODO  this  must be checked should be a correct formatted
+                        responseMessage = "ERROR not a poll";
+                        messageProducer.sendResponseMessage(responseMessage, textMessage);
+                        return;
+                    }
+                    if (CommandTypeType.POLL.equals(commandType)) {
 
-                        if (PollTypeType.POLL == poll.getPollTypeType()) {
+                        PollTypeType pollTypeType = poll.getPollTypeType();
+
+                        if (PollTypeType.POLL == pollTypeType || PollTypeType.CONFIG == pollTypeType ) {
 
                             AcknowledgeTypeType setCommand = inmarsatPollHandler.setCommand(setCommandRequest.getCommand());
                             AcknowledgeType setCommandAck = ExchangePluginResponseMapper.mapToAcknowledgeType(setCommandRequest.getCommand().getLogId(), setCommand);
                             setCommandAck.setUnsentMessageGuid(setCommandRequest.getCommand().getUnsentMessageGuid());
                             PollStatusAcknowledgeType pollAck = new PollStatusAcknowledgeType();
                             if(setCommand.equals(AcknowledgeTypeType.OK)) {
-                                pollAck.setStatus(ExchangeLogStatusTypeType.PENDING);
+                                if(pollTypeType == PollTypeType.POLL)  pollAck.setStatus(ExchangeLogStatusTypeType.PENDING);
+                                if(pollTypeType == PollTypeType.CONFIG)  pollAck.setStatus(ExchangeLogStatusTypeType.OK);
                             }else{
                                 pollAck.setStatus(ExchangeLogStatusTypeType.FAILED);
                             }
@@ -108,7 +129,7 @@ public class PluginNameEventBusListener implements MessageListener {
 
                         } else if (PollTypeType.CONFIG == poll.getPollTypeType()) {
 
-                            AcknowledgeTypeType setCommand = inmarsatPollHandler.setConfigCommand(setCommandRequest.getCommand());
+                            AcknowledgeTypeType setCommand = inmarsatPollHandler.setCommand(setCommandRequest.getCommand());
                             AcknowledgeType setCommandAck = ExchangePluginResponseMapper.mapToAcknowledgeType(setCommandRequest.getCommand().getLogId(), setCommand);
                             responseMessage = ExchangePluginResponseMapper.mapToSetCommandResponse(startup.getRegisterClassName(), setCommandAck);
                         }
