@@ -24,6 +24,39 @@ import java.util.concurrent.ConcurrentMap;
 @Singleton
 public class InmarsatPollHandler {
 
+    /*
+
+
+Inmarsat har ikke definert Polling&Data rapport tjenesten hundre prosent, med det mener jeg at terminal leverandører har hatt mulighet til å lage sine «tolkninger» på endel punkter
+Hvis du ser på data rapport pakken (PosRep-C_2l.doc) så ser du at nederst i pakke en er MEM-code. Den mest brukte MEM code er 11 I attribute bytene nederst i pakke en vil mem 11 angi at atribute bytene inneholder  «time of position».
+
+Angående scheduled programming. Legger med noe veldig gammel informasjon jeg laget på gruppe programmering:
+
+First you have to program the terminals to send data report, and afterwards you have to start the reporting.
+You have to send 2 poll commands to get the mobiles to report scheduled
+
+1) First you have to send the program command:
+If you want the report to start at e.g. 13:28 UTC today you have to send the following command:
+
+ poll 0,G,4661,N,1,0,4,,5611,24
+The P8 parameter is the start frame. The start time must be calculated according to the formula: (((hour*60)+minute)*60)/8.64 = start frame number. (night and day (24 hours) are divided in  10000 frame's a'8.64 sec.). The “24” at the end indicate that the terminals shall send one report every hour.
+
+2) Afterwards you have to start the reporting command:
+                e.g:  poll 0,G,4661,D,1,0,5
+
+
+3) TO STOP THE REPORTING.
+The data reporting are stopped using the command
+                e.g.: poll 0,G,4661,N,1,0,6
+
+
+
+
+     */
+
+
+
+
     private static final String PORT = "PORT";
     private static final String DNIDS = "DNIDS";
     private static final String URL = "URL";
