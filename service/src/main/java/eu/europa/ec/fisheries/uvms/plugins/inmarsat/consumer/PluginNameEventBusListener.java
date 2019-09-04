@@ -86,12 +86,13 @@ public class PluginNameEventBusListener implements MessageListener {
                     responseMessage = ExchangePluginResponseMapper.mapToSetConfigResponse(startup.getRegisterClassName(), setConfigAck);
                     break;
                 case SET_COMMAND:
+
                     SetCommandRequest setCommandRequest = JAXBMarshaller.unmarshallTextMessage(textMessage, SetCommandRequest.class);
                     CommandType commandType  = setCommandRequest.getCommand();
                     PollType poll = commandType.getPoll();
                     if (poll != null && CommandTypeType.POLL.equals(commandType.getCommand())) {
 
-                        if (PollTypeType.POLL == poll.getPollTypeType()) {
+                        if (PollTypeType.POLL == poll.getPollTypeType() || PollTypeType.CONFIG == poll.getPollTypeType()) {
 
                             AcknowledgeTypeType setCommand = inmarsatPollHandler.setCommand(setCommandRequest.getCommand());
                             AcknowledgeType setCommandAck = ExchangePluginResponseMapper.mapToAcknowledgeType(setCommandRequest.getCommand().getLogId(), setCommand);
@@ -105,15 +106,8 @@ public class PluginNameEventBusListener implements MessageListener {
                             pollAck.setPollId(setCommandRequest.getCommand().getPoll().getPollId());
                             setCommandAck.setPollStatus(pollAck);
                             responseMessage = ExchangePluginResponseMapper.mapToSetCommandResponse(startup.getRegisterClassName(), setCommandAck);
-
-                        } else if (PollTypeType.CONFIG == poll.getPollTypeType()) {
-
-                            AcknowledgeTypeType setCommand = inmarsatPollHandler.setConfigCommand(setCommandRequest.getCommand());
-                            AcknowledgeType setCommandAck = ExchangePluginResponseMapper.mapToAcknowledgeType(setCommandRequest.getCommand().getLogId(), setCommand);
-                            responseMessage = ExchangePluginResponseMapper.mapToSetCommandResponse(startup.getRegisterClassName(), setCommandAck);
                         }
                     }
-
                     break;
                 case SET_REPORT:
                     SetReportRequest setReportRequest = JAXBMarshaller.unmarshallTextMessage(textMessage, SetReportRequest.class);

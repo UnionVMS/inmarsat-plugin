@@ -16,6 +16,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintStream;
 import java.net.Socket;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -24,6 +26,36 @@ import java.util.concurrent.ConcurrentMap;
 @Singleton
 public class InmarsatPollHandler {
 
+    /*
+
+
+Inmarsat har ikke definert Polling&Data rapport tjenesten hundre prosent, med det mener jeg at terminal leverandører har hatt mulighet til å lage sine «tolkninger» på endel punkter
+Hvis du ser på data rapport pakken (PosRep-C_2l.doc) så ser du at nederst i pakke en er MEM-code. Den mest brukte MEM code er 11 I attribute bytene nederst i pakke en vil mem 11 angi at atribute bytene inneholder  «time of position».
+
+Angående scheduled programming. Legger med noe veldig gammel informasjon jeg laget på gruppe programmering:
+
+First you have to program the terminals to send data report, and afterwards you have to start the reporting.
+You have to send 2 poll commands to get the mobiles to report scheduled
+
+1) First you have to send the program command:
+If you want the report to start at e.g. 13:28 UTC today you have to send the following command:
+
+ poll 0,G,4661,N,1,0,4,,5611,24
+The P8 parameter is the start frame. The start time must be calculated according to the formula: (((hour*60)+minute)*60)/8.64 = start frame number. (night and day (24 hours) are divided in  10000 frame's a'8.64 sec.). The “24” at the end indicate that the terminals shall send one report every hour.
+
+2) Afterwards you have to start the reporting command:
+                e.g:  poll 0,G,4661,D,1,0,5
+
+
+3) TO STOP THE REPORTING.
+The data reporting are stopped using the command
+                e.g.: poll 0,G,4661,N,1,0,6
+
+
+
+
+     */
+
     private static final String PORT = "PORT";
     private static final String DNIDS = "DNIDS";
     private static final String URL = "URL";
@@ -31,10 +63,6 @@ public class InmarsatPollHandler {
     private static final String USERNAME = "USERNAME";
 
     private final ConcurrentMap<String, Object> connectSettings = new ConcurrentHashMap<>();
-
-    private final Map<String, String> dnidMemberLastFoundInRegion = new ConcurrentHashMap<>();
-
-
     private static final Logger LOGGER = LoggerFactory.getLogger(InmarsatPollHandler.class);
 
     @Inject
@@ -80,15 +108,6 @@ public class InmarsatPollHandler {
     }
 
 
-    public AcknowledgeTypeType setConfigCommand(CommandType command) {
-        LOGGER.error("Config not implemented");
-        LOGGER.error(command.toString());
-
-        // TODO - Implement update of configuration  (send commands and data to stream
-        return AcknowledgeTypeType.OK;
-
-    }
-
     private String sendPoll(PollType poll) {
 
         Socket socket = null;
@@ -111,12 +130,10 @@ public class InmarsatPollHandler {
             functions.sendPwd(output, pwd);
             functions.readUntil(">", input);
 
-
-            // first we try to poll at the OceanRegion we found the vessel last time
-            // if not found we send poll in all OceanRegions
             List<KeyValueType> pollReceiver = poll.getPollReceiver();
             String wrkDnid = "";
             String wrkMemberNo = "";
+            List<String> wrkOceanRegions = new ArrayList<>();
             for (KeyValueType value : pollReceiver) {
                 String key = value.getKey();
                 if (key.equalsIgnoreCase("DNID")) {
@@ -125,11 +142,14 @@ public class InmarsatPollHandler {
                 if (key.equalsIgnoreCase("MEMBER_NUMBER")) {
                     wrkMemberNo = value.getValue() == null ? "" : value.getValue().trim();
                 }
+                if (key.equalsIgnoreCase("OCEAN_REGION")) {
+                    String wrkOceanRegionsStr = value.getValue() == null ? "" : value.getValue().trim();
+                    String splited[] = wrkOceanRegionsStr.split(",");
+                    wrkOceanRegions.addAll(Arrays.asList(splited));
+                }
             }
-            String keyDnidMemberLastFoundInRegion = wrkDnid + wrkMemberNo;
             String result = "";
-            if (dnidMemberLastFoundInRegion.containsKey(keyDnidMemberLastFoundInRegion)) {
-                InmarsatPoll.OceanRegion oceanRegion = InmarsatPoll.OceanRegion.valueOf(dnidMemberLastFoundInRegion.get(keyDnidMemberLastFoundInRegion));
+            for(String oceanRegion : wrkOceanRegions) {
                 try {
                     result = sendPollCommand(poll, input, output, oceanRegion);
                     if (result != null) {
@@ -145,27 +165,6 @@ public class InmarsatPollHandler {
                     LOGGER.warn(te.toString(), te);
                 }
             }
-
-            // try with all regions  for not found in previous OceanRegion AND if moved o a new OceanRegion
-
-            for (InmarsatPoll.OceanRegion oceanRegion : InmarsatPoll.OceanRegion.values()) {
-                try {
-                    result = sendPollCommand(poll, input, output, oceanRegion);
-                } catch (Throwable te) {
-                    continue;
-                }
-                if (result != null) {
-                    if (result.contains("Reference number")) {
-                        String referenceNumber = parseResponse(result);
-                        LOGGER.info("sendPoll invoked. Reference number : {} ", referenceNumber);
-
-                        // success put it in the map for next time
-                        dnidMemberLastFoundInRegion.put(keyDnidMemberLastFoundInRegion, oceanRegion.name());
-                        return referenceNumber;
-                    }
-                }
-            }
-
         } catch (Throwable t) {
             if (poll != null) {
                 LOGGER.error("SENDPOLL ERROR pollid : {}", poll.getPollId());
@@ -184,13 +183,11 @@ public class InmarsatPollHandler {
                     // OK
                 }
             }
-
-
         }
         return null;
     }
 
-    private String buildPollCommand(PollType poll, InmarsatPoll.OceanRegion oceanRegion) {
+    private String buildPollCommand(PollType poll, String oceanRegion) {
 
         InmarsatPoll inmPoll = new InmarsatPoll();
         inmPoll.setPollType(poll);
@@ -207,7 +204,7 @@ public class InmarsatPollHandler {
      * @return result of first successful poll command, or null if poll failed on every ocean region
      */
 
-    private String sendPollCommand(PollType poll, InputStream in, PrintStream out, InmarsatPoll.OceanRegion oceanRegion) throws InmarsatSocketException, IOException {
+    private String sendPollCommand(PollType poll, InputStream in, PrintStream out, String oceanRegion) throws InmarsatSocketException, IOException {
 
         String cmd = null;
         try {
