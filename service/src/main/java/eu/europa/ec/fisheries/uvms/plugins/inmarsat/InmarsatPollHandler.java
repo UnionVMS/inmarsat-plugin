@@ -128,8 +128,7 @@ The data reporting are stopped using the command
                 }
                 if (key.equalsIgnoreCase("OCEAN_REGION")) {
                     String wrkOceanRegionsStr = value.getValue() == null ? "" : value.getValue().trim();
-                    String splited[] = wrkOceanRegionsStr.split(","); // TODO NOT commaseparated its a list !!!!  check this w
-                    wrkOceanRegions.addAll(Arrays.asList(splited));
+                    wrkOceanRegions.add(wrkOceanRegionsStr);
                 }
             }
             if(wrkOceanRegions.size() < 1){
