@@ -114,6 +114,28 @@ The data reporting are stopped using the command
         PrintStream output = null;
         try {
 
+            List<KeyValueType> pollReceiver = poll.getPollReceiver();
+            String wrkDnid = "";
+            String wrkMemberNo = "";
+            List<String> wrkOceanRegions = new ArrayList<>();
+            for (KeyValueType value : pollReceiver) {
+                String key = value.getKey();
+                if (key.equalsIgnoreCase("DNID")) {
+                    wrkDnid = value.getValue() == null ? "" : value.getValue().trim();
+                }
+                if (key.equalsIgnoreCase("MEMBER_NUMBER")) {
+                    wrkMemberNo = value.getValue() == null ? "" : value.getValue().trim();
+                }
+                if (key.equalsIgnoreCase("OCEAN_REGION")) {
+                    String wrkOceanRegionsStr = value.getValue() == null ? "" : value.getValue().trim();
+                    wrkOceanRegions.add(wrkOceanRegionsStr);
+                }
+            }
+            if(wrkOceanRegions.size() < 1){
+                LOGGER.error("No ocean region in request. Check Mobileterminal . No poll can be executed");
+                return null; // obs finally and logout will be  executed
+            }
+
             String url = (String) connectSettings.get(URL);
             Integer port = (Integer) connectSettings.get(PORT);
             String user = (String) connectSettings.get(USERNAME);
@@ -130,24 +152,6 @@ The data reporting are stopped using the command
             functions.sendPwd(output, pwd);
             functions.readUntil(">", input);
 
-            List<KeyValueType> pollReceiver = poll.getPollReceiver();
-            String wrkDnid = "";
-            String wrkMemberNo = "";
-            List<String> wrkOceanRegions = new ArrayList<>();
-            for (KeyValueType value : pollReceiver) {
-                String key = value.getKey();
-                if (key.equalsIgnoreCase("DNID")) {
-                    wrkDnid = value.getValue() == null ? "" : value.getValue().trim();
-                }
-                if (key.equalsIgnoreCase("MEMBER_NUMBER")) {
-                    wrkMemberNo = value.getValue() == null ? "" : value.getValue().trim();
-                }
-                if (key.equalsIgnoreCase("OCEAN_REGION")) {
-                    String wrkOceanRegionsStr = value.getValue() == null ? "" : value.getValue().trim();
-                    String splited[] = wrkOceanRegionsStr.split(",");
-                    wrkOceanRegions.addAll(Arrays.asList(splited));
-                }
-            }
             String result = "";
             for(String oceanRegion : wrkOceanRegions) {
                 try {
