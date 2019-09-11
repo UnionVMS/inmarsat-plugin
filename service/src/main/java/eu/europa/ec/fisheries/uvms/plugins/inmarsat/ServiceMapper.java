@@ -76,17 +76,4 @@ public class ServiceMapper {
         }
         return capabilityListType;
     }
-
-    public static void mapToMapFromProperties(ConcurrentMap<String, String> map, Properties props, String registerClassName) {
-
-        for (Map.Entry<Object, Object> entry : props.entrySet()) {
-            if (entry.getKey().getClass().isAssignableFrom(String.class)) {
-                String key = (String) entry.getKey();
-                if (registerClassName != null) {
-                    key = registerClassName.concat("." + key);
-                }
-                map.put(key, (String) entry.getValue());
-            }
-        }
-    }
 }

@@ -1,6 +1,5 @@
 package eu.europa.ec.fisheries.uvms.plugins.inmarsat;
 
-
 import eu.europa.ec.fisheries.schema.exchange.common.v1.AcknowledgeTypeType;
 import eu.europa.ec.fisheries.schema.exchange.common.v1.KeyValueType;
 import eu.europa.ec.fisheries.schema.exchange.common.v1.ReportType;
@@ -37,25 +36,15 @@ import java.util.concurrent.ConcurrentMap;
 @Singleton
 public class InmarsatPlugin  {
 
-
     private static final Logger LOGGER = LoggerFactory.getLogger(InmarsatPlugin.class);
 
     private static final int MAX_NUMBER_OF_TRIES = 20;
     private boolean isRegistered = false;
     private int numberOfTriesExecuted = 0;
     private String registerClassName;
-
-    @Inject
-    private PluginMessageProducer messageProducer;
-
-    @Inject
-    private HelperFunctions functions;
-
-
     private CapabilityListType capabilityList;
     private SettingListType settingList;
     private ServiceType serviceType;
-
     private static final String PLUGIN_PROPERTIES = "plugin.properties";
     private static final String SETTINGS_PROPERTIES = "settings.properties";
     private static final String CAPABILITIES_PROPERTIES = "capabilities.properties";
@@ -64,6 +53,12 @@ public class InmarsatPlugin  {
     private Properties twostageApplicationProperties;
     private Properties twostageProperties;
     private Properties twostageCapabilities;
+
+    @Inject
+    private PluginMessageProducer messageProducer;
+
+    @Inject
+    private HelperFunctions functions;
 
     public ConcurrentMap<String, String> getSettings() {
         return settings;
@@ -97,23 +92,22 @@ public class InmarsatPlugin  {
         this.twostageCapabilities = twostageCapabilities;
     }
 
-
-
     @PostConstruct
     private void startup() {
-
         Properties pluginProperties = functions.getPropertiesFromFile(this.getClass(), PLUGIN_PROPERTIES);
         setPluginApplicationProperties(pluginProperties);
         registerClassName = getPluginApplicationProperty("application.groupid") + "." + getPluginApplicationProperty("application.name");
         LOGGER.debug("Plugin will try to register as:{}", registerClassName);
         setPluginProperties(functions.getPropertiesFromFile(this.getClass(), SETTINGS_PROPERTIES));
         setPluginCapabilities(functions.getPropertiesFromFile(this.getClass(), CAPABILITIES_PROPERTIES));
-        ServiceMapper.mapToMapFromProperties(getSettings(), getPluginProperties(), getRegisterClassName());
-        ServiceMapper.mapToMapFromProperties(getCapabilities(), getPluginCapabilities(), null);
+        functions.mapToMapFromProperties(getSettings(), getPluginProperties(), getRegisterClassName());
+        functions.mapToMapFromProperties(getCapabilities(), getPluginCapabilities(), null);
 
         capabilityList = ServiceMapper.getCapabilitiesListTypeFromMap(getCapabilities());
         settingList = ServiceMapper.getSettingsListTypeFromMap(getSettings());
-        serviceType = ServiceMapper.getServiceType(getRegisterClassName(), "Thrane&Thrane", "inmarsat plugin for the Thrane&Thrane API", PluginType.SATELLITE_RECEIVER, getPluginResponseSubscriptionName(), "INMARSAT_C");
+        serviceType = ServiceMapper.getServiceType(getRegisterClassName(), "Thrane&Thrane",
+                "inmarsat plugin for the Thrane&Thrane API", PluginType.SATELLITE_RECEIVER,
+                getPluginResponseSubscriptionName(), "INMARSAT_C");
 
         register();
 
@@ -123,7 +117,6 @@ public class InmarsatPlugin  {
                 LOGGER.debug("Setting: KEY: {} , VALUE: {}", entry.getKey(), entry.getValue());
             }
         }
-
         LOGGER.info("PLUGIN STARTED");
     }
 
@@ -134,10 +127,9 @@ public class InmarsatPlugin  {
 
     @Schedule(second = "*/10", minute = "*", hour = "*", persistent = false)
     private void timeout(Timer timer) {
-
         try {
-
-            LOGGER.info("HEARTBEAT timeout running. isRegistered=" + isRegistered + " ,numberOfTriesExecuted=" + numberOfTriesExecuted + " threadId=" + Thread.currentThread().toString());
+            LOGGER.info("HEARTBEAT timeout running. isRegistered=" + isRegistered +
+                    " ,numberOfTriesExecuted=" + numberOfTriesExecuted + " threadId=" + Thread.currentThread().toString());
             if (!isRegistered && numberOfTriesExecuted < MAX_NUMBER_OF_TRIES) {
                 LOGGER.info(getRegisterClassName() + " is not registered, trying to register");
                 register();
@@ -183,7 +175,6 @@ public class InmarsatPlugin  {
         return registerClassName;
     }
 
-
     private String getPluginApplicationProperty(String key) {
         try {
             return (String) getPluginApplicationProperties().get(key);
@@ -208,8 +199,6 @@ public class InmarsatPlugin  {
         LOGGER.info("setRegistered : " + isRegistered);
         this.isRegistered = isRegistered;
     }
-
-
 
     public void updateSettings(List<SettingType> settings) {
         for (SettingType setting : settings) {
@@ -247,7 +236,7 @@ public class InmarsatPlugin  {
     }
 
     /**
-     * Set the config values for the twostage
+     * Set the config values for the twoStage
      *
      * @param settings the settings
      * @return AcknowledgeTypeType

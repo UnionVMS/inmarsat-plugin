@@ -13,8 +13,6 @@ public class PluginPendingResponseList {
     private static final Logger LOGGER = LoggerFactory.getLogger(PluginPendingResponseList.class);
     private ArrayList<InmarsatPendingResponse> pending = new ArrayList<>();
 
-
-
     public void addPendingPollResponse(InmarsatPendingResponse resp) {
         if (pending != null) {
             pending.add(resp);
@@ -31,19 +29,10 @@ public class PluginPendingResponseList {
     }
 
     public List<InmarsatPendingResponse> getPendingPollResponses() {
-
-        List<InmarsatPendingResponse> ret = new ArrayList<>();
-        ret.addAll(pending);
-        return ret;
+        return new ArrayList<>(pending);
     }
 
-    /* NOT USED REMOVE
-    public boolean containsPendingPollResponse(InmarsatPendingResponse resp) {
-        return pending != null && pending.contains(resp);
-    }
-    */
-
-    public InmarsatPendingResponse containsPollTo(String dnid, String memberId) {
+    public InmarsatPendingResponse containsPollFor(String dnid, String memberId) {
         for (InmarsatPendingResponse element : pending) {
             if (element.getDnId().equalsIgnoreCase(dnid) && element.getMembId().equalsIgnoreCase(memberId)) {
                 return element;
@@ -60,10 +49,4 @@ public class PluginPendingResponseList {
         }
         return ret;
     }
-
-
-
 }
-
-
-

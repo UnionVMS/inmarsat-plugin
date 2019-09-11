@@ -8,7 +8,9 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintStream;
+import java.util.Map;
 import java.util.Properties;
+import java.util.concurrent.ConcurrentMap;
 
 @Stateless
 public class HelperFunctions {
@@ -22,7 +24,6 @@ public class HelperFunctions {
             "Illegal address parameter.",
             "Failed: Cannot reach the mobile",
     };
-
 
     public Properties getPropertiesFromFile(Class clazz, String fileName) {
         Properties props = new Properties();
@@ -50,9 +51,7 @@ public class HelperFunctions {
         out.flush();
     }
 
-
     public String readUntil(String pattern, InputStream in) throws InmarsatSocketException, IOException {
-
         StringBuilder sb = new StringBuilder();
         byte[] contents = new byte[1024];
         int bytesRead;
@@ -75,7 +74,6 @@ public class HelperFunctions {
     }
 
     public void containsFault(String currentString) throws InmarsatSocketException {
-
         for (String faultPattern : faultPatterns) {
             if (currentString.trim().contains(faultPattern)) {
                 throw new InmarsatSocketException("Error while reading from Inmarsat-C LES Telnet @ " + ": " + currentString);
@@ -88,5 +86,15 @@ public class HelperFunctions {
         output.flush();
     }
 
-
+    public void mapToMapFromProperties(ConcurrentMap<String, String> map, Properties props, String registerClassName) {
+        for (Map.Entry<Object, Object> entry : props.entrySet()) {
+            if (entry.getKey().getClass().isAssignableFrom(String.class)) {
+                String key = (String) entry.getKey();
+                if (registerClassName != null) {
+                    key = registerClassName.concat("." + key);
+                }
+                map.put(key, (String) entry.getValue());
+            }
+        }
+    }
 }

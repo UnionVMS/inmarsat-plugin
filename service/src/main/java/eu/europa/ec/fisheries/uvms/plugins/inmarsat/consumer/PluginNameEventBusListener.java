@@ -44,8 +44,6 @@ import javax.jms.TextMessage;
 })
 public class PluginNameEventBusListener implements MessageListener {
 
-
-
     private static final Logger LOGGER = LoggerFactory.getLogger(PluginNameEventBusListener.class);
 
     @Inject
@@ -60,20 +58,13 @@ public class PluginNameEventBusListener implements MessageListener {
     @Inject
     private InmarsatMessageRetriever inmarsatMessageRetriever;
 
-
     @Override
     public void onMessage(Message inMessage) {
-
-        LOGGER.debug(
-                "Eventbus listener for inmarsat-c (MessageConstants.PLUGIN_SERVICE_CLASS_NAME): {}",
-                startup.getRegisterClassName());
-
+        LOGGER.debug("Eventbus listener for inmarsat-c (MessageConstants.PLUGIN_SERVICE_CLASS_NAME): {}",startup.getRegisterClassName());
         TextMessage textMessage = (TextMessage) inMessage;
 
         try {
-
-            PluginBaseRequest request =
-                    JAXBMarshaller.unmarshallTextMessage(textMessage, PluginBaseRequest.class);
+            PluginBaseRequest request = JAXBMarshaller.unmarshallTextMessage(textMessage, PluginBaseRequest.class);
 
             String responseMessage = null;
 
@@ -94,11 +85,11 @@ public class PluginNameEventBusListener implements MessageListener {
 
                         if (PollTypeType.POLL == poll.getPollTypeType() || PollTypeType.CONFIG == poll.getPollTypeType()) {
 
-                            AcknowledgeTypeType setCommand = inmarsatPollHandler.setCommand(setCommandRequest.getCommand());
-                            AcknowledgeType setCommandAck = ExchangePluginResponseMapper.mapToAcknowledgeType(setCommandRequest.getCommand().getLogId(), setCommand);
+                            AcknowledgeTypeType ack = inmarsatPollHandler.processCommandTypeAndReturnAck(setCommandRequest.getCommand());
+                            AcknowledgeType setCommandAck = ExchangePluginResponseMapper.mapToAcknowledgeType(setCommandRequest.getCommand().getLogId(), ack);
                             setCommandAck.setUnsentMessageGuid(setCommandRequest.getCommand().getUnsentMessageGuid());
                             PollStatusAcknowledgeType pollAck = new PollStatusAcknowledgeType();
-                            if(setCommand.equals(AcknowledgeTypeType.OK)) {
+                            if(ack.equals(AcknowledgeTypeType.OK)) {
                                 pollAck.setStatus(ExchangeLogStatusTypeType.PENDING);
                             }else{
                                 pollAck.setStatus(ExchangeLogStatusTypeType.FAILED);
@@ -135,20 +126,11 @@ public class PluginNameEventBusListener implements MessageListener {
                     LOGGER.error("Not supported method");
                     break;
             }
-
             messageProducer.sendResponseMessage(responseMessage, textMessage);
-
         } catch (RuntimeException e) {
-            LOGGER.error(
-                    "[ Error when receiving message in inmarsat-c " + startup.getRegisterClassName() + " ]", e);
+            LOGGER.error("[ Error when receiving message in inmarsat-c " + startup.getRegisterClassName() + " ]", e);
         } catch (JMSException ex) {
-            LOGGER.error(
-                    "[ Error when handling JMS message in inmarsat-c " + startup.getRegisterClassName() + " ]",
-                    ex);
+            LOGGER.error("[ Error when handling JMS message in inmarsat-c " + startup.getRegisterClassName() + " ]", ex);
         }
     }
-
-
-
-
 }

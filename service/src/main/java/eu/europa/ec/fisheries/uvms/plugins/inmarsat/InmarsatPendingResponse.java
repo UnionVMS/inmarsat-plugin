@@ -12,17 +12,17 @@ copy of the GNU General Public License along with the IFDM Suite. If not, see <h
 package eu.europa.ec.fisheries.uvms.plugins.inmarsat;
 
 import eu.europa.ec.fisheries.schema.exchange.plugin.types.v1.PollType;
+import eu.europa.ec.fisheries.uvms.plugins.inmarsat.data.StatusEnum;
 
 import java.io.Serializable;
 
-/** */
 public class InmarsatPendingResponse implements Serializable {
 
     private PollType poll;
     private String msgId;
     private String unsentMsgId;
     private int referenceNumber;
-    private StatusType status;
+    private StatusEnum status;
     private String mobTermId;
     private String dnId;
     private String membId;
@@ -75,11 +75,11 @@ public class InmarsatPendingResponse implements Serializable {
         this.referenceNumber = referenceNumber;
     }
 
-    public StatusType getStatus() {
+    public StatusEnum getStatus() {
         return status;
     }
 
-    public void setStatus(StatusType status) {
+    public void setStatus(StatusEnum status) {
         this.status = status;
     }
 
@@ -103,24 +103,6 @@ public class InmarsatPendingResponse implements Serializable {
     public void setUnsentMsgId(String unsentMsgId) {
         this.unsentMsgId = unsentMsgId;
     }
-
-    public enum StatusType {
-        UNKNOWN('U'),
-        PENDING('P'),
-        TRANSMITTED('T'),
-        FAIL('F'),
-        SUCCESSFULL('S');
-        private final char value;
-
-        StatusType(char value) {
-            this.value = value;
-        }
-
-        public char getValue() {
-            return value;
-        }
-    }
-
 
     @Override
     public String toString() {
