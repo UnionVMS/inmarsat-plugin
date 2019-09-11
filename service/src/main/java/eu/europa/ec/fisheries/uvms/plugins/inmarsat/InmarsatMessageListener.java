@@ -10,7 +10,6 @@ import eu.europa.ec.fisheries.schema.exchange.movement.mobileterminal.v1.MobileT
 import eu.europa.ec.fisheries.schema.exchange.movement.v1.*;
 import eu.europa.ec.fisheries.schema.exchange.plugin.types.v1.PluginType;
 import eu.europa.ec.fisheries.schema.exchange.v1.ExchangeLogStatusTypeType;
-import eu.europa.ec.fisheries.uvms.commons.message.api.MessageConstants;
 import eu.europa.ec.fisheries.uvms.exchange.model.mapper.ExchangeModuleRequestMapper;
 import eu.europa.ec.fisheries.uvms.exchange.model.mapper.ExchangePluginResponseMapper;
 import eu.europa.ec.fisheries.uvms.plugins.inmarsat.message.PluginMessageProducer;
@@ -35,7 +34,6 @@ import java.util.Base64;
 import java.util.GregorianCalendar;
 import java.util.TimeZone;
 
-
 @MessageDriven( activationConfig = {
         @ActivationConfigProperty(propertyName = "messagingType", propertyValue = "javax.jms.MessageListener"),
         @ActivationConfigProperty(propertyName = "destinationType", propertyValue = "javax.jms.Queue"),
@@ -43,7 +41,6 @@ import java.util.TimeZone;
         @ActivationConfigProperty(propertyName = "destinationJndiName", propertyValue = "jms/queue/UVMSInmarsatMessages"),
         @ActivationConfigProperty(propertyName = "connectionFactoryJndiName", propertyValue = "ConnectionFactory")
 })
-
 public class InmarsatMessageListener implements MessageListener {
 
     private static final Logger LOG = LoggerFactory.getLogger(InmarsatMessageListener.class);
@@ -62,27 +59,23 @@ public class InmarsatMessageListener implements MessageListener {
 
     @Inject
     @Metric(name = "inmarsat_incoming", absolute = true)
-    Counter inmarsatIncoming;
+    private Counter inmarsatIncoming;
 
     @Override
     public void onMessage(Message message) {
-
-
         try {
             if (message instanceof BytesMessage) {
                 byte[] payload = message.getBody(byte[].class);
                 if(payload != null){
-
                     InmarsatMessage[] inmarsatMessagesPerOceanRegion = inmarsatInterpreter.byteToInmMessage(payload);
 
                     if ((inmarsatMessagesPerOceanRegion != null) && (inmarsatMessagesPerOceanRegion.length > 0)) {
-                        int n = inmarsatMessagesPerOceanRegion.length;
-                        for (int i = 0; i < n; i++) {
+                        for (InmarsatMessage msg : inmarsatMessagesPerOceanRegion) {
                             try {
-                                msgToQue(inmarsatMessagesPerOceanRegion[i], payload);
+                                msgToQue(msg, payload);
                                 inmarsatIncoming.inc();
                             } catch (InmarsatException e) {
-                                LOG.error("Positiondate not found in " + inmarsatMessagesPerOceanRegion[i].toString(), e);
+                                LOG.error("Positiondate not found in " + msg.toString(), e);
                             }
                         }
                     }
@@ -93,19 +86,58 @@ public class InmarsatMessageListener implements MessageListener {
         }
     }
 
+    private void msgToQue(InmarsatMessage msg, byte[] messageAsBytes) throws InmarsatException {
+        IdList dnidId = createDNIDIdList(msg);
+        IdList membId = createMemberNumberIdList(msg);
+        MovementBaseType movement = createMovementBaseType(msg, dnidId, membId);
+        SetReportMovementType reportType = createSetReportMovementType(messageAsBytes, movement);
 
-    private void msgToQue(InmarsatMessage msg, byte[] orgiDatFile) throws InmarsatException {
+        if (!sendMovementReportToExchange(reportType)) {
+            return; // return if sending fails
+        }
 
-        MovementBaseType movement = new MovementBaseType();
-        movement.setComChannelType(MovementComChannelType.MOBILE_TERMINAL);
-        MobileTerminalId mobTermId = new MobileTerminalId();
+        // If sending succeeded, check if it was a PollRequest. If so, update PollRequest status.
+        // If the report is a pending poll response, also generate a status update for that poll
+
+        PluginPendingResponseList responseList = inmarsatPollHandler.getPluginPendingResponseList();
+        InmarsatPendingResponse ipr = responseList.containsPollFor(dnidId.getValue(), membId.getValue());
+
+        if (ipr != null) {
+            LOG.info("PendingPollResponse found in list: {}", ipr.getReferenceNumber());
+            AcknowledgeType ackType = createSuccessfulAcknowledgeType(ipr);
+
+            try {
+                String s = ExchangePluginResponseMapper.mapToSetPollStatusToSuccessfulResponse(inmarsatPlugin.getApplicationName(), ackType, ipr.getMsgId());
+                messageProducer.sendModuleMessage(s, ModuleQueue.EXCHANGE, ExchangeModuleMethod.PLUGIN_SET_COMMAND_ACK.value());
+                boolean b = responseList.removePendingPollResponse(ipr);
+                LOG.debug("Pending poll response removed: {}", b);
+            } catch (RuntimeException ex) {
+                LOG.debug("ExchangeModelMarshallException", ex);
+            } catch (JMSException jex) {
+                LOG.debug("JMSException", jex);
+            }
+        }
+        LOG.debug("Sending movement to Exchange");
+    }
+
+    private IdList createDNIDIdList(InmarsatMessage msg) {
         IdList dnidId = new IdList();
         dnidId.setType(IdType.DNID);
         dnidId.setValue(Integer.toString(msg.getHeader().getDnid()));
+        return dnidId;
+    }
+
+    private IdList createMemberNumberIdList(InmarsatMessage msg) {
         IdList membId = new IdList();
         membId.setType(IdType.MEMBER_NUMBER);
         membId.setValue(Integer.toString(msg.getHeader().getMemberNo()));
+        return membId;
+    }
 
+    private MovementBaseType createMovementBaseType(InmarsatMessage msg, IdList dnidId, IdList membId) throws InmarsatException {
+        MovementBaseType movement = new MovementBaseType();
+        movement.setComChannelType(MovementComChannelType.MOBILE_TERMINAL);
+        MobileTerminalId mobTermId = new MobileTerminalId();
         mobTermId.getMobileTerminalIdList().add(dnidId);
         mobTermId.getMobileTerminalIdList().add(membId);
         movement.setMobileTerminalId(mobTermId);
@@ -121,7 +153,10 @@ public class InmarsatMessageListener implements MessageListener {
         movement.setReportedSpeed(((PositionReport) msg.getBody()).getSpeed());
         movement.setSource(MovementSourceType.INMARSAT_C);
         movement.setStatus(Integer.toString(((PositionReport) msg.getBody()).getMacroEncodedMessage()));
+        return movement;
+    }
 
+    private SetReportMovementType createSetReportMovementType(byte[] messageAsBytes, MovementBaseType movement) {
         SetReportMovementType reportType = new SetReportMovementType();
         reportType.setMovement(movement);
         GregorianCalendar gcal = (GregorianCalendar) GregorianCalendar.getInstance(TimeZone.getTimeZone("UTC"));
@@ -129,58 +164,30 @@ public class InmarsatMessageListener implements MessageListener {
         reportType.setPluginName(inmarsatPlugin.getRegisterClassName());
         reportType.setPluginType(PluginType.SATELLITE_RECEIVER);
 
-        reportType.setOriginalIncomingMessage(Base64.getEncoder().encodeToString(orgiDatFile));
-
-
-        if (!sendMovementReportToExchange(reportType)) {
-            // if it didnt send so quit return
-            return;
-        }
-
-
-        // it send so check if it was a pollrequest
-        // in that case update the pollrequest status
-
-
-        PluginPendingResponseList responseList = inmarsatPollHandler.getPluginPendingResponseList();
-
-        // If the report is a pending poll response, also generate a status update for that poll
-        InmarsatPendingResponse ipr = responseList.containsPollTo(dnidId.getValue(), membId.getValue());
-
-        if (ipr != null) {
-            LOG.info("PendingPollResponse found in list: {}", ipr.getReferenceNumber());
-            AcknowledgeType ackType = new AcknowledgeType();
-            ackType.setMessage("");
-
-            PollStatusAcknowledgeType osat = new PollStatusAcknowledgeType();
-            osat.setPollId(ipr.getMsgId());
-            osat.setStatus(ExchangeLogStatusTypeType.SUCCESSFUL);
-
-            ackType.setPollStatus(osat);
-            ackType.setType(AcknowledgeTypeType.OK);
-
-            String iprMessageId = ipr.getUnsentMsgId();
-            ackType.setUnsentMessageGuid(iprMessageId);
-
-            try {
-                String s = ExchangePluginResponseMapper.mapToSetPollStatusToSuccessfulResponse(inmarsatPlugin.getApplicationName(), ackType, ipr.getMsgId());
-                messageProducer.sendModuleMessage(s, ModuleQueue.EXCHANGE, ExchangeModuleMethod.PLUGIN_SET_COMMAND_ACK.value());
-                boolean b = responseList.removePendingPollResponse(ipr);
-                LOG.debug("Pending poll response removed: {}", b);
-            } catch (RuntimeException ex) {
-                LOG.debug("ExchangeModelMarshallException", ex);
-            } catch (JMSException jex) {
-                LOG.debug("JMSException", jex);
-            }
-        }
-
-        LOG.debug("Sending movement to Exchange");
+        reportType.setOriginalIncomingMessage(Base64.getEncoder().encodeToString(messageAsBytes));
+        return reportType;
     }
 
+    private AcknowledgeType createSuccessfulAcknowledgeType(InmarsatPendingResponse ipr) {
+        AcknowledgeType ackType = new AcknowledgeType();
+        ackType.setMessage("");
+
+        PollStatusAcknowledgeType osat = new PollStatusAcknowledgeType();
+        osat.setPollId(ipr.getMsgId());
+        osat.setStatus(ExchangeLogStatusTypeType.SUCCESSFUL);
+
+        ackType.setPollStatus(osat);
+        ackType.setType(AcknowledgeTypeType.OK);
+
+        String iprMessageId = ipr.getUnsentMsgId();
+        ackType.setUnsentMessageGuid(iprMessageId);
+        return ackType;
+    }
 
     private boolean sendMovementReportToExchange(SetReportMovementType reportType) {
         try {
-            String text = ExchangeModuleRequestMapper.createSetMovementReportRequest(reportType, "TWOSTAGE", null, Instant.now(),  PluginType.SATELLITE_RECEIVER, "TWOSTAGE", null);
+            String text = ExchangeModuleRequestMapper.createSetMovementReportRequest(reportType, "TWOSTAGE",
+                    null, Instant.now(),  PluginType.SATELLITE_RECEIVER, "TWOSTAGE", null);
             String messageId = messageProducer.sendModuleMessage(text, ModuleQueue.EXCHANGE, ExchangeModuleMethod.SET_MOVEMENT_REPORT.value());
             LOG.debug("Sent to exchange - text:{}, id:{}", text, messageId);
             return true;
@@ -192,6 +199,4 @@ public class InmarsatMessageListener implements MessageListener {
             return false;
         }
     }
-
-
 }

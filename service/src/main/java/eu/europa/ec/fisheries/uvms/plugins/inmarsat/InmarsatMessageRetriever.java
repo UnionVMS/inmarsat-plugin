@@ -1,6 +1,5 @@
 package eu.europa.ec.fisheries.uvms.plugins.inmarsat;
 
-
 import eu.europa.ec.fisheries.schema.exchange.common.v1.AcknowledgeTypeType;
 import eu.europa.ec.fisheries.schema.exchange.common.v1.KeyValueType;
 import eu.europa.ec.fisheries.schema.exchange.common.v1.ReportType;
@@ -18,8 +17,8 @@ import javax.ejb.Schedule;
 import javax.ejb.Singleton;
 import javax.ejb.Startup;
 import javax.inject.Inject;
-import javax.jms.Queue;
 import javax.jms.*;
+import javax.jms.Queue;
 import java.io.BufferedInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -34,10 +33,8 @@ import java.util.concurrent.ConcurrentMap;
 @Singleton
 public class InmarsatMessageRetriever {
 
-
     private static final byte[] HEADER_PATTERN = ByteBuffer.allocate(4).put((byte) InmarsatDefinition.API_SOH).put(InmarsatDefinition.API_LEAD_TEXT.getBytes()).array();
     private static final int PATTERN_LENGTH = HEADER_PATTERN.length;
-
 
     private static final Logger LOGGER = LoggerFactory.getLogger(InmarsatMessageRetriever.class);
     private static final String INMARSAT_MESSAGES = "jms/queue/UVMSInmarsatMessages";
@@ -48,46 +45,26 @@ public class InmarsatMessageRetriever {
     @Resource(mappedName = "java:/ConnectionFactory")
     private ConnectionFactory connectionFactory;
 
-
-    public static final String PLUGIN_PROPERTIES = "plugin.properties";
-    public static final String SETTINGS_PROPERTIES = "settings.properties";
-    public static final String CAPABILITIES_PROPERTIES = "capabilities.properties";
+    private static final String PLUGIN_PROPERTIES = "plugin.properties";
+    private static final String SETTINGS_PROPERTIES = "settings.properties";
+    private static final String CAPABILITIES_PROPERTIES = "capabilities.properties";
     private ConcurrentMap<String, String> settings = null;
     private ConcurrentMap<String, String> capabilities = null;
-    private Properties twostageApplicaitonProperties;
+    private Properties twoStageApplicationProperties;
     private boolean isEnabled = false;
-
-//    @Inject
-//    private PluginMessageProducer messageProducer;
 
     @Inject
     private HelperFunctions functions;
 
-
-    public void mapToMapFromProperties(ConcurrentMap<String, String> map, Properties props, String registerClassName) {
-
-        for (Map.Entry<Object, Object> entry : props.entrySet()) {
-            if (entry.getKey().getClass().isAssignableFrom(String.class)) {
-                String key = (String) entry.getKey();
-                if (registerClassName != null) {
-                    key = registerClassName.concat("." + key);
-                }
-                map.put(key, (String) entry.getValue());
-            }
-        }
-    }
-
-
     private void initialize() {
-
         isEnabled = false;
         settings = new ConcurrentHashMap<>();
         capabilities = new ConcurrentHashMap<>();
-        twostageApplicaitonProperties = functions.getPropertiesFromFile(this.getClass(), PLUGIN_PROPERTIES);
+        twoStageApplicationProperties = functions.getPropertiesFromFile(this.getClass(), PLUGIN_PROPERTIES);
         Properties twostageProperties = functions.getPropertiesFromFile(this.getClass(), SETTINGS_PROPERTIES);
         Properties twostageCapabilities = functions.getPropertiesFromFile(this.getClass(), CAPABILITIES_PROPERTIES);
-        mapToMapFromProperties(settings, twostageProperties, getRegisterClassName());
-        mapToMapFromProperties(capabilities, twostageCapabilities, null);
+        functions.mapToMapFromProperties(settings, twostageProperties, getRegisterClassName());
+        functions.mapToMapFromProperties(capabilities, twostageCapabilities, null);
 
         if (LOGGER.isDebugEnabled()) {
             LOGGER.debug("Settings updated in plugin {}", getRegisterClassName());
@@ -96,7 +73,6 @@ public class InmarsatMessageRetriever {
             }
         }
     }
-
 
     @PostConstruct
     private void startup() {
@@ -109,11 +85,9 @@ public class InmarsatMessageRetriever {
         LOGGER.info("Inmarsat retriever plugin destroyed");
     }
 
-
     //    @Schedule(second = "15", minute = "*", hour = "*", persistent = false)
     @Schedule(minute = "*/3", hour = "*", persistent = false)
     private void retrieveMessages() {
-
         LOGGER.info("HEARTBEAT retrieveMessages running. IsEnabled=" + isEnabled + " threadId=" + Thread.currentThread().toString());
         Socket socket = null;
         PrintStream output = null;
@@ -188,16 +162,13 @@ public class InmarsatMessageRetriever {
     }
 
     private boolean post(byte[] msg) {
-
-
         if (connectionFactory == null) {
             LOGGER.error("No factory. Cannot send messages to queue");
             return false;
         }
-
         try (Connection connection = connectionFactory.createConnection();
              Session session = connection.createSession(false, 1);
-             MessageProducer producer = session.createProducer(inmarsatMessages);
+             MessageProducer producer = session.createProducer(inmarsatMessages)
         ) {
             BytesMessage message = session.createBytesMessage();
             message.setStringProperty("messagesource", "INMARSAT_C");
@@ -214,7 +185,6 @@ public class InmarsatMessageRetriever {
     }
 
     private byte[] readUntil(String pattern, BufferedInputStream in) throws InmarsatSocketException {
-
         StringBuilder sb = new StringBuilder();
         byte[] contents = new byte[4096];
         int bytesRead;
@@ -240,9 +210,7 @@ public class InmarsatMessageRetriever {
             LOGGER.info(ioe.toString(), ioe);
             return new byte[0];
         }
-
     }
-
 
     public String getPluginResponseSubscriptionName() {
         return getRegisterClassName() + "." + getPluginApplicationProperty("application.responseTopicName");
@@ -252,10 +220,9 @@ public class InmarsatMessageRetriever {
         return getPluginApplicationProperty("application.groupid") + "." + getPluginApplicationProperty("application.name");
     }
 
-
     private String getPluginApplicationProperty(String key) {
         try {
-            return (String) twostageApplicaitonProperties.get(key);
+            return (String) twoStageApplicationProperties.get(key);
         } catch (Exception e) {
             LOGGER.error("Failed to getSetting for key: " + key, getRegisterClassName());
             return null;
@@ -292,27 +259,17 @@ public class InmarsatMessageRetriever {
         if (StringUtils.isBlank(dnidsSettingValue)) {
             return new ArrayList<>();
         }
-
         return Arrays.asList(dnidsSettingValue.trim().split(","));
-    }
-
-
-    /**
-     * @param msg inmarsat message to send
-     */
-    private void msgToQue(Object msg) throws RuntimeException {
-
     }
 
     public String getApplicationName() {
         try {
-            return (String) twostageApplicaitonProperties.get("application.name");
+            return (String) twoStageApplicationProperties.get("application.name");
         } catch (Exception e) {
             LOGGER.error("Failed to getSetting for key: application.name", getRegisterClassName());
             return null;
         }
     }
-
 
     public AcknowledgeTypeType setReport(ReportType report) {
         return AcknowledgeTypeType.NOK;
@@ -371,6 +328,4 @@ public class InmarsatMessageRetriever {
             return AcknowledgeTypeType.NOK;
         }
     }
-
-
 }
