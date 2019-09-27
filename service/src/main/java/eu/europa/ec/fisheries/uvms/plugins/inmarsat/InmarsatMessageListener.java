@@ -153,6 +153,9 @@ public class InmarsatMessageListener implements MessageListener {
         movement.setReportedSpeed(((PositionReport) msg.getBody()).getSpeed());
         movement.setSource(MovementSourceType.INMARSAT_C);
         movement.setStatus(Integer.toString(((PositionReport) msg.getBody()).getMacroEncodedMessage()));
+        
+        movement.setLesReportTime( msg.getHeader().getStoredTime() );
+        
         return movement;
     }
 
