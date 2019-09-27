@@ -6,9 +6,7 @@ import eu.europa.ec.fisheries.schema.exchange.common.v1.KeyValueType;
 import eu.europa.ec.fisheries.schema.exchange.plugin.types.v1.PollType;
 import eu.europa.ec.fisheries.schema.exchange.plugin.types.v1.PollTypeType;
 import eu.europa.ec.fisheries.schema.exchange.service.v1.SettingType;
-import eu.europa.ec.fisheries.uvms.plugins.inmarsat.data.AckEnum;
-import eu.europa.ec.fisheries.uvms.plugins.inmarsat.data.InmarsatPoll;
-import eu.europa.ec.fisheries.uvms.plugins.inmarsat.data.StatusEnum;
+import eu.europa.ec.fisheries.uvms.plugins.inmarsat.data.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -82,7 +80,7 @@ public class InmarsatPollHandler {
 
     public AcknowledgeTypeType processCommandTypeAndReturnAck(CommandType command) {
         PollType pollType = command.getPoll();
-        if (PollTypeType.POLL == pollType.getPollTypeType()) {
+        if (PollTypeType.POLL == pollType.getPollTypeType() || PollTypeType.CONFIG == pollType.getPollTypeType()) {
             try {
                 String reference = sendPoll(pollType);
                 if (reference == null) {
@@ -177,13 +175,25 @@ public class InmarsatPollHandler {
         return retVal;
     }
 
-    private String buildPollCommand(PollType poll, String oceanRegion) {
-        InmarsatPoll inmPoll = new InmarsatPoll();
-        inmPoll.setFieldsFromPoll(poll);
-        inmPoll.setOceanRegion(oceanRegion);
-        if (poll.getPollTypeType() == PollTypeType.CONFIG)
-            inmPoll.setAckEnum(AckEnum.TRUE);
-        return inmPoll.asCommand();
+    private String buildPollCommand(PollType pollType, String oceanRegion) {
+        InmarsatPoll poll = getPoll(pollType.getPollTypeType(), oceanRegion);
+        poll.setFieldsFromPoll(pollType);
+        return poll.asCommand();
+    }
+
+    private InmarsatPoll getPoll(PollTypeType pollTypeType, String oceanRegion) {
+        InmarsatPoll poll = null;
+        switch (pollTypeType) {
+            case POLL:
+                poll = new ManualPoll(oceanRegion);
+                break;
+            case CONFIG:
+                poll = new ConfigPoll(oceanRegion);
+                break;
+            case SAMPLING:
+                break;
+        }
+        return poll;
     }
 
     // Extract refnr from LES response
