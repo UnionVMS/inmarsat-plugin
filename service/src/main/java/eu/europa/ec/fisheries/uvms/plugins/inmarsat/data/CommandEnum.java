@@ -2,7 +2,7 @@ package eu.europa.ec.fisheries.uvms.plugins.inmarsat.data;
 
 public enum CommandEnum {
     DEMAND_REPORT("0"),
-    INTERVALL("4"),
+    INTERVAL("4"),
     START("5"),
     STOP("6");
     private final String value;
