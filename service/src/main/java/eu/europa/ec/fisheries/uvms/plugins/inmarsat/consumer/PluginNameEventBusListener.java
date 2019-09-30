@@ -73,6 +73,7 @@ public class PluginNameEventBusListener implements MessageListener {
                     SetConfigRequest setConfigRequest = JAXBMarshaller.unmarshallTextMessage(textMessage, SetConfigRequest.class);
                     AcknowledgeTypeType setConfig = startup.setConfig(setConfigRequest.getConfigurations());
                     inmarsatMessageRetriever.setConfig(setConfigRequest.getConfigurations());
+                    inmarsatPollHandler.updateSettings(setConfigRequest.getConfigurations().getSetting());
                     AcknowledgeType setConfigAck = ExchangePluginResponseMapper.mapToAcknowledgeType(setConfig);
                     responseMessage = ExchangePluginResponseMapper.mapToSetConfigResponse(startup.getRegisterClassName(), setConfigAck);
                     break;
