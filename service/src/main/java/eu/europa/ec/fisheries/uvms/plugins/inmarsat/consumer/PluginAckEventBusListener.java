@@ -52,6 +52,8 @@ public class PluginAckEventBusListener implements MessageListener {
     @Inject
     private InmarsatMessageRetriever inmarsatMessageRetriever;
 
+
+
     @Override
     public void onMessage(Message inMessage) {
 
