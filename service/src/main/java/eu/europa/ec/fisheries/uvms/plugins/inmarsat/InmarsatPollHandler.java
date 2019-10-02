@@ -5,8 +5,10 @@ import eu.europa.ec.fisheries.schema.exchange.common.v1.CommandType;
 import eu.europa.ec.fisheries.schema.exchange.common.v1.KeyValueType;
 import eu.europa.ec.fisheries.schema.exchange.plugin.types.v1.PollType;
 import eu.europa.ec.fisheries.schema.exchange.plugin.types.v1.PollTypeType;
-import eu.europa.ec.fisheries.schema.exchange.service.v1.SettingType;
-import eu.europa.ec.fisheries.uvms.plugins.inmarsat.data.*;
+import eu.europa.ec.fisheries.uvms.plugins.inmarsat.data.ConfigPoll;
+import eu.europa.ec.fisheries.uvms.plugins.inmarsat.data.InmarsatPoll;
+import eu.europa.ec.fisheries.uvms.plugins.inmarsat.data.ManualPoll;
+import eu.europa.ec.fisheries.uvms.plugins.inmarsat.data.StatusEnum;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -19,7 +21,6 @@ import java.net.Socket;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 
 /**
  * Inmarsat har ikke definert Polling&Data rapport tjenesten hundre prosent, med det mener jeg at terminal leverandører
@@ -50,13 +51,6 @@ import java.util.concurrent.ConcurrentMap;
 @Singleton
 public class InmarsatPollHandler {
 
-    private static final String PORT = "PORT";
-    private static final String DNIDS = "DNIDS";
-    private static final String URL = "URL";
-    private static final String PSW = "PSW";
-    private static final String USERNAME = "USERNAME";
-
-    private final ConcurrentMap<String, Object> connectSettings = new ConcurrentHashMap<>();
     private static final Logger LOGGER = LoggerFactory.getLogger(InmarsatPollHandler.class);
 
     @Inject
@@ -65,14 +59,8 @@ public class InmarsatPollHandler {
     @Inject
     private HelperFunctions functions;
 
-    public ConcurrentMap<String, Object> getSettings() {
-        return connectSettings;
-    }
-
-    public Object getSetting(String setting) {
-        return connectSettings.get(setting);
-    }
-
+    @Inject
+    private SettingsHandler settingsHandler;
 
     public PluginPendingResponseList getPluginPendingResponseList() {
         return responseList;
@@ -104,10 +92,11 @@ public class InmarsatPollHandler {
     }
 
     private String sendPoll(PollType poll) {
-        String url = (String) connectSettings.get(URL);
-        Integer port = (Integer) connectSettings.get(PORT);
-        String user = (String) connectSettings.get(USERNAME);
-        String pwd = (String) connectSettings.get(PSW);
+        ConcurrentHashMap<String, String> settings = settingsHandler.getSettingsWithShortKeyNames();
+        String url = settings.get("URL");
+        int port = Integer.parseInt(settings.get("PORT"));
+        String user = settings.get("USERNAME");
+        String pwd = settings.get("PSW");
 
         List<String> wrkOceanRegions = getOceanRegions(poll);
 
@@ -230,25 +219,4 @@ public class InmarsatPollHandler {
         return ipr;
     }
 
-    // for inmarsat connect-logon
-    public void updateSettings(List<SettingType> settingTypes) {
-        for (SettingType setting : settingTypes) {
-            String key = setting.getKey();
-            int pos = key.lastIndexOf(".");
-            key = key.substring(pos + 1);
-            String value = setting.getValue();
-
-            if (key.equals(PORT)) {
-                try {
-                    Integer port = Integer.parseInt(value);
-                    connectSettings.put(key, port);
-                } catch (NumberFormatException e) {
-                    LOGGER.error("Port is not an integer");
-                    return;
-                }
-            } else {
-                connectSettings.put(key, setting.getValue());
-            }
-        }
-    }
 }

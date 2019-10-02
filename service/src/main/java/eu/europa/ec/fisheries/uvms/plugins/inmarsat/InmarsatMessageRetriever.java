@@ -17,8 +17,8 @@ import javax.ejb.Schedule;
 import javax.ejb.Singleton;
 import javax.ejb.Startup;
 import javax.inject.Inject;
-import javax.jms.*;
 import javax.jms.Queue;
+import javax.jms.*;
 import java.io.BufferedInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -48,7 +48,6 @@ public class InmarsatMessageRetriever {
     private static final String PLUGIN_PROPERTIES = "plugin.properties";
     private static final String SETTINGS_PROPERTIES = "settings.properties";
     private static final String CAPABILITIES_PROPERTIES = "capabilities.properties";
-    private ConcurrentMap<String, String> settings = null;
     private ConcurrentMap<String, String> capabilities = null;
     private Properties twoStageApplicationProperties;
     private boolean isEnabled = false;
@@ -56,19 +55,21 @@ public class InmarsatMessageRetriever {
     @Inject
     private HelperFunctions functions;
 
+    @Inject
+    private SettingsHandler settingsHandler;
+
     private void initialize() {
         isEnabled = false;
-        settings = new ConcurrentHashMap<>();
         capabilities = new ConcurrentHashMap<>();
         twoStageApplicationProperties = functions.getPropertiesFromFile(this.getClass(), PLUGIN_PROPERTIES);
         Properties twostageProperties = functions.getPropertiesFromFile(this.getClass(), SETTINGS_PROPERTIES);
         Properties twostageCapabilities = functions.getPropertiesFromFile(this.getClass(), CAPABILITIES_PROPERTIES);
-        functions.mapToMapFromProperties(settings, twostageProperties, getRegisterClassName());
+        functions.mapToMapFromProperties(settingsHandler.getSettings(), twostageProperties, getRegisterClassName());
         functions.mapToMapFromProperties(capabilities, twostageCapabilities, null);
 
         if (LOGGER.isDebugEnabled()) {
             LOGGER.debug("Settings updated in plugin {}", getRegisterClassName());
-            for (Map.Entry<String, String> entry : settings.entrySet()) {
+            for (Map.Entry<String, String> entry : settingsHandler.getSettings().entrySet()) {
                 LOGGER.debug("Setting: KEY: {} , VALUE: {}", entry.getKey(), entry.getValue());
             }
         }
@@ -94,10 +95,10 @@ public class InmarsatMessageRetriever {
         try {
             if (isEnabled()) {
                 List<String> dnids = getDnids();
-                String url = getSetting("URL");
-                String port = getSetting("PORT");
-                String user = getSetting("USERNAME");
-                String pwd = getSetting("PSW");
+                String url = settingsHandler.getSetting("URL", getRegisterClassName());
+                String port = settingsHandler.getSetting("PORT", getRegisterClassName());
+                String user = settingsHandler.getSetting("USERNAME", getRegisterClassName());
+                String pwd = settingsHandler.getSetting("PSW", getRegisterClassName());
 
                 socket = new Socket(url, Integer.parseInt(port));
 
@@ -229,13 +230,6 @@ public class InmarsatMessageRetriever {
         }
     }
 
-    public String getSetting(String setting) {
-        LOGGER.debug("Trying to get setting {}.{}", getRegisterClassName(), setting);
-        String settingValue = settings.get(getRegisterClassName() + "." + setting);
-        LOGGER.debug("Got setting value for {}.{};{}", getRegisterClassName(), setting, settingValue);
-        return settingValue;
-    }
-
     public boolean isEnabled() {
         return isEnabled;
     }
@@ -244,18 +238,11 @@ public class InmarsatMessageRetriever {
         this.isEnabled = isEnabled;
     }
 
-    public void updateSettings(List<SettingType> settings) {
-        for (SettingType setting : settings) {
-            LOGGER.info("Updating setting: {} = {}", setting.getKey(), setting.getValue());
-            this.settings.put(setting.getKey(), setting.getValue());
-        }
-    }
-
     /**
      * @return list of DNIDs configured
      */
     private List<String> getDnids() {
-        String dnidsSettingValue = getSetting("DNIDS");
+        String dnidsSettingValue = settingsHandler.getSetting("DNIDS", getRegisterClassName());
         if (StringUtils.isBlank(dnidsSettingValue)) {
             return new ArrayList<>();
         }
@@ -273,26 +260,6 @@ public class InmarsatMessageRetriever {
 
     public AcknowledgeTypeType setReport(ReportType report) {
         return AcknowledgeTypeType.NOK;
-    }
-
-    /**
-     * Set the config values for the twostage
-     *
-     * @param settings the settings
-     * @return AcknowledgeTypeType
-     */
-    public AcknowledgeTypeType setConfig(SettingListType settings) {
-        LOGGER.info(getRegisterClassName() + ".setConfig()");
-        try {
-            for (KeyValueType values : settings.getSetting()) {
-                LOGGER.debug("Setting [ " + values.getKey() + " : " + values.getValue() + " ]");
-                this.settings.put(values.getKey(), values.getValue());
-            }
-            return AcknowledgeTypeType.OK;
-        } catch (Exception e) {
-            LOGGER.error("Failed to set config in {}", getRegisterClassName());
-            return AcknowledgeTypeType.NOK;
-        }
     }
 
     /**

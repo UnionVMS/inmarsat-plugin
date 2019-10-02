@@ -21,6 +21,7 @@ import eu.europa.ec.fisheries.uvms.exchange.model.mapper.JAXBMarshaller;
 import eu.europa.ec.fisheries.uvms.plugins.inmarsat.InmarsatMessageRetriever;
 import eu.europa.ec.fisheries.uvms.plugins.inmarsat.InmarsatPlugin;
 import eu.europa.ec.fisheries.uvms.plugins.inmarsat.InmarsatPollHandler;
+import eu.europa.ec.fisheries.uvms.plugins.inmarsat.SettingsHandler;
 import eu.europa.ec.fisheries.uvms.plugins.inmarsat.message.PluginMessageProducer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,13 +35,13 @@ import javax.jms.MessageListener;
 import javax.jms.TextMessage;
 
 @MessageDriven(mappedName = "jms:/jms/topic/EventBus", activationConfig = {
-        @ActivationConfigProperty(propertyName = "subscriptionName", propertyValue = "eu.europa.ec.fisheries.uvms.plugins.inmarsat"),
-        @ActivationConfigProperty(propertyName = "clientId", propertyValue = "eu.europa.ec.fisheries.uvms.plugins.inmarsat"),
-        @ActivationConfigProperty(propertyName = "messageSelector", propertyValue = "ServiceName='eu.europa.ec.fisheries.uvms.plugins.inmarsat'"),
-        @ActivationConfigProperty(propertyName = "subscriptionDurability", propertyValue = "Durable"),
-        @ActivationConfigProperty(propertyName = "destination", propertyValue = "EventBus"),
-        @ActivationConfigProperty(propertyName = "connectionFactoryJndiName", propertyValue = "jms:/ConnectionFactory"),
-        @ActivationConfigProperty(propertyName = "destinationType", propertyValue = "javax.jms.Topic")
+        @ActivationConfigProperty(propertyName = "subscriptionName",            propertyValue = "eu.europa.ec.fisheries.uvms.plugins.inmarsat"),
+        @ActivationConfigProperty(propertyName = "clientId",                    propertyValue = "eu.europa.ec.fisheries.uvms.plugins.inmarsat"),
+        @ActivationConfigProperty(propertyName = "messageSelector",             propertyValue = "ServiceName='eu.europa.ec.fisheries.uvms.plugins.inmarsat'"),
+        @ActivationConfigProperty(propertyName = "subscriptionDurability",      propertyValue = "Durable"),
+        @ActivationConfigProperty(propertyName = "destination",                 propertyValue = "EventBus"),
+        @ActivationConfigProperty(propertyName = "connectionFactoryJndiName",   propertyValue = "jms:/ConnectionFactory"),
+        @ActivationConfigProperty(propertyName = "destinationType",             propertyValue = "javax.jms.Topic")
 })
 public class PluginNameEventBusListener implements MessageListener {
 
@@ -58,6 +59,9 @@ public class PluginNameEventBusListener implements MessageListener {
     @Inject
     private InmarsatMessageRetriever inmarsatMessageRetriever;
 
+    @Inject
+    private SettingsHandler settingsHandler;
+
     @Override
     public void onMessage(Message inMessage) {
         LOGGER.debug("Eventbus listener for inmarsat-c (MessageConstants.PLUGIN_SERVICE_CLASS_NAME): {}",startup.getRegisterClassName());
@@ -71,14 +75,11 @@ public class PluginNameEventBusListener implements MessageListener {
             switch (request.getMethod()) {
                 case SET_CONFIG:
                     SetConfigRequest setConfigRequest = JAXBMarshaller.unmarshallTextMessage(textMessage, SetConfigRequest.class);
-                    AcknowledgeTypeType setConfig = startup.setConfig(setConfigRequest.getConfigurations());
-                    inmarsatMessageRetriever.setConfig(setConfigRequest.getConfigurations());
-                    inmarsatPollHandler.updateSettings(setConfigRequest.getConfigurations().getSetting());
+                    AcknowledgeTypeType setConfig = settingsHandler.setConfig(setConfigRequest.getConfigurations(), startup.getRegisterClassName());
                     AcknowledgeType setConfigAck = ExchangePluginResponseMapper.mapToAcknowledgeType(setConfig);
                     responseMessage = ExchangePluginResponseMapper.mapToSetConfigResponse(startup.getRegisterClassName(), setConfigAck);
                     break;
                 case SET_COMMAND:
-
                     SetCommandRequest setCommandRequest = JAXBMarshaller.unmarshallTextMessage(textMessage, SetCommandRequest.class);
                     CommandType commandType  = setCommandRequest.getCommand();
                     PollType poll = commandType.getPoll();
