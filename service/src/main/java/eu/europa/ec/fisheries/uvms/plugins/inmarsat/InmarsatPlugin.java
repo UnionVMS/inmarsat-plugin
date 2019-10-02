@@ -1,7 +1,6 @@
 package eu.europa.ec.fisheries.uvms.plugins.inmarsat;
 
 import eu.europa.ec.fisheries.schema.exchange.common.v1.AcknowledgeTypeType;
-import eu.europa.ec.fisheries.schema.exchange.common.v1.KeyValueType;
 import eu.europa.ec.fisheries.schema.exchange.common.v1.ReportType;
 import eu.europa.ec.fisheries.schema.exchange.module.v1.ExchangeModuleMethod;
 import eu.europa.ec.fisheries.schema.exchange.movement.v1.SetReportMovementType;
@@ -48,7 +47,6 @@ public class InmarsatPlugin  {
     private static final String PLUGIN_PROPERTIES = "plugin.properties";
     private static final String SETTINGS_PROPERTIES = "settings.properties";
     private static final String CAPABILITIES_PROPERTIES = "capabilities.properties";
-    private final ConcurrentMap<String, String> settings = new ConcurrentHashMap<>();
     private final ConcurrentMap<String, String> capabilities = new ConcurrentHashMap<>();
     private Properties twostageApplicationProperties;
     private Properties twostageProperties;
@@ -60,9 +58,7 @@ public class InmarsatPlugin  {
     @Inject
     private HelperFunctions functions;
 
-    public ConcurrentMap<String, String> getSettings() {
-        return settings;
-    }
+    @Inject SettingsHandler settingsHandler;
 
     private ConcurrentMap<String, String> getCapabilities() {
         return capabilities;
@@ -100,11 +96,11 @@ public class InmarsatPlugin  {
         LOGGER.debug("Plugin will try to register as:{}", registerClassName);
         setPluginProperties(functions.getPropertiesFromFile(this.getClass(), SETTINGS_PROPERTIES));
         setPluginCapabilities(functions.getPropertiesFromFile(this.getClass(), CAPABILITIES_PROPERTIES));
-        functions.mapToMapFromProperties(getSettings(), getPluginProperties(), getRegisterClassName());
+        functions.mapToMapFromProperties(settingsHandler.getSettings(), getPluginProperties(), getRegisterClassName());
         functions.mapToMapFromProperties(getCapabilities(), getPluginCapabilities(), null);
 
         capabilityList = ServiceMapper.getCapabilitiesListTypeFromMap(getCapabilities());
-        settingList = ServiceMapper.getSettingsListTypeFromMap(getSettings());
+        settingList = ServiceMapper.getSettingsListTypeFromMap(settingsHandler.getSettings());
         serviceType = ServiceMapper.getServiceType(getRegisterClassName(), "Thrane&Thrane",
                 "inmarsat plugin for the Thrane&Thrane API", PluginType.SATELLITE_RECEIVER,
                 getPluginResponseSubscriptionName(), "INMARSAT_C");
@@ -113,7 +109,7 @@ public class InmarsatPlugin  {
 
         if (LOGGER.isDebugEnabled()) {
             LOGGER.debug("Settings updated in plugin {}", registerClassName);
-            for (Map.Entry<String, String> entry : getSettings().entrySet()) {
+            for (Map.Entry<String, String> entry : settingsHandler.getSettings().entrySet()) {
                 LOGGER.debug("Setting: KEY: {} , VALUE: {}", entry.getKey(), entry.getValue());
             }
         }
@@ -150,7 +146,8 @@ public class InmarsatPlugin  {
         LOGGER.info("Registering to Exchange Module");
         try {
             String registerServiceRequest = ExchangeModuleRequestMapper.createRegisterServiceRequest(serviceType, capabilityList, settingList);
-            messageProducer.sendEventBusMessage(registerServiceRequest, ExchangeModelConstants.EXCHANGE_REGISTER_SERVICE, ExchangeRegistryMethod.REGISTER_SERVICE.value());
+            messageProducer.sendEventBusMessage(registerServiceRequest, ExchangeModelConstants.EXCHANGE_REGISTER_SERVICE,
+                    ExchangeRegistryMethod.REGISTER_SERVICE.value());
             LOGGER.info("Registering to Exchange Module successfully sent.");
         } catch (JMSException | RuntimeException e) {
             LOGGER.error("Failed to send registration message to {}", ExchangeModelConstants.EXCHANGE_REGISTER_SERVICE);
@@ -161,7 +158,8 @@ public class InmarsatPlugin  {
         LOGGER.info("Unregistering from Exchange Module");
         try {
             String unregisterServiceRequest = ExchangeModuleRequestMapper.createUnregisterServiceRequest(serviceType);
-            messageProducer.sendEventBusMessage(unregisterServiceRequest, ExchangeModelConstants.EXCHANGE_REGISTER_SERVICE, ExchangeRegistryMethod.UNREGISTER_SERVICE.value());
+            messageProducer.sendEventBusMessage(unregisterServiceRequest, ExchangeModelConstants.EXCHANGE_REGISTER_SERVICE,
+                    ExchangeRegistryMethod.UNREGISTER_SERVICE.value());
         } catch (JMSException | RuntimeException e) {
             LOGGER.error("Failed to send unregistration message to {}", ExchangeModelConstants.EXCHANGE_REGISTER_SERVICE);
         }
@@ -184,13 +182,6 @@ public class InmarsatPlugin  {
         }
     }
 
-    public String getSetting(String setting) {
-        LOGGER.debug("Trying to get setting {}.{}", registerClassName, setting);
-        String settingValue = getSettings().get(registerClassName + "." + setting);
-        LOGGER.debug("Got setting value for {}.{};{}", registerClassName, setting, settingValue);
-        return settingValue;
-    }
-
     public boolean isIsRegistered() {
         return isRegistered;
     }
@@ -198,13 +189,6 @@ public class InmarsatPlugin  {
     public void setIsRegistered(boolean isRegistered) {
         LOGGER.info("setRegistered : " + isRegistered);
         this.isRegistered = isRegistered;
-    }
-
-    public void updateSettings(List<SettingType> settings) {
-        for (SettingType setting : settings) {
-            LOGGER.info("Updating setting: {} = {}", setting.getKey(), setting.getValue());
-            getSettings().put(setting.getKey(), setting.getValue());
-        }
     }
 
     public String getApplicationName() {
@@ -218,7 +202,8 @@ public class InmarsatPlugin  {
 
     private boolean sendMovementReportToExchange(SetReportMovementType reportType) {
         try {
-            String text = ExchangeModuleRequestMapper.createSetMovementReportRequest(reportType, "TWOSTAGE", null, Instant.now(),  PluginType.SATELLITE_RECEIVER, "TWOSTAGE", null);
+            String text = ExchangeModuleRequestMapper.createSetMovementReportRequest(reportType, "TWOSTAGE",
+                    null, Instant.now(),  PluginType.SATELLITE_RECEIVER, "TWOSTAGE", null);
             String messageId = messageProducer.sendModuleMessage(text, ModuleQueue.EXCHANGE, ExchangeModuleMethod.SET_MOVEMENT_REPORT.value());
             LOGGER.debug("Sent to exchange - text:{}, id:{}", text, messageId);
             return true;
@@ -235,23 +220,4 @@ public class InmarsatPlugin  {
         return AcknowledgeTypeType.NOK;
     }
 
-    /**
-     * Set the config values for the twoStage
-     *
-     * @param settings the settings
-     * @return AcknowledgeTypeType
-     */
-    public AcknowledgeTypeType setConfig(SettingListType settings) {
-        LOGGER.info(getRegisterClassName() + ".setConfig()");
-        try {
-            for (KeyValueType values : settings.getSetting()) {
-                LOGGER.debug("Setting [ " + values.getKey() + " : " + values.getValue() + " ]");
-                getSettings().put(values.getKey(), values.getValue());
-            }
-            return AcknowledgeTypeType.OK;
-        } catch (Exception e) {
-            LOGGER.error("Failed to set config in {}", getRegisterClassName());
-            return AcknowledgeTypeType.NOK;
-        }
-    }
 }

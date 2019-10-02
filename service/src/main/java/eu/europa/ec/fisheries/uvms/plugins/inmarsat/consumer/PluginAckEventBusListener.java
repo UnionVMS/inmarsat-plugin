@@ -15,9 +15,8 @@ import eu.europa.ec.fisheries.schema.exchange.registry.v1.ExchangeRegistryBaseRe
 import eu.europa.ec.fisheries.schema.exchange.registry.v1.RegisterServiceResponse;
 import eu.europa.ec.fisheries.schema.exchange.registry.v1.UnregisterServiceResponse;
 import eu.europa.ec.fisheries.uvms.exchange.model.mapper.JAXBMarshaller;
-import eu.europa.ec.fisheries.uvms.plugins.inmarsat.InmarsatMessageRetriever;
 import eu.europa.ec.fisheries.uvms.plugins.inmarsat.InmarsatPlugin;
-import eu.europa.ec.fisheries.uvms.plugins.inmarsat.InmarsatPollHandler;
+import eu.europa.ec.fisheries.uvms.plugins.inmarsat.SettingsHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -28,7 +27,6 @@ import javax.jms.JMSException;
 import javax.jms.Message;
 import javax.jms.MessageListener;
 import javax.jms.TextMessage;
-
 
 @MessageDriven(mappedName="jms:/jms/topic/EventBus", activationConfig =  {
         @ActivationConfigProperty(propertyName = "subscriptionName",          propertyValue = "eu.europa.ec.fisheries.uvms.plugins.inmarsat.PLUGIN_RESPONSE"),
@@ -47,23 +45,15 @@ public class PluginAckEventBusListener implements MessageListener {
     private InmarsatPlugin startupService;
 
     @Inject
-    private InmarsatPollHandler inmarsatPollHandler;
-
-    @Inject
-    private InmarsatMessageRetriever inmarsatMessageRetriever;
-
-
+    private SettingsHandler settingsHandler;
 
     @Override
     public void onMessage(Message inMessage) {
-
         LOGGER.info("Eventbus listener for twostage at selector: {} got a message", startupService.getPluginResponseSubscriptionName());
         TextMessage textMessage = (TextMessage) inMessage;
 
         try {
-
             ExchangeRegistryBaseRequest request = tryConsumeRegistryBaseRequest(textMessage);
-
             if (request == null) {
                 handlePluginFault(textMessage);
             } else {
@@ -73,10 +63,8 @@ public class PluginAckEventBusListener implements MessageListener {
                         switch (registerResponse.getAck().getType()) {
                             case OK:
                                 LOGGER.info("Register OK");
-                                inmarsatMessageRetriever.updateSettings(registerResponse.getService().getSettingList().getSetting());
                                 startupService.setIsRegistered(Boolean.TRUE);
-                                startupService.updateSettings(registerResponse.getService().getSettingList().getSetting());
-                                inmarsatPollHandler.updateSettings(registerResponse.getService().getSettingList().getSetting());
+                                settingsHandler.updateSettings(registerResponse.getService().getSettingList().getSetting());
                                 break;
                             case NOK:
                                 LOGGER.info("Register NOK: " + registerResponse.getAck().getMessage());
