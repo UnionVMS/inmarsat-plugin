@@ -3,6 +3,9 @@ package eu.europa.ec.fisheries.uvms.plugins.inmarsat.data;
 import eu.europa.ec.fisheries.schema.exchange.common.v1.KeyValueType;
 import eu.europa.ec.fisheries.schema.exchange.plugin.types.v1.PollType;
 
+import java.util.Collections;
+import java.util.List;
+
 public class ManualPoll extends InmarsatPoll {
 
     public ManualPoll(String oceanRegion) {
@@ -48,7 +51,7 @@ public class ManualPoll extends InmarsatPoll {
     }
 
     @Override
-    public String asCommand() {
+    public List<String> asCommand() {
         StringBuilder builder = new StringBuilder();
 
         builder.append("POLL ")
@@ -81,6 +84,6 @@ public class ManualPoll extends InmarsatPoll {
 //                .append(spotId)
 //                .append(',')
 //                .append(mesSerialNumber);
-        return builder.toString();
+        return Collections.singletonList(builder.toString());
     }
 }
