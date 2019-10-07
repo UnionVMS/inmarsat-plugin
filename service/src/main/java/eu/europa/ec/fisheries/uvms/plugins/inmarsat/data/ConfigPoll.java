@@ -31,8 +31,6 @@ public class ConfigPoll extends InmarsatPoll {
 
     @Override
     public void setFieldsFromPoll(PollType poll) {
-        poll.getPollPayload();
-
         pollType = PollEnum.INDV;
         responseType = ResponseEnum.DATA;
         subAddress = SubAddressEnum.THRANE;

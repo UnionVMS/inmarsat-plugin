@@ -86,7 +86,6 @@ public class PluginNameEventBusListener implements MessageListener {
                     if (poll != null && CommandTypeType.POLL.equals(commandType.getCommand())) {
 
                         if (PollTypeType.POLL == poll.getPollTypeType() || PollTypeType.CONFIG == poll.getPollTypeType()) {
-
                             AcknowledgeTypeType ack = inmarsatPollHandler.processCommandTypeAndReturnAck(setCommandRequest.getCommand());
                             AcknowledgeType setCommandAck = ExchangePluginResponseMapper.mapToAcknowledgeType(setCommandRequest.getCommand().getLogId(), ack);
                             setCommandAck.setUnsentMessageGuid(setCommandRequest.getCommand().getUnsentMessageGuid());
