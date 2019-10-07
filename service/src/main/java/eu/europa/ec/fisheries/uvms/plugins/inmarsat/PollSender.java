@@ -34,7 +34,7 @@ public class PollSender {
         String result = null;
         for (String pollCommand : pollCommandList) {
             result = sendPollCommand(in, out, pollCommand);
-            if(result == null)
+            if (result == null)
                 throw new RuntimeException("Error while sending poll command. Command: " + pollCommand);
         }
         return result;
