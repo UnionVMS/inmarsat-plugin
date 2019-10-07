@@ -3,8 +3,9 @@ package eu.europa.ec.fisheries.uvms.plugins.inmarsat.data;
 import eu.europa.ec.fisheries.schema.exchange.common.v1.KeyValueType;
 import eu.europa.ec.fisheries.schema.exchange.plugin.types.v1.PollType;
 
-import java.io.BufferedInputStream;
-import java.io.PrintStream;
+import java.time.Instant;
+import java.time.ZoneOffset;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -23,15 +24,15 @@ public class ConfigPoll extends InmarsatPoll {
     private CommandEnum commandType;
     private int memberNumber = 1; // default
     private String startFrame = "0"; // default
-    private int reportsPer24hours = 10; // default
+    private int frequency = 10; // default
     private AckEnum acknowledgement; // default 0 (FALSE)
     private int spotId = 0; // default
     private String mesSerialNumber = ""; // default
     /** end of poll commands */
     private String pollId;
 
-    private int gracePeriod; // Not clear what data type this should be
-    private int inPortGrace; // Not clear what data type this should be
+    private int gracePeriod;
+    private int inPortGrace;
     private int startHour;
     private int startMinute;
 
@@ -52,7 +53,8 @@ public class ConfigPoll extends InmarsatPoll {
             } else if (element.getKey().equalsIgnoreCase("MEMBER_NUMBER")) {
                 memberNumber = Integer.parseInt(element.getValue());
             }  else if (element.getKey().equalsIgnoreCase("REPORT_FREQUENCY")) {
-                reportsPer24hours = Integer.parseInt(element.getValue());
+                int seconds = Integer.parseInt(element.getValue());
+                secondsToStartFrame(seconds);
             } else if (element.getKey().equalsIgnoreCase("GRACE_PERIOD")) {
                 gracePeriod = Integer.parseInt(element.getValue());
             } else if (element.getKey().equalsIgnoreCase("IN_PORT_GRACE")) {
@@ -61,12 +63,23 @@ public class ConfigPoll extends InmarsatPoll {
         }
     }
 
+    private void secondsToStartFrame(int seconds) {
+        Instant instant = Instant.ofEpochSecond(seconds);
+        startHour = instant.atZone(ZoneOffset.UTC).getHour();
+        startMinute = instant.atZone(ZoneOffset.UTC).getMinute();
+        startFrame = calcStartFrame(startHour, startMinute);
+    }
+
     @Override
     public List<String> asCommand() {
         String stop = buildStopIndividualPoll();
         String config = buildConfigIndividualPoll();
         String start = buildStartIndividualPoll();
-        return Arrays.asList(stop, config, start);
+        List<String> commandList = new ArrayList<>(3);
+        commandList.add(0, stop);
+        commandList.add(1, config);
+        commandList.add(2, start);
+        return commandList;
     }
 
 /**
@@ -88,8 +101,7 @@ public class ConfigPoll extends InmarsatPoll {
     }
 
     public String buildConfigIndividualPoll() {
-        startFrame = calcStartFrame(startHour, startMinute);
-        return String.format("poll %s,I,%s,N,1,%S,4,,%s,%s", oceanRegion, dnid, address, startFrame, reportsPer24hours);
+        return String.format("poll %s,I,%s,N,1,%S,4,,%s,%s", oceanRegion, dnid, address, startFrame, frequency);
     }
 
     public String buildStartIndividualPoll() {
