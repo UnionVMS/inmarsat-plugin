@@ -9,9 +9,9 @@ import eu.europa.ec.fisheries.schema.exchange.registry.v1.ExchangeRegistryMethod
 import eu.europa.ec.fisheries.schema.exchange.service.v1.CapabilityListType;
 import eu.europa.ec.fisheries.schema.exchange.service.v1.ServiceType;
 import eu.europa.ec.fisheries.schema.exchange.service.v1.SettingListType;
-import eu.europa.ec.fisheries.schema.exchange.service.v1.SettingType;
 import eu.europa.ec.fisheries.uvms.exchange.model.constant.ExchangeModelConstants;
 import eu.europa.ec.fisheries.uvms.exchange.model.mapper.ExchangeModuleRequestMapper;
+import eu.europa.ec.fisheries.uvms.plugins.inmarsat.data.ModuleQueue;
 import eu.europa.ec.fisheries.uvms.plugins.inmarsat.message.PluginMessageProducer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,7 +25,6 @@ import javax.ejb.Timer;
 import javax.inject.Inject;
 import javax.jms.JMSException;
 import java.time.Instant;
-import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
@@ -195,7 +194,7 @@ public class InmarsatPlugin  {
         try {
             return (String) getPluginApplicationProperties().get("application.name");
         } catch (Exception e) {
-            LOGGER.error("Failed to getSetting for key: application.name", getRegisterClassName());
+            LOGGER.error("Failed to getSetting for key: application.name: " + getRegisterClassName());
             return null;
         }
     }

@@ -13,7 +13,7 @@ package eu.europa.ec.fisheries.uvms.plugins.inmarsat.message;
 
 import eu.europa.ec.fisheries.uvms.commons.message.api.MessageConstants;
 import eu.europa.ec.fisheries.uvms.exchange.model.constant.ExchangeModelConstants;
-import eu.europa.ec.fisheries.uvms.plugins.inmarsat.ModuleQueue;
+import eu.europa.ec.fisheries.uvms.plugins.inmarsat.data.ModuleQueue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -22,7 +22,7 @@ import javax.annotation.Resource;
 import javax.ejb.LocalBean;
 import javax.jms.*;
 
-import static eu.europa.ec.fisheries.uvms.plugins.inmarsat.ModuleQueue.EXCHANGE;
+import static eu.europa.ec.fisheries.uvms.plugins.inmarsat.data.ModuleQueue.EXCHANGE;
 
 @LocalBean
 public class PluginMessageProducer {

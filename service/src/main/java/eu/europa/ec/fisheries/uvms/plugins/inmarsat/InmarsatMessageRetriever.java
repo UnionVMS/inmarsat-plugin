@@ -1,10 +1,8 @@
 package eu.europa.ec.fisheries.uvms.plugins.inmarsat;
 
 import eu.europa.ec.fisheries.schema.exchange.common.v1.AcknowledgeTypeType;
-import eu.europa.ec.fisheries.schema.exchange.common.v1.KeyValueType;
 import eu.europa.ec.fisheries.schema.exchange.common.v1.ReportType;
-import eu.europa.ec.fisheries.schema.exchange.service.v1.SettingListType;
-import eu.europa.ec.fisheries.schema.exchange.service.v1.SettingType;
+import eu.europa.ec.fisheries.uvms.plugins.inmarsat.data.InmarsatSocketException;
 import fish.focus.uvms.commons.les.inmarsat.InmarsatDefinition;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;

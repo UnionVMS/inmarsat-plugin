@@ -17,10 +17,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Map;
-import java.util.Properties;
 import java.util.concurrent.ConcurrentMap;
 
-/** */
 public class ServiceMapper {
     private static final Logger LOGGER = LoggerFactory.getLogger(ServiceMapper.class);
 
@@ -28,7 +26,8 @@ public class ServiceMapper {
         throw new IllegalStateException("Utility class");
     }
 
-    public static ServiceType getServiceType(String serviceClassName, String twostageDisplayName, String description, PluginType twostageType, String responseMessageName, String satelliteType) {
+    public static ServiceType getServiceType(String serviceClassName, String twoStageDisplayName, String description,
+                                             PluginType twostageType, String responseMessageName, String satelliteType) {
 
         if (responseMessageName == null) {
             throw new IllegalArgumentException("Response message must be provided!");
@@ -40,7 +39,7 @@ public class ServiceMapper {
 
         ServiceType serviceType = new ServiceType();
         serviceType.setDescription(description);
-        serviceType.setName(twostageDisplayName);
+        serviceType.setName(twoStageDisplayName);
         serviceType.setServiceClassName(serviceClassName);
         serviceType.setServiceResponseMessageName(responseMessageName);
         serviceType.setPluginType(twostageType);

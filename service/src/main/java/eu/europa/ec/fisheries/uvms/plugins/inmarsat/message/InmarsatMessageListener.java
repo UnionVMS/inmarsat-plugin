@@ -1,4 +1,4 @@
-package eu.europa.ec.fisheries.uvms.plugins.inmarsat;
+package eu.europa.ec.fisheries.uvms.plugins.inmarsat.message;
 
 import eu.europa.ec.fisheries.schema.exchange.common.v1.AcknowledgeType;
 import eu.europa.ec.fisheries.schema.exchange.common.v1.AcknowledgeTypeType;
@@ -12,6 +12,11 @@ import eu.europa.ec.fisheries.schema.exchange.plugin.types.v1.PluginType;
 import eu.europa.ec.fisheries.schema.exchange.v1.ExchangeLogStatusTypeType;
 import eu.europa.ec.fisheries.uvms.exchange.model.mapper.ExchangeModuleRequestMapper;
 import eu.europa.ec.fisheries.uvms.exchange.model.mapper.ExchangePluginResponseMapper;
+import eu.europa.ec.fisheries.uvms.plugins.inmarsat.InmarsatPlugin;
+import eu.europa.ec.fisheries.uvms.plugins.inmarsat.InmarsatPollHandler;
+import eu.europa.ec.fisheries.uvms.plugins.inmarsat.PluginPendingResponseList;
+import eu.europa.ec.fisheries.uvms.plugins.inmarsat.data.InmarsatPendingResponse;
+import eu.europa.ec.fisheries.uvms.plugins.inmarsat.data.ModuleQueue;
 import eu.europa.ec.fisheries.uvms.plugins.inmarsat.message.PluginMessageProducer;
 import fish.focus.uvms.commons.les.inmarsat.InmarsatException;
 import fish.focus.uvms.commons.les.inmarsat.InmarsatInterpreter;
