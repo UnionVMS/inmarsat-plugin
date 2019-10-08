@@ -19,7 +19,6 @@ public class ConfigPoll extends InmarsatPoll {
     private int memberNumber = 1;
     private int startFrame = 0;
     private int frequency = 10;
-    private String pollId;
     private int gracePeriod;
     private int inPortGrace;
     private int startFrameHour;
@@ -27,8 +26,6 @@ public class ConfigPoll extends InmarsatPoll {
 
     @Override
     public void setFieldsFromPoll(PollType poll) {
-        pollId = poll.getPollId();
-
         for (KeyValueType element : poll.getPollReceiver()) {
             if (element.getKey().equalsIgnoreCase("DNID")) {
                 dnid = Integer.parseInt(element.getValue());
