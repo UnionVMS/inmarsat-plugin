@@ -45,11 +45,11 @@ public class PollSender {
         switch (pollType.getPollTypeType()) {
             case POLL:
                 poll = new ManualPoll(oceanRegion);
-                poll.setFieldsFromPoll(pollType);
+                poll.setFieldsFromPollRequest(pollType);
                 break;
             case CONFIG:
                 poll = new ConfigPoll(oceanRegion);
-                poll.setFieldsFromPoll(pollType);
+                poll.setFieldsFromPollRequest(pollType);
                 break;
             case SAMPLING:
                 break;

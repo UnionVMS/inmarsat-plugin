@@ -12,6 +12,6 @@ public abstract class InmarsatPoll {
         this.oceanRegion = oceanRegion;
     }
 
-    public abstract void setFieldsFromPoll(PollType poll);
+    public abstract void setFieldsFromPollRequest(PollType poll);
     public abstract List<String> asCommand();
 }

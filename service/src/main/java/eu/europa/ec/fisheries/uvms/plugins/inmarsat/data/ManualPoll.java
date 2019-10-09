@@ -18,7 +18,7 @@ public class ManualPoll extends InmarsatPoll {
 
 
     @Override
-    public void setFieldsFromPoll(PollType poll) {
+    public void setFieldsFromPollRequest(PollType poll) {
         for (KeyValueType element : poll.getPollReceiver()) {
             if (element.getKey().equalsIgnoreCase("DNID")) {
                 dnid = Integer.parseInt(element.getValue());
@@ -53,6 +53,6 @@ public class ManualPoll extends InmarsatPoll {
      * P12 - MES Serial (empty default)
      */
     private String buildStartIndividualPoll() {
-        return String.format("poll %s,I,%s,D,1,%s,5", oceanRegion, dnid, address);
+        return String.format("poll %s,I,%s,D,1,%s,0", oceanRegion, dnid, address);
     }
 }

@@ -25,7 +25,7 @@ public class ConfigPoll extends InmarsatPoll {
     private int startFrameMinute;
 
     @Override
-    public void setFieldsFromPoll(PollType poll) {
+    public void setFieldsFromPollRequest(PollType poll) {
         for (KeyValueType element : poll.getPollReceiver()) {
             if (element.getKey().equalsIgnoreCase("DNID")) {
                 dnid = Integer.parseInt(element.getValue());
