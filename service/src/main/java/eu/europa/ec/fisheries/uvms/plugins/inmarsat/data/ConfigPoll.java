@@ -3,96 +3,114 @@ package eu.europa.ec.fisheries.uvms.plugins.inmarsat.data;
 import eu.europa.ec.fisheries.schema.exchange.common.v1.KeyValueType;
 import eu.europa.ec.fisheries.schema.exchange.plugin.types.v1.PollType;
 
+import java.time.Instant;
+import java.time.ZoneOffset;
+import java.util.ArrayList;
+import java.util.List;
+
 public class ConfigPoll extends InmarsatPoll {
 
     public ConfigPoll(String oceanRegion) {
         super(oceanRegion);
     }
 
-    /** 12 fields of Poll Command in order */
-    private PollEnum pollType;
     private int dnid;
-    private ResponseEnum responseType;
-    private SubAddressEnum subAddress;  // default = 0?
-    private String address;
-    private CommandEnum commandType;
-    private int memberNumber = 1; // default
-    private int startFrame = 0; // default
-    private int reportsPer24hours = 10; // default
-    private AckEnum acknowledgement; // default 0 (FALSE)
-    private int spotId = 0; // default
-    private String mesSerialNumber = ""; // default
-    /** end of poll commands */
-    private String pollId;
-
-    // Todo: Make use of these values somehow?
+    private long address;
+    private int memberNumber = 1;
+    private int startFrame = 0;
+    private int frequency = 10;
     private int gracePeriod;
     private int inPortGrace;
+    private int startFrameHour;
+    private int startFrameMinute;
 
     @Override
-    public void setFieldsFromPoll(PollType poll) {
-        poll.getPollPayload();
-
-        pollType = PollEnum.INDV;
-        responseType = ResponseEnum.DATA;
-        subAddress = SubAddressEnum.THRANE;
-        commandType = CommandEnum.DEMAND_REPORT;
-        acknowledgement = AckEnum.TRUE;
-        pollId = poll.getPollId();
-
+    public void setFieldsFromPollRequest(PollType poll) {
         for (KeyValueType element : poll.getPollReceiver()) {
             if (element.getKey().equalsIgnoreCase("DNID")) {
                 dnid = Integer.parseInt(element.getValue());
             } else if (element.getKey().equalsIgnoreCase("SATELLITE_NUMBER")) {
-                address = element.getValue();
+                address = Long.parseLong(element.getValue());
             } else if (element.getKey().equalsIgnoreCase("MEMBER_NUMBER")) {
                 memberNumber = Integer.parseInt(element.getValue());
-            }  else if (element.getKey().equalsIgnoreCase("REPORT_FREQUENCY")) {
-                reportsPer24hours = Integer.parseInt(element.getValue());
+            } else if (element.getKey().equalsIgnoreCase("REPORT_FREQUENCY")) {
+                int seconds = Integer.parseInt(element.getValue());
+                frequency = 24 * 60 * 60 / seconds;
             } else if (element.getKey().equalsIgnoreCase("GRACE_PERIOD")) {
-                gracePeriod = Integer.parseInt(element.getValue());
+                int seconds = Integer.parseInt(element.getValue());
+                secondsToStartFrame(seconds);
             } else if (element.getKey().equalsIgnoreCase("IN_PORT_GRACE")) {
                 inPortGrace = Integer.parseInt(element.getValue());
             }
         }
     }
 
-    @Override
-    public String asCommand() {
-        StringBuilder builder = new StringBuilder();
-
-        builder.append("POLL ")
-                .append(oceanRegion)
-                .append(',')
-                .append(pollType.getValue())
-                .append(',')
-                .append(dnid)
-                .append(',')
-                .append(responseType.getValue())
-                .append(',')
-                .append(subAddress.getValue());
-
-        if (address != null)
-            address = address.replace(" ", "");
-
-        builder.append(',')
-                .append(address)
-                .append(',')
-                .append(commandType.getValue())
-                .append(',')
-                .append(memberNumber)
-                .append(',')
-                .append(startFrame)
-                .append(',')
-                .append(reportsPer24hours)
-                .append(',')
-                .append(acknowledgement.getValue());
-//                .append(',')  // These values are currently not used. Leaving here for reference
-//                .append(spotId)
-//                .append(',')
-//                .append(mesSerialNumber);
-        return builder.toString();
+    private void secondsToStartFrame(int seconds) {
+        Instant instant = Instant.ofEpochSecond(seconds);
+        startFrameHour = instant.atZone(ZoneOffset.UTC).getHour();
+        startFrameMinute = instant.atZone(ZoneOffset.UTC).getMinute();
+        startFrame = calcStartFrame(startFrameHour, startFrameMinute);
     }
 
+    /**
+     * (((hour * 60) + minute) * 60) / 8.64 = startFrame number.
+     * Night and Day (24 hours) are divided in 10000 frames equal to 8,64 second.
+     * Example: 24 * 60 * 60 / 10000 = 8,64
+     * The "24" at the end indicate that the terminals shall send one report every hour.
+     * Example: 13:28 o'clock will be equal to 5611
+     *
+     * @param hour   Hours of the day (24 hours format)
+     * @param minute Minutes of the hour
+     * @return startFrame
+     */
+    private int calcStartFrame(int hour, int minute) {
+        if ((hour < 0) || (hour > 24)) {
+            throw new IllegalArgumentException("Hour must be between 0 and 24. Was " + hour);
+        }
+        if ((minute < 0) || (minute > 60)) {
+            throw new IllegalArgumentException("Minute must be between 0 and 60. Was " + minute);
+        }
+        return (int) ((((hour * 60) + minute) * 60) / 8.64);
+    }
+
+    @Override
+    public List<String> asCommand() {
+        String stop = buildStopIndividualPoll();
+        String config = buildConfigIndividualPoll();
+        String start = buildStartIndividualPoll();
+        List<String> commandList = new ArrayList<>(3);
+        commandList.add(0, stop);
+        commandList.add(1, config);
+        commandList.add(2, start);
+        return commandList;
+    }
+
+    /**
+     * Usage: poll <Ocean Region>,<P1>,<P2>,<P3>,<P4>,<P5>,<P6>,<P7>,<P8>,<P9>,<P10>,<P11>,<P12>
+     * <p>
+     * P01 - Poll type (G,I,N,R,C)
+     * P02 - int DNID (up to 5 digits)
+     * P03 - Response type (D,M,N)
+     * P04 - Sub address (0-255)  (0 default)
+     * P05 - Address (9 Digits)
+     * P06 - Command type (00-11)
+     * P07 - Member number(1-255) (1 default)
+     * P08 - Start frame (4 digits) (0 default)
+     * P09 - Reports per 24 hours (3 digit) (Max 500, default 10)
+     * P10 - Acknowledgement (0-1) (0 default)
+     * P11 - Spot id (0 default)
+     * P12 - MES Serial (empty default)
+     */
+    public String buildStopIndividualPoll() { // With ack
+        return String.format("poll %s,I,%s,N,1,%s,6,%s,,,1", oceanRegion, dnid, address, memberNumber);
+    }
+
+    public String buildConfigIndividualPoll() { // With Ack
+        return String.format("poll %s,I,%s,N,1,%s,4,%s,%s,%s,1", oceanRegion, dnid, address, memberNumber, startFrame, frequency);
+    }
+
+    public String buildStartIndividualPoll() {
+        return String.format("poll %s,I,%s,D,1,%s,5,%s", oceanRegion, dnid, address, memberNumber);
+    }
 
 }

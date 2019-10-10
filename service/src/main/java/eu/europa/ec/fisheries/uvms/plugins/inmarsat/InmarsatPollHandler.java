@@ -4,10 +4,7 @@ import eu.europa.ec.fisheries.schema.exchange.common.v1.AcknowledgeTypeType;
 import eu.europa.ec.fisheries.schema.exchange.common.v1.CommandType;
 import eu.europa.ec.fisheries.schema.exchange.common.v1.KeyValueType;
 import eu.europa.ec.fisheries.schema.exchange.plugin.types.v1.PollType;
-import eu.europa.ec.fisheries.schema.exchange.plugin.types.v1.PollTypeType;
-import eu.europa.ec.fisheries.uvms.plugins.inmarsat.data.ConfigPoll;
-import eu.europa.ec.fisheries.uvms.plugins.inmarsat.data.InmarsatPoll;
-import eu.europa.ec.fisheries.uvms.plugins.inmarsat.data.ManualPoll;
+import eu.europa.ec.fisheries.uvms.plugins.inmarsat.data.InmarsatPendingResponse;
 import eu.europa.ec.fisheries.uvms.plugins.inmarsat.data.StatusEnum;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -15,7 +12,6 @@ import org.slf4j.LoggerFactory;
 import javax.ejb.Singleton;
 import javax.inject.Inject;
 import java.io.BufferedInputStream;
-import java.io.InputStream;
 import java.io.PrintStream;
 import java.net.Socket;
 import java.util.ArrayList;
@@ -24,7 +20,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Inmarsat har ikke definert Polling&Data rapport tjenesten hundre prosent, med det mener jeg at terminal leverandører
- * har hatt mulighet til å lage sine «tolkninger» på endel punkter. Hvis du ser på data rapport pakken (PosRep-C_2l.doc)
+ * har hatt mulighet til å lage sine "tolkninger" på endel punkter. Hvis du ser på data rapport pakken (PosRep-C_2l.doc)
  * så ser du at nederst i pakke en er MEM-code. Den mest brukte MEM code er 11 I attribute bytene nederst i pakke en
  * vil mem 11 angi at atribute bytene inneholder  «time of position».
  *
@@ -39,7 +35,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * poll 0,G,4661,N,1,0,4,,5611,24
  * The P8 parameter is the start frame. The start time must be calculated according to the formula:
  * (((hour*60)+minute)*60)/8.64 = start frame number. (night and day (24 hours) are divided in  10000 frame's a'8.64 sec.).
- * The “24” at the end indicate that the terminals shall send one report every hour.
+ * The "24" at the end indicate that the terminals shall send one report every hour.
  *
  * 2)  Afterwards you have to start the reporting command:
  * e.g:  poll 0,G,4661,D,1,0,5
@@ -62,30 +58,32 @@ public class InmarsatPollHandler {
     @Inject
     private SettingsHandler settingsHandler;
 
+    @Inject
+    private PollSender pollSender;
+
     public PluginPendingResponseList getPluginPendingResponseList() {
         return responseList;
     }
 
     public AcknowledgeTypeType processCommandTypeAndReturnAck(CommandType command) {
         PollType pollType = command.getPoll();
-        if (PollTypeType.POLL == pollType.getPollTypeType() || PollTypeType.CONFIG == pollType.getPollTypeType()) {
-            try {
-                String reference = sendPoll(pollType);
-                if (reference == null) {
-                    LOGGER.error("Error no reference for poll with pollId: " + pollType.getPollId());
-                    return AcknowledgeTypeType.NOK; //consumed but erroneous
-                }
-                LOGGER.info("sent poll with pollId: {} and reference: {} ", pollType.getPollId(), reference);
-                constructIPRAndAddInPPRL(command, pollType, reference);
-                return AcknowledgeTypeType.OK;
-            } catch (Throwable e) {
-                LOGGER.error("Error while sending poll: {}", e.getMessage(), e);
+        try {
+            String reference = sendPoll(pollType);
+            if (reference == null) {
+                LOGGER.error("Error no reference for poll with pollId: " + pollType.getPollId());
+                return AcknowledgeTypeType.NOK; //consumed but erroneous
             }
+            LOGGER.info("sent poll with pollId: {} and reference: {} ", pollType.getPollId(), reference);
+            constructIPRAndAddInPPRL(command, reference);
+            return AcknowledgeTypeType.OK;
+        } catch (Throwable e) {
+            LOGGER.error("Error while sending poll: {}", e.getMessage(), e);
         }
         return AcknowledgeTypeType.NOK;
     }
 
-    private void constructIPRAndAddInPPRL(CommandType command, PollType pollType, String reference) {
+    private void constructIPRAndAddInPPRL(CommandType command, String reference) {
+        PollType pollType = command.getPoll();
         InmarsatPendingResponse ipr = createAnInmarsatPendingResponseObject(pollType, reference);
         ipr.setUnsentMsgId(command.getUnsentMessageGuid());
         responseList.addPendingPollResponse(ipr);
@@ -116,8 +114,9 @@ public class InmarsatPollHandler {
             functions.readUntil(">", input);
 
             String result;
+            // Sends one or more poll commands, one for each ocean region, until a reference number is received.
             for(String oceanRegion : wrkOceanRegions) {
-                result = sendPollCommand(poll, input, output, oceanRegion);
+                result = pollSender.sendPollCommand(poll, input, output, oceanRegion);
                 if (result != null) {
                     // success in this region return with reference number
                     if (result.contains("Reference number")) {
@@ -145,44 +144,6 @@ public class InmarsatPollHandler {
             }
         }
         return wrkOceanRegions;
-    }
-
-    /**
-     * Sends one or more poll commands, one for each ocean region, until a reference number is
-     * received.
-     *
-     * @return result of first successful poll command, or null if poll failed on every ocean region
-     */
-
-    private String sendPollCommand(PollType poll, InputStream in, PrintStream out, String oceanRegion) throws Throwable {
-        String command = buildPollCommand(poll, oceanRegion);
-        String retVal;
-        functions.write(command, out);
-        retVal = functions.readUntil("Text:", in);
-        functions.write(".S", out);
-        retVal += functions.readUntil(">", in);
-        return retVal;
-    }
-
-    private String buildPollCommand(PollType pollType, String oceanRegion) {
-        InmarsatPoll poll = getPoll(pollType.getPollTypeType(), oceanRegion);
-        poll.setFieldsFromPoll(pollType);
-        return poll.asCommand();
-    }
-
-    private InmarsatPoll getPoll(PollTypeType pollTypeType, String oceanRegion) {
-        InmarsatPoll poll = null;
-        switch (pollTypeType) {
-            case POLL:
-                poll = new ManualPoll(oceanRegion);
-                break;
-            case CONFIG:
-                poll = new ConfigPoll(oceanRegion);
-                break;
-            case SAMPLING:
-                break;
-        }
-        return poll;
     }
 
     // Extract refnr from LES response
@@ -218,5 +179,5 @@ public class InmarsatPollHandler {
         ipr.setStatus(StatusEnum.PENDING);
         return ipr;
     }
-
 }
+

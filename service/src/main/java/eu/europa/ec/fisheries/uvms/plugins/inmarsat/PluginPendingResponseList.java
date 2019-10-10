@@ -1,5 +1,6 @@
 package eu.europa.ec.fisheries.uvms.plugins.inmarsat;
 
+import eu.europa.ec.fisheries.uvms.plugins.inmarsat.data.InmarsatPendingResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

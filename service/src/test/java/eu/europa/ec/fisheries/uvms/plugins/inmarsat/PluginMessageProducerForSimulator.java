@@ -17,7 +17,7 @@ import org.slf4j.LoggerFactory;
 
 import javax.jms.*;
 
-import static eu.europa.ec.fisheries.uvms.plugins.inmarsat.ModuleQueue.EXCHANGE;
+import static eu.europa.ec.fisheries.uvms.plugins.inmarsat.data.ModuleQueue.EXCHANGE;
 
 public class PluginMessageProducerForSimulator {
         //Outcommented to make stuff compile until thomas has fixed the inmarsat simulator
