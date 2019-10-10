@@ -53,6 +53,6 @@ public class ManualPoll extends InmarsatPoll {
      * P12 - MES Serial (empty default)
      */
     private String buildStartIndividualPoll() {
-        return String.format("poll %s,I,%s,D,1,%s,0", oceanRegion, dnid, address);
+        return String.format("poll %s,I,%s,D,1,%s,0,%s", oceanRegion, dnid, address, memberNumber);
     }
 }

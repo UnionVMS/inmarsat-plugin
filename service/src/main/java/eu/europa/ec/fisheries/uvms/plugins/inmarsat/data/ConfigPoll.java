@@ -101,16 +101,16 @@ public class ConfigPoll extends InmarsatPoll {
      * P11 - Spot id (0 default)
      * P12 - MES Serial (empty default)
      */
-    public String buildStopIndividualPoll() {
-        return String.format("poll %s,I,%s,N,1,%s,6", oceanRegion, dnid, address);
+    public String buildStopIndividualPoll() { // With ack
+        return String.format("poll %s,I,%s,N,1,%s,6,%s,,,1", oceanRegion, dnid, address, memberNumber);
     }
 
-    public String buildConfigIndividualPoll() {
-        return String.format("poll %s,I,%s,N,1,%S,4,,%s,%s", oceanRegion, dnid, address, startFrame, frequency);
+    public String buildConfigIndividualPoll() { // With Ack
+        return String.format("poll %s,I,%s,N,1,%s,4,%s,%s,%s,1", oceanRegion, dnid, address, memberNumber, startFrame, frequency);
     }
 
     public String buildStartIndividualPoll() {
-        return String.format("poll %s,I,%s,D,1,%s,5", oceanRegion, dnid, address);
+        return String.format("poll %s,I,%s,D,1,%s,5,%s", oceanRegion, dnid, address, memberNumber);
     }
 
 }

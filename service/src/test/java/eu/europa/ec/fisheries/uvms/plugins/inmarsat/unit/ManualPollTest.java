@@ -31,7 +31,7 @@ public class ManualPollTest {
         poll.setFieldsFromPollRequest(pollType);
 
         List<String> commandList = poll.asCommand();
-        String expectedPollCommand = "poll 1,I,12345,D,1,412345678,0";
+        String expectedPollCommand = "poll 1,I,12345,D,1,412345678,0,101";
 
         Assert.assertEquals(1, commandList.size());
         Assert.assertEquals(expectedPollCommand, commandList.get(0));
