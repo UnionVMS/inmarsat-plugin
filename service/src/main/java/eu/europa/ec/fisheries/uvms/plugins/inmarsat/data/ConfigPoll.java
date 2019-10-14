@@ -33,7 +33,11 @@ public class ConfigPoll extends InmarsatPoll {
                 address = Long.parseLong(element.getValue());
             } else if (element.getKey().equalsIgnoreCase("MEMBER_NUMBER")) {
                 memberNumber = Integer.parseInt(element.getValue());
-            } else if (element.getKey().equalsIgnoreCase("REPORT_FREQUENCY")) {
+            }
+        }
+
+        for (KeyValueType element : poll.getPollPayload()) {
+            if (element.getKey().equalsIgnoreCase("REPORT_FREQUENCY")) {
                 int seconds = Integer.parseInt(element.getValue());
                 frequency = 24 * 60 * 60 / seconds;
             } else if (element.getKey().equalsIgnoreCase("GRACE_PERIOD")) {
