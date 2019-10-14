@@ -32,12 +32,14 @@ public class PollHelper {
         KeyValueType inPortGrace = new KeyValueType();
         inPortGrace.setKey("IN_PORT_GRACE"); inPortGrace.setValue(String.valueOf(IN_PORT_GRACE));
 
-        List<KeyValueType> attributes = new ArrayList<>(Arrays.asList(
-                dnid, address, memberNumber, frequency, startFrame, inPortGrace));
+        List<KeyValueType> pollReceiver = new ArrayList<>(Arrays.asList(dnid, address, memberNumber));
+
+        List<KeyValueType> pollPayload = new ArrayList<>(Arrays.asList(frequency, startFrame, inPortGrace));
 
         PollType poll = new PollType();
         poll.setPollTypeType(PollTypeType.CONFIG);
-        poll.getPollReceiver().addAll(attributes);
+        poll.getPollReceiver().addAll(pollReceiver);
+        poll.getPollPayload().addAll(pollPayload);
 
         return poll;
     }
