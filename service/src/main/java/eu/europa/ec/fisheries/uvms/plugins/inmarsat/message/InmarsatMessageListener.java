@@ -36,6 +36,7 @@ import javax.jms.Message;
 import javax.jms.MessageListener;
 import java.time.Instant;
 import java.util.Base64;
+import java.util.Date;
 import java.util.GregorianCalendar;
 import java.util.TimeZone;
 
@@ -160,6 +161,7 @@ public class InmarsatMessageListener implements MessageListener {
         movement.setStatus(Integer.toString(((PositionReport) msg.getBody()).getMacroEncodedMessage()));
         
         movement.setLesReportTime( msg.getHeader().getStoredTime() );
+        movement.setSourceSatelliteId(msg.getHeader().getSatIdAndLesId());
         
         return movement;
     }
@@ -167,8 +169,7 @@ public class InmarsatMessageListener implements MessageListener {
     private SetReportMovementType createSetReportMovementType(byte[] messageAsBytes, MovementBaseType movement) {
         SetReportMovementType reportType = new SetReportMovementType();
         reportType.setMovement(movement);
-        GregorianCalendar gcal = (GregorianCalendar) GregorianCalendar.getInstance(TimeZone.getTimeZone("UTC"));
-        reportType.setTimestamp(gcal.getTime());
+        reportType.setTimestamp(new Date());
         reportType.setPluginName(inmarsatPlugin.getRegisterClassName());
         reportType.setPluginType(PluginType.SATELLITE_RECEIVER);
 
