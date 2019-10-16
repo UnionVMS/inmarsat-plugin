@@ -13,6 +13,7 @@ import java.io.BufferedInputStream;
 import java.io.InputStream;
 import java.io.PrintStream;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 @Stateless
 public class PollSender {
@@ -36,6 +37,11 @@ public class PollSender {
             result = sendPollCommand(in, out, pollCommand);
             if (result == null)
                 throw new RuntimeException("Error while sending poll command. Command: " + pollCommand);
+            try {
+                TimeUnit.SECONDS.sleep(3);
+            } catch (InterruptedException e) {
+                LOGGER.error(e.getMessage(), e);
+            }
         }
         return result;
     }
