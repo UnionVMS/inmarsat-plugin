@@ -3,6 +3,7 @@ package eu.europa.ec.fisheries.uvms.plugins.inmarsat;
 import eu.europa.ec.fisheries.schema.exchange.plugin.types.v1.PollType;
 import eu.europa.ec.fisheries.uvms.plugins.inmarsat.data.ConfigPoll;
 import eu.europa.ec.fisheries.uvms.plugins.inmarsat.data.InmarsatPoll;
+import eu.europa.ec.fisheries.uvms.plugins.inmarsat.data.InmarsatSocketException;
 import eu.europa.ec.fisheries.uvms.plugins.inmarsat.data.ManualPoll;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -10,6 +11,7 @@ import org.slf4j.LoggerFactory;
 import javax.ejb.Stateless;
 import javax.inject.Inject;
 import java.io.BufferedInputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintStream;
 import java.util.List;
@@ -33,15 +35,20 @@ public class PollSender {
         InmarsatPoll poll = getPoll(pollType, oceanRegion);
         List<String> pollCommandList = poll.asCommand();
         String result = null;
-        for (String pollCommand : pollCommandList) {
-            result = sendPollCommand(in, out, pollCommand);
-            if (result == null)
-                throw new RuntimeException("Error while sending poll command. Command: " + pollCommand);
-            try {
-                TimeUnit.SECONDS.sleep(3);
-            } catch (InterruptedException e) {
-                LOGGER.error(e.getMessage(), e);
+        try (BufferedInputStream bis = new BufferedInputStream(in)) {
+            for (String pollCommand : pollCommandList) {
+                result = sendPollCommand(bis, out, pollCommand);
+                if (result == null)
+                    throw new RuntimeException("Error while sending poll command. Command: " + pollCommand);
+                try {
+                    TimeUnit.SECONDS.sleep(3);
+                } catch (InterruptedException e) {
+                    LOGGER.error(e.getMessage(), e);
+                }
             }
+            functions.write("QUIT", out);
+        } catch (IOException | InmarsatSocketException e) {
+            e.printStackTrace();
         }
         return result;
     }
@@ -63,19 +70,15 @@ public class PollSender {
         return poll;
     }
 
-    private String sendPollCommand(InputStream in, PrintStream out, String cmd) {
-        try (BufferedInputStream bis = new BufferedInputStream(in)) {
-            functions.write(cmd, out);
-            functions.readUntil("Text:", bis);
-            functions.write(".s", out);
-            String status = functions.readUntil(">", bis);
-            status = toReferenceNumber(status);
-            LOGGER.info("Status Number: {}", status);
-            return status;
-        } catch (Exception e) {
-            LOGGER.error("Error when Polling", e);
-            throw new RuntimeException("Error when polling.", e);
-        }
+    private String sendPollCommand(BufferedInputStream bis, PrintStream out, String cmd) throws InmarsatSocketException, IOException {
+        functions.write(cmd, out);
+        functions.readUntil("Text:", bis);
+        functions.write(".s", out);
+        String status = functions.readUntil(">", bis);
+        status = toReferenceNumber(status);
+        LOGGER.info("Status Number: {}", status);
+        return status;
+
     }
 
     private String toReferenceNumber(String response) {
