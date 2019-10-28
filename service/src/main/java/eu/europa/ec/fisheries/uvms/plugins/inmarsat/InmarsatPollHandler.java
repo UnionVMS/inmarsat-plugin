@@ -123,12 +123,8 @@ public class InmarsatPollHandler {
             for(String oceanRegion : wrkOceanRegions) {
                 result = pollSender.sendPollCommand(poll, input, output, oceanRegion);
                 if (result != null) {
-                    // success in this region return with reference number
-                    if (result.contains("Reference number")) {
-                        String referenceNumber = parseResponse(result);
-                        LOGGER.info("sendPoll invoked. Reference number : {} ", referenceNumber);
-                        return referenceNumber;
-                    }
+                    LOGGER.info("sendPoll invoked. Reference number : {} ", result);
+                    return result;
                 }
             }
         } catch (Throwable t) {
