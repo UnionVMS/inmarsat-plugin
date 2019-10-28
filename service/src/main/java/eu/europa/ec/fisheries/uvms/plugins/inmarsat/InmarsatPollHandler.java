@@ -12,6 +12,7 @@ import org.slf4j.LoggerFactory;
 import javax.ejb.Singleton;
 import javax.inject.Inject;
 import java.io.BufferedInputStream;
+import java.io.IOException;
 import java.io.PrintStream;
 import java.net.Socket;
 import java.util.ArrayList;
@@ -103,9 +104,13 @@ public class InmarsatPollHandler {
             return null;
         }
 
-        try(Socket socket = new Socket(url, port);
-            BufferedInputStream input = new BufferedInputStream(socket.getInputStream());
-            PrintStream output = new PrintStream(socket.getOutputStream())) {
+        Socket socket = null;
+        BufferedInputStream input = null;
+        PrintStream output = null;
+        try{
+            socket = new Socket(url, port);
+            input = new BufferedInputStream(socket.getInputStream());
+            output = new PrintStream(socket.getOutputStream());
 
             functions.readUntil("name:", input);
             functions.write(user, output);
@@ -118,17 +123,23 @@ public class InmarsatPollHandler {
             for(String oceanRegion : wrkOceanRegions) {
                 result = pollSender.sendPollCommand(poll, input, output, oceanRegion);
                 if (result != null) {
-                    // success in this region return with reference number
-                    if (result.contains("Reference number")) {
-                        String referenceNumber = parseResponse(result);
-                        LOGGER.info("sendPoll invoked. Reference number : {} ", referenceNumber);
-                        return referenceNumber;
-                    }
+                    LOGGER.info("sendPoll invoked. Reference number : {} ", result);
+                    return result;
                 }
             }
         } catch (Throwable t) {
             LOGGER.error("SEND POLL ERROR! pollId: {}", poll.getPollId());
             LOGGER.error(t.toString(), t);
+        }
+        finally{
+            functions.write("QUIT", output);
+            if(socket != null) {
+                try {
+                    socket.close();
+                } catch (IOException e) {
+                    LOGGER.warn(e.toString(), e);
+                }
+            }
         }
         return null;
     }
