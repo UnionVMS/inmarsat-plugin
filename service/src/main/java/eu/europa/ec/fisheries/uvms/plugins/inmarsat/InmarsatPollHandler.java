@@ -105,13 +105,13 @@ public class InmarsatPollHandler {
         }
 
         Socket socket = null;
-        BufferedInputStream input = null;
+
         PrintStream output = null;
         try{
             socket = new Socket(url, port);
-            input = new BufferedInputStream(socket.getInputStream());
+            // Logon
+            BufferedInputStream input = new BufferedInputStream(socket.getInputStream());
             output = new PrintStream(socket.getOutputStream());
-
             functions.readUntil("name:", input);
             functions.write(user, output);
             functions.readUntil("word:", input);
@@ -132,7 +132,8 @@ public class InmarsatPollHandler {
             LOGGER.error(t.toString(), t);
         }
         finally{
-            functions.write("QUIT", output);
+            if(output != null)
+                functions.write("QUIT", output);
             if(socket != null) {
                 try {
                     socket.close();
@@ -155,12 +156,6 @@ public class InmarsatPollHandler {
             }
         }
         return wrkOceanRegions;
-    }
-
-    // Extract refnr from LES response
-    private String parseResponse(String response) {
-        String s = response.substring(response.indexOf("number"));
-        return s.replaceAll("[^0-9]", ""); // returns 123
     }
 
     private InmarsatPendingResponse createAnInmarsatPendingResponseObject(PollType poll, String result) {
