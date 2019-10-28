@@ -31,24 +31,25 @@ public class PollSender {
      * @return result of first successful poll command, or null if poll failed on every ocean region
      */
 
-    public String sendPollCommand(PollType pollType, InputStream in, PrintStream out, String oceanRegion) {
+    public String sendPollCommand(PollType pollType, BufferedInputStream in, PrintStream out, String oceanRegion) {
         InmarsatPoll poll = getPoll(pollType, oceanRegion);
         List<String> pollCommandList = poll.asCommand();
         String result = null;
-        try (BufferedInputStream bis = new BufferedInputStream(in)) {
+        try  {
             for (String pollCommand : pollCommandList) {
-                result = sendPollCommand(bis, out, pollCommand);
-                if (result == null)
-                    throw new RuntimeException("Error while sending poll command. Command: " + pollCommand);
+                LOGGER.info(pollCommand);
+                result = sendPollCommand(in, out, pollCommand);
+                if (result == null) {
+                    LOGGER.info("NO  referencenumber. Message not send");
+                }
                 try {
                     TimeUnit.SECONDS.sleep(3);
                 } catch (InterruptedException e) {
                     LOGGER.error(e.getMessage(), e);
                 }
             }
-            functions.write("QUIT", out);
         } catch (IOException | InmarsatSocketException e) {
-            e.printStackTrace();
+            LOGGER.error(e.toString(), e);
         }
         return result;
     }

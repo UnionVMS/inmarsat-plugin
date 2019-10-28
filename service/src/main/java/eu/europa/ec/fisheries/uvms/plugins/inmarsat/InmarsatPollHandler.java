@@ -12,6 +12,7 @@ import org.slf4j.LoggerFactory;
 import javax.ejb.Singleton;
 import javax.inject.Inject;
 import java.io.BufferedInputStream;
+import java.io.IOException;
 import java.io.PrintStream;
 import java.net.Socket;
 import java.util.ArrayList;
@@ -103,9 +104,13 @@ public class InmarsatPollHandler {
             return null;
         }
 
-        try(Socket socket = new Socket(url, port);
-            BufferedInputStream input = new BufferedInputStream(socket.getInputStream());
-            PrintStream output = new PrintStream(socket.getOutputStream())) {
+        Socket socket = null;
+        BufferedInputStream input = null;
+        PrintStream output = null;
+        try{
+            socket = new Socket(url, port);
+            input = new BufferedInputStream(socket.getInputStream());
+            output = new PrintStream(socket.getOutputStream());
 
             functions.readUntil("name:", input);
             functions.write(user, output);
@@ -129,6 +134,16 @@ public class InmarsatPollHandler {
         } catch (Throwable t) {
             LOGGER.error("SEND POLL ERROR! pollId: {}", poll.getPollId());
             LOGGER.error(t.toString(), t);
+        }
+        finally{
+            functions.write("QUIT", output);
+            if(socket != null) {
+                try {
+                    socket.close();
+                } catch (IOException e) {
+                    LOGGER.warn(e.toString(), e);
+                }
+            }
         }
         return null;
     }
