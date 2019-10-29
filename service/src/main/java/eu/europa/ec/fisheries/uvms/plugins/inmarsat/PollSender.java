@@ -51,6 +51,10 @@ public class PollSender {
         } catch (IOException | InmarsatSocketException e) {
             LOGGER.error(e.toString(), e);
         }
+        if(pollCommandList.size() == 3){
+            // this is a configpoll and should return null
+            return null;
+        }
         return result;
     }
 
