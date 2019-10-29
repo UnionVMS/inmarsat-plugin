@@ -93,6 +93,7 @@ public class InmarsatMessageRetriever {
         try {
             if (isEnabled()) {
                 List<String> dnids = getDnids();
+                List<String> oceanRegions = getOceanRegions();
                 String url = settingsHandler.getSetting("URL", getRegisterClassName());
                 String port = settingsHandler.getSetting("PORT", getRegisterClassName());
                 String user = settingsHandler.getSetting("USERNAME", getRegisterClassName());
@@ -112,9 +113,10 @@ public class InmarsatMessageRetriever {
                 for (String dnid : dnids) {
                     String status = "NOK";
                     LOGGER.info("Trying to download for :{}", dnid);
-                    for (int oceanRegion = 0; oceanRegion < 4; oceanRegion++) {
+                    for (String  oceanRegion : oceanRegions) {
                         try {
                             String cmd = "DNID " + dnid + " " + oceanRegion;
+                            LOGGER.info(cmd);
                             functions.write(cmd, output);
                             try {
                                 byte[] bos = readUntil(">", input);
@@ -245,6 +247,24 @@ public class InmarsatMessageRetriever {
             return new ArrayList<>();
         }
         return Arrays.asList(dnidsSettingValue.trim().split(","));
+    }
+
+    private List<String> getOceanRegions() {
+        String value = settingsHandler.getSetting("OCEAN_REGIONS", getRegisterClassName());
+        if((value == null) || (value.trim().length() < 1)){
+            return new ArrayList<>();
+        }
+        List<String> ret = new ArrayList<>();
+        String values[] = value.trim().split(",");
+        for(String val : values){
+            switch( val.trim()){
+                case "AOR-W" : ret.add("0");break;
+                case "AOR-E" : ret.add("1");break;
+                case "POR" : ret.add("2");break;
+                case "IOR" : ret.add("3");break;
+            }
+        }
+        return ret;
     }
 
     public String getApplicationName() {
