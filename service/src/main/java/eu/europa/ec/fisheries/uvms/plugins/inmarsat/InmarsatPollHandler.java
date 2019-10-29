@@ -4,7 +4,10 @@ import eu.europa.ec.fisheries.schema.exchange.common.v1.AcknowledgeTypeType;
 import eu.europa.ec.fisheries.schema.exchange.common.v1.CommandType;
 import eu.europa.ec.fisheries.schema.exchange.common.v1.KeyValueType;
 import eu.europa.ec.fisheries.schema.exchange.plugin.types.v1.PollType;
+import eu.europa.ec.fisheries.schema.exchange.plugin.types.v1.PollTypeType;
+import eu.europa.ec.fisheries.uvms.plugins.inmarsat.data.ConfigPoll;
 import eu.europa.ec.fisheries.uvms.plugins.inmarsat.data.InmarsatPendingResponse;
+import eu.europa.ec.fisheries.uvms.plugins.inmarsat.data.ManualPoll;
 import eu.europa.ec.fisheries.uvms.plugins.inmarsat.data.StatusEnum;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -75,7 +78,10 @@ public class InmarsatPollHandler {
                 return AcknowledgeTypeType.NOK; //consumed but erroneous
             }
             LOGGER.info("sent poll with pollId: {} and reference: {} ", pollType.getPollId(), reference);
-            constructIPRAndAddInPPRL(command, reference);
+
+            if(pollType.getPollTypeType() == PollTypeType.POLL) {
+                constructIPRAndAddInPPRL(command, reference);
+            }
             return AcknowledgeTypeType.OK;
         } catch (Throwable e) {
             LOGGER.error("Error while sending poll: {}", e.getMessage(), e);
