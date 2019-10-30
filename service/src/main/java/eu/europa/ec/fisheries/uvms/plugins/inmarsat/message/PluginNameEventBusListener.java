@@ -34,13 +34,13 @@ import javax.jms.MessageListener;
 import javax.jms.TextMessage;
 
 @MessageDriven(mappedName = "jms:/jms/topic/EventBus", activationConfig = {
-        @ActivationConfigProperty(propertyName = "subscriptionName",            propertyValue = "eu.europa.ec.fisheries.uvms.plugins.inmarsat"),
-        @ActivationConfigProperty(propertyName = "clientId",                    propertyValue = "eu.europa.ec.fisheries.uvms.plugins.inmarsat"),
-        @ActivationConfigProperty(propertyName = "messageSelector",             propertyValue = "ServiceName='eu.europa.ec.fisheries.uvms.plugins.inmarsat'"),
-        @ActivationConfigProperty(propertyName = "subscriptionDurability",      propertyValue = "Durable"),
-        @ActivationConfigProperty(propertyName = "destination",                 propertyValue = "EventBus"),
-        @ActivationConfigProperty(propertyName = "connectionFactoryJndiName",   propertyValue = "jms:/ConnectionFactory"),
-        @ActivationConfigProperty(propertyName = "destinationType",             propertyValue = "javax.jms.Topic")
+        @ActivationConfigProperty(propertyName = "subscriptionName", propertyValue = "eu.europa.ec.fisheries.uvms.plugins.inmarsat"),
+        @ActivationConfigProperty(propertyName = "clientId", propertyValue = "eu.europa.ec.fisheries.uvms.plugins.inmarsat"),
+        @ActivationConfigProperty(propertyName = "messageSelector", propertyValue = "ServiceName='eu.europa.ec.fisheries.uvms.plugins.inmarsat'"),
+        @ActivationConfigProperty(propertyName = "subscriptionDurability", propertyValue = "Durable"),
+        @ActivationConfigProperty(propertyName = "destination", propertyValue = "EventBus"),
+        @ActivationConfigProperty(propertyName = "connectionFactoryJndiName", propertyValue = "jms:/ConnectionFactory"),
+        @ActivationConfigProperty(propertyName = "destinationType", propertyValue = "javax.jms.Topic")
 })
 public class PluginNameEventBusListener implements MessageListener {
 
@@ -63,7 +63,7 @@ public class PluginNameEventBusListener implements MessageListener {
 
     @Override
     public void onMessage(Message inMessage) {
-        LOGGER.debug("Eventbus listener for inmarsat-c (MessageConstants.PLUGIN_SERVICE_CLASS_NAME): {}",startup.getRegisterClassName());
+        LOGGER.debug("Eventbus listener for inmarsat-c (MessageConstants.PLUGIN_SERVICE_CLASS_NAME): {}", startup.getRegisterClassName());
         TextMessage textMessage = (TextMessage) inMessage;
 
         try {
@@ -80,7 +80,7 @@ public class PluginNameEventBusListener implements MessageListener {
                     break;
                 case SET_COMMAND:
                     SetCommandRequest setCommandRequest = JAXBMarshaller.unmarshallTextMessage(textMessage, SetCommandRequest.class);
-                    CommandType commandType  = setCommandRequest.getCommand();
+                    CommandType commandType = setCommandRequest.getCommand();
                     PollType poll = commandType.getPoll();
                     if (poll != null && CommandTypeType.POLL.equals(commandType.getCommand())) {
 
@@ -89,12 +89,21 @@ public class PluginNameEventBusListener implements MessageListener {
                             AcknowledgeType setCommandAck = ExchangePluginResponseMapper.mapToAcknowledgeType(setCommandRequest.getCommand().getLogId(), ack);
                             setCommandAck.setUnsentMessageGuid(setCommandRequest.getCommand().getUnsentMessageGuid());
                             PollStatusAcknowledgeType pollAck = new PollStatusAcknowledgeType();
-                            if(ack.equals(AcknowledgeTypeType.OK)) {
-                                pollAck.setStatus(ExchangeLogStatusTypeType.PENDING);
-                            }else{
-                                pollAck.setStatus(ExchangeLogStatusTypeType.FAILED);
+
+                            if (PollTypeType.POLL == poll.getPollTypeType()) {
+                                if (ack.equals(AcknowledgeTypeType.OK)) {
+                                    pollAck.setStatus(ExchangeLogStatusTypeType.PENDING);
+                                } else {
+                                    pollAck.setStatus(ExchangeLogStatusTypeType.FAILED);
+                                }
+                                pollAck.setPollId(setCommandRequest.getCommand().getPoll().getPollId());
+                            } else if (PollTypeType.CONFIG == poll.getPollTypeType()) {
+                                if (ack.equals(AcknowledgeTypeType.OK)) {
+                                    pollAck.setStatus(ExchangeLogStatusTypeType.OK);
+                                } else {
+                                    pollAck.setStatus(ExchangeLogStatusTypeType.FAILED);
+                                }
                             }
-                            pollAck.setPollId(setCommandRequest.getCommand().getPoll().getPollId());
                             setCommandAck.setPollStatus(pollAck);
                             responseMessage = ExchangePluginResponseMapper.mapToSetCommandResponse(startup.getRegisterClassName(), setCommandAck);
                         }
@@ -108,7 +117,7 @@ public class PluginNameEventBusListener implements MessageListener {
                     break;
                 case START:
                     JAXBMarshaller.unmarshallTextMessage(textMessage, StartRequest.class);
-                    AcknowledgeTypeType start =  inmarsatMessageRetriever.start();
+                    AcknowledgeTypeType start = inmarsatMessageRetriever.start();
                     AcknowledgeType startAck = ExchangePluginResponseMapper.mapToAcknowledgeType(start);
                     responseMessage = ExchangePluginResponseMapper.mapToStartResponse(startup.getRegisterClassName(), startAck);
                     break;
