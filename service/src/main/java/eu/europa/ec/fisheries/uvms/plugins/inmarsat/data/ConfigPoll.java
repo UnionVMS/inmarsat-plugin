@@ -81,19 +81,9 @@ public class ConfigPoll extends InmarsatPoll {
         }
 
         Instant instant = Instant.now();
-        instant.plus(10, ChronoUnit.MINUTES);
+        instant = instant.plus(10, ChronoUnit.MINUTES);
         int startHour = instant.atZone(ZoneOffset.UTC).getHour();
         return (int) ((((startHour * 60) + 0.16) * 60) / 8.64);
-    }
-
-    private int calcStartFrameOLD(int hour, int minute) {
-        if ((hour < 0) || (hour > 24)) {
-            throw new IllegalArgumentException("Hour must be between 0 and 24. Was " + hour);
-        }
-        if ((minute < 0) || (minute > 60)) {
-            throw new IllegalArgumentException("Minute must be between 0 and 60. Was " + minute);
-        }
-        return (int) ((((hour * 60) + minute) * 60) / 8.64);
     }
 
     @Override
@@ -133,7 +123,7 @@ public class ConfigPoll extends InmarsatPoll {
     }
 
     public String buildStartIndividualPoll() {
-        return String.format("poll %s,I,%s,D,1,%s,5,%s", oceanRegion, dnid, address, memberNumber);
+        return String.format("poll %s,I,%s,N,1,%s,5,%s", oceanRegion, dnid, address, memberNumber);
     }
 
 }
