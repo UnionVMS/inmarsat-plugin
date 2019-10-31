@@ -83,7 +83,8 @@ public class ConfigPoll extends InmarsatPoll {
         Instant instant = Instant.now();
         instant = instant.plus(10, ChronoUnit.MINUTES);
         int startHour = instant.atZone(ZoneOffset.UTC).getHour();
-        return (int) ((((startHour * 60) + 0.16) * 60) / 8.64);
+        int startMinute = instant.atZone(ZoneOffset.UTC).getMinute();
+        return (int) ((((startHour * 60) + startMinute) * 60) / 8.64);
     }
 
     @Override
