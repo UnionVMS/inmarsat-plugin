@@ -32,7 +32,7 @@ public class ConfigPollTest {
 
         String expectedStopCommand = "poll 1,I,12345,N,1,412345678,6,101";
         String expectedConfigCommand = "poll 1,I,12345,N,1,412345678,4,101,5625,12";
-        String expectedStartCommand = "poll 1,I,12345,D,1,412345678,5,101";
+        String expectedStartCommand = "poll 1,I,12345,N,1,412345678,5,101";
 
         List<String> commandList = poll.asCommand();
 
