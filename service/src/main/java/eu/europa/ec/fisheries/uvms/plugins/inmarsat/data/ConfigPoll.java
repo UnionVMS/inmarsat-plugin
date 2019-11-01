@@ -27,7 +27,12 @@ public class ConfigPoll extends InmarsatPoll {
 
     @Override
     public void setFieldsFromPollRequest(PollType poll) {
-        for (KeyValueType element : poll.getPollReceiver()) {
+        setFieldsFromPollReceiver(poll.getPollReceiver());
+        setFieldsFromPollPayload(poll.getPollPayload());
+    }
+
+    private void setFieldsFromPollReceiver(List<KeyValueType> receiver) {
+        for (KeyValueType element : receiver) {
             if (element.getKey().equalsIgnoreCase("DNID")) {
                 dnid = Integer.parseInt(element.getValue());
             } else if (element.getKey().equalsIgnoreCase("SATELLITE_NUMBER")) {
@@ -36,8 +41,10 @@ public class ConfigPoll extends InmarsatPoll {
                 memberNumber = Integer.parseInt(element.getValue());
             }
         }
+    }
 
-        for (KeyValueType element : poll.getPollPayload()) {
+    private void setFieldsFromPollPayload(List<KeyValueType> payload) {
+        for (KeyValueType element : payload) {
             if (element.getKey().equalsIgnoreCase("REPORT_FREQUENCY")) {
                 int seconds = Integer.parseInt(element.getValue());
                 frequency = 24 * 60 * 60 / seconds;
@@ -76,12 +83,11 @@ public class ConfigPoll extends InmarsatPoll {
         if ((minute < 0) || (minute > 60)) {
             throw new IllegalArgumentException("Minute must be between 0 and 60. Was " + minute);
         }
-        if ((hour != 0) || (hour == 0 && minute > 0)) {
+        if (hour != 0 || minute > 0) {
             return (int) ((((hour * 60) + minute) * 60) / 8.64);
         }
 
-        Instant instant = Instant.now();
-        instant = instant.plus(10, ChronoUnit.MINUTES);
+        Instant instant = Instant.now().plus(10, ChronoUnit.MINUTES);
         int startHour = instant.atZone(ZoneOffset.UTC).getHour();
         int startMinute = instant.atZone(ZoneOffset.UTC).getMinute();
         return (int) ((((startHour * 60) + startMinute) * 60) / 8.64);
@@ -115,15 +121,15 @@ public class ConfigPoll extends InmarsatPoll {
      * P11 - Spot id (0 default)
      * P12 - MES Serial (empty default)
      */
-    public String buildStopIndividualPoll() {
+    private String buildStopIndividualPoll() {
         return String.format("poll %s,I,%s,N,1,%s,6,%s", oceanRegion, dnid, address, memberNumber);
     }
 
-    public String buildConfigIndividualPoll() {
+    private String buildConfigIndividualPoll() {
         return String.format("poll %s,I,%s,N,1,%s,4,%s,%s,%s", oceanRegion, dnid, address, memberNumber, startFrame, frequency);
     }
 
-    public String buildStartIndividualPoll() {
+    private String buildStartIndividualPoll() {
         return String.format("poll %s,I,%s,N,1,%s,5,%s", oceanRegion, dnid, address, memberNumber);
     }
 
