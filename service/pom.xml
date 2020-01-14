@@ -25,7 +25,7 @@
         <application.destination.jndi>jms:/jms/topic/EventBus</application.destination.jndi>
 
         <docker.dev.start.phase>test-compile</docker.dev.start.phase>
-        <docker.liquibase.phase>test-compile</docker.liquibase.phase>
+        <docker.liquibase.phase>none</docker.liquibase.phase>
         <docker.dev.prestop.phase>validate</docker.dev.prestop.phase>
         <docker.dev.stop.phase>install</docker.dev.stop.phase>
 
@@ -71,7 +71,7 @@
         <dependency>
 		    <groupId>org.eclipse.microprofile.metrics</groupId>
 		    <artifactId>microprofile-metrics-api</artifactId>
-		    <version>1.1</version>
+		    <version>2.0.2</version>
 		    <scope>provided</scope>
 		</dependency>
     </dependencies>
