@@ -5,7 +5,7 @@
     <groupId>fish.focus.uvms.maven</groupId>
     <artifactId>uvms-pom</artifactId>
     <relativePath />
-    <version>1.20</version>
+    <version>2.6</version>
   </parent>
 
   <groupId>eu.europa.ec.fisheries.uvms.plugins</groupId>
@@ -21,8 +21,8 @@
 
   <properties>
     <docker.dev.version>3.30.3.w14</docker.dev.version>
-    <exchange.model.version>5.0.16-UVMS</exchange.model.version>
-    <uvms.common.version>4.0.5</uvms.common.version>
+    <exchange.model.version>5.0.19-UVMS</exchange.model.version>
+    <uvms.common.version>4.0.13</uvms.common.version>
     <scm.url>scm:git:https://github.com/UnionVMS/inmarsat-plugin.git</scm.url>
     <scm.connection>${scm.url}</scm.connection>
     <defaultLibBundleDir>APP-INF/lib</defaultLibBundleDir>
@@ -48,15 +48,16 @@
       <dependency>
         <groupId>fish.focus.uvms.maven</groupId>
         <artifactId>uvms-pom-arquillian-deps</artifactId>
-        <version>1.18</version>
+        <version>2.6</version>
         <type>pom</type>
       </dependency>
     </dependencies>
   </dependencyManagement>
   <dependencies>
     <dependency>
-      <groupId>javax</groupId>
-      <artifactId>javaee-api</artifactId>
+      <groupId>jakarta.platform</groupId>
+      <artifactId>jakarta.jakartaee-api</artifactId>
+      <scope>provided</scope>
     </dependency>
   </dependencies>
 
