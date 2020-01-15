@@ -21,7 +21,7 @@
 
   <properties>
     <docker.dev.version>3.40.18.w18</docker.dev.version>
-    <exchange.model.version>5.0.19-UVMS</exchange.model.version>
+    <exchange.model.version>5.0.20-UVMS</exchange.model.version>
     <uvms.common.version>4.0.13</uvms.common.version>
     <scm.url>scm:git:https://github.com/UnionVMS/inmarsat-plugin.git</scm.url>
     <scm.connection>${scm.url}</scm.connection>
