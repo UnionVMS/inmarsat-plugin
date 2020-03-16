@@ -17,7 +17,6 @@ import eu.europa.ec.fisheries.uvms.plugins.inmarsat.InmarsatPollHandler;
 import eu.europa.ec.fisheries.uvms.plugins.inmarsat.PluginPendingResponseList;
 import eu.europa.ec.fisheries.uvms.plugins.inmarsat.data.InmarsatPendingResponse;
 import eu.europa.ec.fisheries.uvms.plugins.inmarsat.data.ModuleQueue;
-import eu.europa.ec.fisheries.uvms.plugins.inmarsat.message.PluginMessageProducer;
 import fish.focus.uvms.commons.les.inmarsat.InmarsatException;
 import fish.focus.uvms.commons.les.inmarsat.InmarsatInterpreter;
 import fish.focus.uvms.commons.les.inmarsat.InmarsatMessage;
@@ -37,15 +36,10 @@ import javax.jms.MessageListener;
 import java.time.Instant;
 import java.util.Base64;
 import java.util.Date;
-import java.util.GregorianCalendar;
-import java.util.TimeZone;
 
-@MessageDriven( activationConfig = {
-        @ActivationConfigProperty(propertyName = "messagingType", propertyValue = "javax.jms.MessageListener"),
+@MessageDriven(activationConfig = {
         @ActivationConfigProperty(propertyName = "destinationType", propertyValue = "javax.jms.Queue"),
-        @ActivationConfigProperty(propertyName = "destination", propertyValue = "UVMSInmarsatMessages"),
-        @ActivationConfigProperty(propertyName = "destinationJndiName", propertyValue = "jms/queue/UVMSInmarsatMessages"),
-        @ActivationConfigProperty(propertyName = "connectionFactoryJndiName", propertyValue = "ConnectionFactory")
+        @ActivationConfigProperty(propertyName = "destination", propertyValue = "jms/queue/UVMSInmarsatMessages"),
 })
 public class InmarsatMessageListener implements MessageListener {
 

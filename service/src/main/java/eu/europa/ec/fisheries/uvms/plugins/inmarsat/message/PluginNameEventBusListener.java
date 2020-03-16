@@ -33,13 +33,12 @@ import javax.jms.Message;
 import javax.jms.MessageListener;
 import javax.jms.TextMessage;
 
-@MessageDriven(mappedName = "jms:/jms/topic/EventBus", activationConfig = {
+@MessageDriven(activationConfig = {
         @ActivationConfigProperty(propertyName = "subscriptionName", propertyValue = "eu.europa.ec.fisheries.uvms.plugins.inmarsat"),
         @ActivationConfigProperty(propertyName = "clientId", propertyValue = "eu.europa.ec.fisheries.uvms.plugins.inmarsat"),
         @ActivationConfigProperty(propertyName = "messageSelector", propertyValue = "ServiceName='eu.europa.ec.fisheries.uvms.plugins.inmarsat'"),
         @ActivationConfigProperty(propertyName = "subscriptionDurability", propertyValue = "Durable"),
-        @ActivationConfigProperty(propertyName = "destination", propertyValue = "EventBus"),
-        @ActivationConfigProperty(propertyName = "connectionFactoryJndiName", propertyValue = "jms:/ConnectionFactory"),
+        @ActivationConfigProperty(propertyName = "destination", propertyValue = "jms/topic/EventBus"),
         @ActivationConfigProperty(propertyName = "destinationType", propertyValue = "javax.jms.Topic")
 })
 public class PluginNameEventBusListener implements MessageListener {
