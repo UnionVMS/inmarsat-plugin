@@ -39,7 +39,7 @@ import java.util.Date;
 
 @MessageDriven(activationConfig = {
         @ActivationConfigProperty(propertyName = "destinationType", propertyValue = "javax.jms.Queue"),
-        @ActivationConfigProperty(propertyName = "destination", propertyValue = "jms/queue/UVMSInmarsatMessages"),
+        @ActivationConfigProperty(propertyName = "destinationLookup", propertyValue = "jms/queue/UVMSInmarsatMessages"),
 })
 public class InmarsatMessageListener implements MessageListener {
 

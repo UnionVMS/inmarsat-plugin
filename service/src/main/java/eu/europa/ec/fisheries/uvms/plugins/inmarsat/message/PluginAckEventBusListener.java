@@ -33,7 +33,7 @@ import javax.jms.TextMessage;
         @ActivationConfigProperty(propertyName = "clientId",                  propertyValue = "eu.europa.ec.fisheries.uvms.plugins.inmarsat.PLUGIN_RESPONSE"),
         @ActivationConfigProperty(propertyName = "messageSelector",           propertyValue = "ServiceName='eu.europa.ec.fisheries.uvms.plugins.inmarsat.PLUGIN_RESPONSE'"),
         @ActivationConfigProperty(propertyName = "subscriptionDurability",    propertyValue = "Durable"),
-        @ActivationConfigProperty(propertyName = "destination",               propertyValue = "jms/topic/EventBus"),
+        @ActivationConfigProperty(propertyName = "destinationLookup",         propertyValue = "jms/topic/EventBus"),
         @ActivationConfigProperty(propertyName = "destinationType",           propertyValue = "javax.jms.Topic")
 })
 public class PluginAckEventBusListener implements MessageListener {
