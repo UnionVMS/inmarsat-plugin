@@ -41,7 +41,6 @@ public class InmarsatHeaderTest {
 								.setMesNo(492380469).createHeaderData()},
 				{"01542654051593c30c0063023f37364a3521591d02",
 						new HeaderDataBuilder().setType(HeaderType.NDN).setRefno(0x000cc393).setFailureReason(0x63)
-								.setSatIdAndLesId(1)
 								.setDeliveryAttempts(0x02).setStoredTime("2009-06-15 11:57:51").setMesNo(0x1d592135)
 								.createHeaderData()},
 				{"0154265401163AA80C00024414003369AD59F929FF02",
@@ -171,7 +170,7 @@ public class InmarsatHeaderTest {
 		if (headerData.getSatIdAndLesId() > 0) {
 
 			int idExpected = headerData.getSatIdAndLesId() % (headerData.getSatIdAndLesId() >= 100 ? 100 : 10);
-			assertEquals(idExpected, iHeader.getLesId());
+			assertEquals(idExpected, iHeader.getLesId().intValue());
 		} else {
 			assertNull(position);
 		}
