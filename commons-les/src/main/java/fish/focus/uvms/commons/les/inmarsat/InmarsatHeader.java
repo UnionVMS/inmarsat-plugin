@@ -272,15 +272,23 @@ public class InmarsatHeader {
         if (position == null) {
             return 0;
         }
-        return Integer.parseInt(String.format("%d%d", getSatId(position).getValue(), getLesId(position)));
+        return Integer.parseInt(String.format("%d%d", getSatId().getValue(), getLesId()));
     }
 
-    public int getLesId(int position) {
+    public Integer getLesId() {
+        Integer position = getType().getHeaderStruct().getPositionSatIdAndLesId();
+        if (position == null) {
+            return null;
+        }
         String bin = InmarsatUtils.byteToZeroPaddedString(header[position]);
         return Integer.parseInt(bin.substring(2), 2);
     }
 
-    public SatId getSatId(int position) {
+    public SatId getSatId() {
+        Integer position = getType().getHeaderStruct().getPositionSatIdAndLesId();
+        if (position == null) {
+            return null;
+        }
         String bin = InmarsatUtils.byteToZeroPaddedString(header[position]);
         return SatId.fromInt(Integer.parseInt(bin.substring(0, 2), 2));
     }

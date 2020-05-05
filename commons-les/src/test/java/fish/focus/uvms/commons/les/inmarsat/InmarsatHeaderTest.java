@@ -157,7 +157,7 @@ public class InmarsatHeaderTest {
 		if (headerData.getSatIdAndLesId() > 0) {
 			SatId idExpected = SatId.fromInt(
 					InmarsatUtils.digitAt(headerData.getSatIdAndLesId(), headerData.getSatIdAndLesId() >= 100 ? 3 : 2));
-			assertEquals(idExpected, iHeader.getSatId(position));
+			assertEquals(idExpected, iHeader.getSatId());
 		} else {
 			assertNull(position);
 		}
@@ -170,7 +170,7 @@ public class InmarsatHeaderTest {
 		if (headerData.getSatIdAndLesId() > 0) {
 
 			int idExpected = headerData.getSatIdAndLesId() % (headerData.getSatIdAndLesId() >= 100 ? 100 : 10);
-			assertEquals(idExpected, iHeader.getLesId(position));
+			assertEquals(idExpected, iHeader.getLesId().intValue());
 		} else {
 			assertNull(position);
 		}

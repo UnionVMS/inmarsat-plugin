@@ -155,7 +155,7 @@ public class InmarsatMessageListener implements MessageListener {
         movement.setStatus(Integer.toString(((PositionReport) msg.getBody()).getMacroEncodedMessage()));
         
         movement.setLesReportTime( msg.getHeader().getStoredTime() );
-        movement.setSourceSatelliteId(msg.getHeader().getSatIdAndLesId());
+        movement.setSourceSatelliteId(msg.getHeader().getSatId() == null ? null : msg.getHeader().getSatId().getValue());
         
         return movement;
     }
