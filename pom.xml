@@ -22,7 +22,7 @@
   <properties>
     <docker.dev.version>3.43.0</docker.dev.version>
     <uvms.common.version>4.1.7</uvms.common.version>
-    <exchange.model.version>5.2.7-UVMS</exchange.model.version>
+    <exchange.model.version>5.2.8-UVMS</exchange.model.version>
     <scm.url>scm:git:https://github.com/UnionVMS/inmarsat-plugin.git</scm.url>
     <scm.connection>${scm.url}</scm.connection>
     <defaultLibBundleDir>APP-INF/lib</defaultLibBundleDir>
