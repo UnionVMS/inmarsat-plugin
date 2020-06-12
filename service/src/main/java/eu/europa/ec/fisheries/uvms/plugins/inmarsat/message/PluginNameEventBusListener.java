@@ -22,6 +22,7 @@ import eu.europa.ec.fisheries.uvms.plugins.inmarsat.InmarsatMessageRetriever;
 import eu.europa.ec.fisheries.uvms.plugins.inmarsat.InmarsatPlugin;
 import eu.europa.ec.fisheries.uvms.plugins.inmarsat.InmarsatPollHandler;
 import eu.europa.ec.fisheries.uvms.plugins.inmarsat.SettingsHandler;
+import eu.europa.ec.fisheries.uvms.plugins.inmarsat.data.PollResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -84,20 +85,22 @@ public class PluginNameEventBusListener implements MessageListener {
                     if (poll != null && CommandTypeType.POLL.equals(commandType.getCommand())) {
 
                         if (PollTypeType.POLL == poll.getPollTypeType() || PollTypeType.CONFIG == poll.getPollTypeType()) {
-                            AcknowledgeTypeType ack = inmarsatPollHandler.processCommandTypeAndReturnAck(setCommandRequest.getCommand());
-                            AcknowledgeType setCommandAck = ExchangePluginResponseMapper.mapToAcknowledgeType(setCommandRequest.getCommand().getLogId(), ack);
+                            PollResponse pollResponse = inmarsatPollHandler.processCommandTypeAndReturnAck(setCommandRequest.getCommand());
+                            AcknowledgeTypeType acknowledgeType = pollResponse.getReference() != null ? AcknowledgeTypeType.OK : AcknowledgeTypeType.NOK;
+                            AcknowledgeType setCommandAck = ExchangePluginResponseMapper.mapToAcknowledgeType(setCommandRequest.getCommand().getLogId(), acknowledgeType);
+                            setCommandAck.setMessage(pollResponse.getMessage());
                             setCommandAck.setUnsentMessageGuid(setCommandRequest.getCommand().getUnsentMessageGuid());
                             PollStatusAcknowledgeType pollAck = new PollStatusAcknowledgeType();
 
                             if (PollTypeType.POLL == poll.getPollTypeType()) {
-                                if (ack.equals(AcknowledgeTypeType.OK)) {
+                                if (AcknowledgeTypeType.OK.equals(acknowledgeType) ) {
                                     pollAck.setStatus(ExchangeLogStatusTypeType.PENDING);
                                 } else {
                                     pollAck.setStatus(ExchangeLogStatusTypeType.FAILED);
                                 }
                                 pollAck.setPollId(setCommandRequest.getCommand().getPoll().getPollId());
                             } else if (PollTypeType.CONFIG == poll.getPollTypeType()) {
-                                if (ack.equals(AcknowledgeTypeType.OK)) {
+                                if (AcknowledgeTypeType.OK.equals(acknowledgeType)) {
                                     pollAck.setStatus(ExchangeLogStatusTypeType.OK);
                                 } else {
                                     pollAck.setStatus(ExchangeLogStatusTypeType.FAILED);

@@ -5,10 +5,7 @@ import eu.europa.ec.fisheries.schema.exchange.common.v1.CommandType;
 import eu.europa.ec.fisheries.schema.exchange.common.v1.KeyValueType;
 import eu.europa.ec.fisheries.schema.exchange.plugin.types.v1.PollType;
 import eu.europa.ec.fisheries.schema.exchange.plugin.types.v1.PollTypeType;
-import eu.europa.ec.fisheries.uvms.plugins.inmarsat.data.ConfigPoll;
-import eu.europa.ec.fisheries.uvms.plugins.inmarsat.data.InmarsatPendingResponse;
-import eu.europa.ec.fisheries.uvms.plugins.inmarsat.data.ManualPoll;
-import eu.europa.ec.fisheries.uvms.plugins.inmarsat.data.StatusEnum;
+import eu.europa.ec.fisheries.uvms.plugins.inmarsat.data.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -69,24 +66,26 @@ public class InmarsatPollHandler {
         return responseList;
     }
 
-    public AcknowledgeTypeType processCommandTypeAndReturnAck(CommandType command) {
+    public PollResponse processCommandTypeAndReturnAck(CommandType command) {
+        PollResponse response = new PollResponse();
         PollType pollType = command.getPoll();
         try {
-            String reference = sendPoll(pollType);
-            if (reference == null) {
+            response = sendPoll(pollType);
+            if (response.getReference() == null) {
                 LOGGER.error("Error no reference for poll with pollId: " + pollType.getPollId());
-                return AcknowledgeTypeType.NOK; //consumed but erroneous
+                return response; //consumed but erroneous
             }
-            LOGGER.info("sent poll with pollId: {} and reference: {} ", pollType.getPollId(), reference);
+            LOGGER.info("sent poll with pollId: {} and reference: {} ", pollType.getPollId(), response);
 
             if(pollType.getPollTypeType() == PollTypeType.POLL) {
-                constructIPRAndAddInPPRL(command, reference);
+                constructIPRAndAddInPPRL(command, response.getReference());
             }
-            return AcknowledgeTypeType.OK;
+            return response;
         } catch (Throwable e) {
             LOGGER.error("Error while sending poll: {}", e.getMessage(), e);
+            response.setMessage("Error while sending poll: " + e);
         }
-        return AcknowledgeTypeType.NOK;
+        return response;
     }
 
     private void constructIPRAndAddInPPRL(CommandType command, String reference) {
@@ -96,7 +95,8 @@ public class InmarsatPollHandler {
         responseList.addPendingPollResponse(ipr);
     }
 
-    private String sendPoll(PollType poll) {
+    private PollResponse sendPoll(PollType poll) {
+        PollResponse result = new PollResponse();
         ConcurrentHashMap<String, String> settings = settingsHandler.getSettingsWithShortKeyNames();
         String url = settings.get("URL");
         int port = Integer.parseInt(settings.get("PORT"));
@@ -107,7 +107,8 @@ public class InmarsatPollHandler {
 
         if(wrkOceanRegions.isEmpty()){
             LOGGER.error("No Ocean Region in request. Check MobileTerminal. No Poll can be executed.");
-            return null;
+            result.setMessage("No Ocean Region in request. Check MobileTerminal. No Poll can be executed.");
+            return result;
         }
 
         Socket socket = null;
@@ -124,11 +125,11 @@ public class InmarsatPollHandler {
             functions.sendPwd(output, pwd);
             functions.readUntil(">", input);
 
-            String result;
+
             // Sends one or more poll commands, one for each ocean region, until a reference number is received.
             for(String oceanRegion : wrkOceanRegions) {
                 result = pollSender.sendPollCommand(poll, input, output, oceanRegion);
-                if (result != null) {
+                if (result.getReference() != null) {
                     LOGGER.info("sendPoll invoked. Reference number : {} ", result);
                     return result;
                 }
@@ -136,6 +137,7 @@ public class InmarsatPollHandler {
         } catch (Throwable t) {
             LOGGER.error("SEND POLL ERROR! pollId: {}", poll.getPollId());
             LOGGER.error(t.toString(), t);
+            result.setMessage("Error sending poll: " + t);
         }
         finally{
             if(output != null)
@@ -148,7 +150,7 @@ public class InmarsatPollHandler {
                 }
             }
         }
-        return null;
+        return result;
     }
 
     private List<String> getOceanRegions(PollType poll) {
