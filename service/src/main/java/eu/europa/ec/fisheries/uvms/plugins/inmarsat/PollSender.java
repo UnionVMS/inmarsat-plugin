@@ -1,10 +1,7 @@
 package eu.europa.ec.fisheries.uvms.plugins.inmarsat;
 
 import eu.europa.ec.fisheries.schema.exchange.plugin.types.v1.PollType;
-import eu.europa.ec.fisheries.uvms.plugins.inmarsat.data.ConfigPoll;
-import eu.europa.ec.fisheries.uvms.plugins.inmarsat.data.InmarsatPoll;
-import eu.europa.ec.fisheries.uvms.plugins.inmarsat.data.InmarsatSocketException;
-import eu.europa.ec.fisheries.uvms.plugins.inmarsat.data.ManualPoll;
+import eu.europa.ec.fisheries.uvms.plugins.inmarsat.data.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -31,15 +28,15 @@ public class PollSender {
      * @return result of first successful poll command, or null if poll failed on every ocean region
      */
 
-    public String sendPollCommand(PollType pollType, BufferedInputStream in, PrintStream out, String oceanRegion) {
+    public PollResponse sendPollCommand(PollType pollType, BufferedInputStream in, PrintStream out, String oceanRegion) {
         InmarsatPoll poll = getPoll(pollType, oceanRegion);
         List<String> pollCommandList = poll.asCommand();
-        String result = null;
+        PollResponse result = new PollResponse();
         try  {
             for (String pollCommand : pollCommandList) {
                 LOGGER.info(pollCommand);
                 result = sendPollCommand(in, out, pollCommand);
-                if (result == null) {
+                if (result.getReference() == null) {
                     LOGGER.info("NO  referencenumber. Message not send");
                 }
                 try {
@@ -50,6 +47,7 @@ public class PollSender {
             }
         } catch (IOException | InmarsatSocketException e) {
             LOGGER.error(e.toString(), e);
+            result.setMessage("Error sending poll: " + e);
         }
         return result;
     }
@@ -71,14 +69,16 @@ public class PollSender {
         return poll;
     }
 
-    private String sendPollCommand(BufferedInputStream bis, PrintStream out, String cmd) throws InmarsatSocketException, IOException {
+    private PollResponse sendPollCommand(BufferedInputStream bis, PrintStream out, String cmd) throws InmarsatSocketException, IOException {
+        PollResponse response = new PollResponse();
         functions.write(cmd, out);
         functions.readUntil("Text:", bis);
         functions.write(".s", out);
         String status = functions.readUntil(">", bis);
-        status = toReferenceNumber(status);
+        response.setMessage(status);
+        response.setReference(toReferenceNumber(status));
         LOGGER.info("Status Number: {}", status);
-        return status;
+        return response;
 
     }
 
