@@ -66,8 +66,4 @@
     <module>module</module>
     <module>commons-les</module>
   </modules>
-  <build>
-    <plugins>
-    </plugins>
-  </build>
 </project>

@@ -26,7 +26,11 @@
                             <artifactId>inmarsat-service</artifactId>
                         </ejbModule>
                     </modules>
-
+                    <archive>
+                        <manifestEntries>
+                            <Logging-Profile>inmarsat</Logging-Profile>
+                        </manifestEntries>
+                    </archive>
                 </configuration>
             </plugin>
         </plugins>
