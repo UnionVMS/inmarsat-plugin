@@ -92,15 +92,19 @@ public class InmarsatMessageListener implements MessageListener {
         MovementBaseType movement = createMovementBaseType(msg, dnidId, membId);
         SetReportMovementType reportType = createSetReportMovementType(messageAsBytes, movement);
 
+        PluginPendingResponseList responseList = inmarsatPollHandler.getPluginPendingResponseList();
+        InmarsatPendingResponse ipr = responseList.containsPollFor(dnidId.getValue(), membId.getValue());
+
+        if (ipr != null) {
+            reportType.setPollRef(ipr.getMsgId());
+        }
+
         if (!sendMovementReportToExchange(reportType)) {
             return; // return if sending fails
         }
 
         // If sending succeeded, check if it was a PollRequest. If so, update PollRequest status.
         // If the report is a pending poll response, also generate a status update for that poll
-
-        PluginPendingResponseList responseList = inmarsatPollHandler.getPluginPendingResponseList();
-        InmarsatPendingResponse ipr = responseList.containsPollFor(dnidId.getValue(), membId.getValue());
 
         if (ipr != null) {
             LOG.info("PendingPollResponse found in list: {}", ipr.getReferenceNumber());

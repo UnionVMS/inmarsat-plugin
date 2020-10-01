@@ -75,7 +75,7 @@ public class InmarsatPollHandler {
                 LOGGER.error("Error no reference for poll with pollId: " + pollType.getPollId());
                 return response; //consumed but erroneous
             }
-            LOGGER.info("sent poll with pollId: {} and reference: {} ", pollType.getPollId(), response);
+            LOGGER.info("sent poll with pollId: {} and reference: {} ", pollType.getPollId(), response.getReference());
 
             if(pollType.getPollTypeType() == PollTypeType.POLL) {
                 constructIPRAndAddInPPRL(command, response.getReference());
@@ -130,7 +130,7 @@ public class InmarsatPollHandler {
             for(String oceanRegion : wrkOceanRegions) {
                 result = pollSender.sendPollCommand(poll, input, output, oceanRegion);
                 if (result.getReference() != null) {
-                    LOGGER.info("sendPoll invoked. Reference number : {} ", result);
+                    LOGGER.info("sendPoll invoked. Reference number : {} ", result.getReference());
                     return result;
                 }
             }
