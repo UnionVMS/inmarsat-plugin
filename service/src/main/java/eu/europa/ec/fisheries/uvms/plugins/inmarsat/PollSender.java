@@ -75,11 +75,20 @@ public class PollSender {
         functions.readUntil("Text:", bis);
         functions.write(".s", out);
         String status = functions.readUntil(">", bis);
+        status = stripUnimportantParts(status);
         response.setMessage(status);
         response.setReference(toReferenceNumber(status));
         LOGGER.info("Status Number: {}", status);
         return response;
 
+    }
+    
+    private static final String END_OF_COMMON_PART = "...";
+
+    private String stripUnimportantParts(String response){
+        int pos = response.indexOf(END_OF_COMMON_PART);
+        if (pos < 0) return response;
+        return response.substring(pos + END_OF_COMMON_PART.length() + 1).trim();  //+1 for catching the newline
     }
 
     private String toReferenceNumber(String response) {
