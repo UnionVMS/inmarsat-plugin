@@ -82,13 +82,13 @@ public class PollSender {
         return response;
 
     }
-    
+
     private static final String END_OF_COMMON_PART = "...";
 
     private String stripUnimportantParts(String response){
         int pos = response.indexOf(END_OF_COMMON_PART);
         if (pos < 0) return response;
-        return response.substring(pos + END_OF_COMMON_PART.length() + 1).trim();  //+1 for catching the newline
+        return response.substring(pos + END_OF_COMMON_PART.length(), response.length() - 2).trim();  //-2 for removing the trailing >
     }
 
     private String toReferenceNumber(String response) {
