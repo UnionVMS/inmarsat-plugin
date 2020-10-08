@@ -47,7 +47,7 @@ public class PollSender {
             }
         } catch (IOException | InmarsatSocketException e) {
             LOGGER.error(e.toString(), e);
-            result.setMessage("Error sending poll: " + e);
+            result.setMessage("Error sending poll: " + stripErrorMessageOfException("" + e));
         }
         return result;
     }
@@ -75,11 +75,20 @@ public class PollSender {
         functions.readUntil("Text:", bis);
         functions.write(".s", out);
         String status = functions.readUntil(">", bis);
+        status = stripUnimportantParts(status);
         response.setMessage(status);
         response.setReference(toReferenceNumber(status));
         LOGGER.info("Status Number: {}", status);
         return response;
 
+    }
+
+    private static final String END_OF_COMMON_PART = "...";
+
+    private String stripUnimportantParts(String response){
+        int pos = response.indexOf(END_OF_COMMON_PART);
+        if (pos < 0) return response;
+        return response.substring(pos + END_OF_COMMON_PART.length(), response.length() - 2).trim();  //-2 for removing the trailing >
     }
 
     private String toReferenceNumber(String response) {
@@ -88,5 +97,11 @@ public class PollSender {
         if (pos < 0) return null;
         reference = response.substring(pos);
         return reference.replaceAll("[^0-9]", ""); // returns 123
+    }
+
+    private String stripErrorMessageOfException(String message){
+        int index = message.indexOf(Constants.RESPONSE_IN_FAULT_PATTERN_ERROR_MESSAGE);
+        if (index < 0) return message;
+        return message.substring(index + Constants.RESPONSE_IN_FAULT_PATTERN_ERROR_MESSAGE.length(), message.length() - 2).trim();
     }
 }
