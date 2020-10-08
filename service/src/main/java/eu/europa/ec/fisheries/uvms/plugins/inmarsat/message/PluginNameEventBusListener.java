@@ -18,10 +18,7 @@ import eu.europa.ec.fisheries.schema.exchange.plugin.v1.*;
 import eu.europa.ec.fisheries.schema.exchange.v1.ExchangeLogStatusTypeType;
 import eu.europa.ec.fisheries.uvms.exchange.model.mapper.ExchangePluginResponseMapper;
 import eu.europa.ec.fisheries.uvms.exchange.model.mapper.JAXBMarshaller;
-import eu.europa.ec.fisheries.uvms.plugins.inmarsat.InmarsatMessageRetriever;
-import eu.europa.ec.fisheries.uvms.plugins.inmarsat.InmarsatPlugin;
-import eu.europa.ec.fisheries.uvms.plugins.inmarsat.InmarsatPollHandler;
-import eu.europa.ec.fisheries.uvms.plugins.inmarsat.SettingsHandler;
+import eu.europa.ec.fisheries.uvms.plugins.inmarsat.*;
 import eu.europa.ec.fisheries.uvms.plugins.inmarsat.data.PollResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -88,7 +85,7 @@ public class PluginNameEventBusListener implements MessageListener {
                             PollResponse pollResponse = inmarsatPollHandler.processCommandTypeAndReturnAck(setCommandRequest.getCommand());
                             AcknowledgeTypeType acknowledgeType = pollResponse.getReference() != null ? AcknowledgeTypeType.OK : AcknowledgeTypeType.NOK;
                             AcknowledgeType setCommandAck = ExchangePluginResponseMapper.mapToAcknowledgeType(setCommandRequest.getCommand().getLogId(), acknowledgeType);
-                            setCommandAck.setMessage(pollResponse.getMessage());
+                            setCommandAck.setMessage(sanitizePollResponseMessage(pollResponse.getMessage()));
                             setCommandAck.setUnsentMessageGuid(setCommandRequest.getCommand().getUnsentMessageGuid());
                             PollStatusAcknowledgeType pollAck = new PollStatusAcknowledgeType();
 
@@ -143,5 +140,11 @@ public class PluginNameEventBusListener implements MessageListener {
         } catch (JMSException ex) {
             LOGGER.error("[ Error when handling JMS message in inmarsat-c " + startup.getRegisterClassName() + " ]", ex);
         }
+    }
+
+    private String sanitizePollResponseMessage(String message){
+        int index = message.indexOf(Constants.RESPONSE_IN_FAULT_PATTERN_ERROR_MESSAGE);
+        if (index < 0) return message;
+        return message.substring(index + Constants.RESPONSE_IN_FAULT_PATTERN_ERROR_MESSAGE.length(), message.length() - 2).trim();
     }
 }
