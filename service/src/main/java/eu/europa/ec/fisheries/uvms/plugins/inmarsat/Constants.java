@@ -10,9 +10,9 @@ public class Constants {
             "[Connection to 41424344 aborted: error status 0]",
             "Illegal address parameter.",
             "Failed: Cannot reach the mobile",
-
             "Cannot reach the mobile",
             "Cannot reach the mobile(s)",
+            "Failed: Mobile not in ocean region",
             "No legal address",
             "No data to send",
             "Number of bytes too large",

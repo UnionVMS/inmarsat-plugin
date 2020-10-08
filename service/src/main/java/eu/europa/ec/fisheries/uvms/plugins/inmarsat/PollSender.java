@@ -47,7 +47,7 @@ public class PollSender {
             }
         } catch (IOException | InmarsatSocketException e) {
             LOGGER.error(e.toString(), e);
-            result.setMessage("Error sending poll: " + e);
+            result.setMessage("Error sending poll: " + stripErrorMessageOfException("" + e));
         }
         return result;
     }
@@ -97,5 +97,11 @@ public class PollSender {
         if (pos < 0) return null;
         reference = response.substring(pos);
         return reference.replaceAll("[^0-9]", ""); // returns 123
+    }
+
+    private String stripErrorMessageOfException(String message){
+        int index = message.indexOf(Constants.RESPONSE_IN_FAULT_PATTERN_ERROR_MESSAGE);
+        if (index < 0) return message;
+        return message.substring(index + Constants.RESPONSE_IN_FAULT_PATTERN_ERROR_MESSAGE.length(), message.length() - 2).trim();
     }
 }
