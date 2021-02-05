@@ -125,6 +125,7 @@ public class InmarsatMessageRetriever {
                                     String messageControl = new String(bos);
                                     int pos = messageControl.indexOf("T&T");
                                     if(pos < 0){
+                                        LOGGER.info(messageControl);
                                         status = "OK";
                                         continue;
                                     }

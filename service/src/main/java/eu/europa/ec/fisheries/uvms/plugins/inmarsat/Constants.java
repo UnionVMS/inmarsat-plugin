@@ -53,7 +53,6 @@ public class Constants {
             "Message has been aborted",
             "Message has been deleted",
             "To much data, please be more specific",
-            "No message(s)",
             "The service is disabled",
             "Invalid time",
             "Missing user acknowledgment",
