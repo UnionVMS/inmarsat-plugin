@@ -71,6 +71,7 @@ public class InmarsatMessageListener implements MessageListener {
 
                     if ((inmarsatMessagesPerOceanRegion != null) && (inmarsatMessagesPerOceanRegion.length > 0)) {
                         for (InmarsatMessage msg : inmarsatMessagesPerOceanRegion) {
+                            LOG.info("Position from DNID: {}, memberNumber: {}", msg.getHeader().getDnid(), msg.getHeader().getMemberNo());
                             try {
                                 msgToQue(msg, payload);
                                 inmarsatIncoming.inc();

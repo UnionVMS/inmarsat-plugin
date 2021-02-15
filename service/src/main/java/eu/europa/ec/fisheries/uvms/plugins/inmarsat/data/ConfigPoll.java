@@ -48,6 +48,7 @@ public class ConfigPoll extends InmarsatPoll {
             if (element.getKey().equalsIgnoreCase("REPORT_FREQUENCY")) {
                 int seconds = Integer.parseInt(element.getValue());
                 frequency = 24 * 60 * 60 / seconds;
+                startFrame = getDefaultStartFrame();
             } else if (element.getKey().equalsIgnoreCase("GRACE_PERIOD")) {
                 int seconds = Integer.parseInt(element.getValue());
                 secondsToStartFrame(seconds);
@@ -87,6 +88,10 @@ public class ConfigPoll extends InmarsatPoll {
             return (int) ((((hour * 60) + minute) * 60) / 8.64);
         }
 
+        return getDefaultStartFrame();
+    }
+
+    private int getDefaultStartFrame() {
         Instant instant = Instant.now().plus(10, ChronoUnit.MINUTES);
         int startHour = instant.atZone(ZoneOffset.UTC).getHour();
         int startMinute = instant.atZone(ZoneOffset.UTC).getMinute();
