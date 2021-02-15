@@ -48,7 +48,9 @@ public class ConfigPoll extends InmarsatPoll {
             if (element.getKey().equalsIgnoreCase("REPORT_FREQUENCY")) {
                 int seconds = Integer.parseInt(element.getValue());
                 frequency = 24 * 60 * 60 / seconds;
-                startFrame = getDefaultStartFrame();
+                if (startFrame == 0) {
+                    startFrame = getDefaultStartFrame();
+                }
             } else if (element.getKey().equalsIgnoreCase("GRACE_PERIOD")) {
                 int seconds = Integer.parseInt(element.getValue());
                 secondsToStartFrame(seconds);
