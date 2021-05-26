@@ -1,6 +1,5 @@
 package eu.europa.ec.fisheries.uvms.plugins.inmarsat;
 
-import eu.europa.ec.fisheries.schema.exchange.common.v1.AcknowledgeTypeType;
 import eu.europa.ec.fisheries.schema.exchange.common.v1.CommandType;
 import eu.europa.ec.fisheries.schema.exchange.common.v1.KeyValueType;
 import eu.europa.ec.fisheries.schema.exchange.plugin.types.v1.PollType;
@@ -15,6 +14,7 @@ import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.net.Socket;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
@@ -191,6 +191,7 @@ public class InmarsatPollHandler {
             }
         }
         ipr.setStatus(StatusEnum.PENDING);
+        ipr.setCreatedAt(Instant.now());
         return ipr;
     }
 }
