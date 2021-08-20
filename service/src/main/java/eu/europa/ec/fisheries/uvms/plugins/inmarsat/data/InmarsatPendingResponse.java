@@ -13,9 +13,9 @@ package eu.europa.ec.fisheries.uvms.plugins.inmarsat.data;
 
 import eu.europa.ec.fisheries.schema.exchange.plugin.types.v1.PollType;
 
-import java.io.Serializable;
+import java.time.Instant;
 
-public class InmarsatPendingResponse implements Serializable {
+public class InmarsatPendingResponse {
 
     private PollType poll;
     private String msgId;
@@ -25,6 +25,7 @@ public class InmarsatPendingResponse implements Serializable {
     private String mobTermId;
     private String dnId;
     private String membId;
+    private Instant createdAt;
 
     public String getMobTermId() {
         return mobTermId;
@@ -101,6 +102,14 @@ public class InmarsatPendingResponse implements Serializable {
 
     public void setUnsentMsgId(String unsentMsgId) {
         this.unsentMsgId = unsentMsgId;
+    }
+
+    public Instant getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(Instant createdAt) {
+        this.createdAt = createdAt;
     }
 
     @Override

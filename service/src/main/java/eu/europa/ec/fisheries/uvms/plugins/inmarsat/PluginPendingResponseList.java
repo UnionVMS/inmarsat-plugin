@@ -5,6 +5,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.ejb.LocalBean;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -12,6 +14,9 @@ import java.util.List;
 public class PluginPendingResponseList {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(PluginPendingResponseList.class);
+
+    private static final long PENDING_RESPONSE_TTL_MINUTES = 8L;
+
     private ArrayList<InmarsatPendingResponse> pending = new ArrayList<>();
 
     public void addPendingPollResponse(InmarsatPendingResponse resp) {
@@ -34,6 +39,9 @@ public class PluginPendingResponseList {
     }
 
     public InmarsatPendingResponse containsPollFor(String dnid, String memberId) {
+        // Remove stale items
+        pending.removeIf(p -> Duration.between(p.getCreatedAt(), Instant.now())
+                                .toMinutes() > PENDING_RESPONSE_TTL_MINUTES);
         for (InmarsatPendingResponse element : pending) {
             if (element.getDnId().equalsIgnoreCase(dnid) && element.getMembId().equalsIgnoreCase(memberId)) {
                 return element;

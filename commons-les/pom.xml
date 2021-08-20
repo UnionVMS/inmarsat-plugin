@@ -3,7 +3,7 @@
     <parent>
         <artifactId>inmarsat</artifactId>
         <groupId>eu.europa.ec.fisheries.uvms.plugins</groupId>
-        <version>3.1.8-SNAPSHOT</version>
+        <version>3.1.10-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
@@ -21,9 +21,12 @@
             <artifactId>exchange-model</artifactId>
             <scope>test</scope>
         </dependency>
-
+        <dependency>
+            <groupId>com.sun.xml.bind</groupId>
+            <artifactId>jaxb-impl</artifactId>
+            <version>2.3.3</version>
+            <scope>test</scope>
+        </dependency>
 
     </dependencies>
-
-
 </project>
