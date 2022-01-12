@@ -1,12 +1,12 @@
 package eu.europa.ec.fisheries.uvms.plugins.inmarsat;
 
-import java.util.concurrent.TimeUnit;
+import java.time.Duration;
 
 public class Constants {
 
     private Constants() {}
 
-    public static final int SOCKET_TIMEOUT = (int) TimeUnit.MINUTES.toMillis(10);
+    public static final int SOCKET_TIMEOUT = (int) Duration.ofMinutes(10).toMillis();
 
     public static final String RESPONSE_IN_FAULT_PATTERN_ERROR_MESSAGE = "Error while reading from Inmarsat-C LES Telnet @ :";
 
