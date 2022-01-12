@@ -21,6 +21,7 @@ import java.io.BufferedInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.nio.ByteBuffer;
 import java.util.*;
@@ -99,7 +100,9 @@ public class InmarsatMessageRetriever {
                 String user = settingsHandler.getSetting("USERNAME", getRegisterClassName());
                 String pwd = settingsHandler.getSetting("PSW", getRegisterClassName());
 
-                socket = new Socket(url, Integer.parseInt(port));
+                socket = new Socket();
+                socket.connect(new InetSocketAddress(url, Integer.parseInt(port)), Constants.SOCKET_TIMEOUT);
+                socket.setSoTimeout(Constants.SOCKET_TIMEOUT);
 
                 // logon
                 BufferedInputStream input = new BufferedInputStream(socket.getInputStream());
