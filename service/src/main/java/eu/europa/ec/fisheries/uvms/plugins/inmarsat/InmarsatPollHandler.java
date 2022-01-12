@@ -13,6 +13,7 @@ import javax.inject.Inject;
 import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -115,7 +116,9 @@ public class InmarsatPollHandler {
 
         PrintStream output = null;
         try{
-            socket = new Socket(url, port);
+            socket = new Socket();
+            socket.connect(new InetSocketAddress(url, port), Constants.SOCKET_TIMEOUT);
+            socket.setSoTimeout(Constants.SOCKET_TIMEOUT);
             // Logon
             BufferedInputStream input = new BufferedInputStream(socket.getInputStream());
             output = new PrintStream(socket.getOutputStream());

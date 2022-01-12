@@ -37,7 +37,8 @@ import javax.jms.TextMessage;
         @ActivationConfigProperty(propertyName = "messageSelector", propertyValue = "ServiceName='eu.europa.ec.fisheries.uvms.plugins.inmarsat'"),
         @ActivationConfigProperty(propertyName = "subscriptionDurability", propertyValue = "Durable"),
         @ActivationConfigProperty(propertyName = "destinationLookup", propertyValue = "jms/topic/EventBus"),
-        @ActivationConfigProperty(propertyName = "destinationType", propertyValue = "javax.jms.Topic")
+        @ActivationConfigProperty(propertyName = "destinationType", propertyValue = "javax.jms.Topic"),
+        @ActivationConfigProperty(propertyName = "maxSession", propertyValue = "1")
 })
 public class PluginNameEventBusListener implements MessageListener {
 
